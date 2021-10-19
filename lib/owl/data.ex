@@ -18,12 +18,14 @@ defmodule Owl.Data do
     padding_bottom = Keyword.get(opts, :padding_bottom, 0)
     padding_left = Keyword.get(opts, :padding_left, 2)
     padding_right = Keyword.get(opts, :padding_right, 2)
+    min_length = Keyword.get(opts, :min_length, 0)
+    align = Keyword.get(opts, :align, :left)
 
     lines =
       (List.duplicate([], padding_top) ++ split(data, "\n") ++ List.duplicate([], padding_bottom))
       |> Enum.map(&{&1, Owl.Data.length(&1)})
 
-    max_line_length = lines |> Enum.map(&elem(&1, 1)) |> Enum.max()
+    max_line_length = Enum.max([min_length | Enum.map(lines, &elem(&1, 1))])
 
     [
       @box_symbols.top_left,
@@ -32,11 +34,24 @@ defmodule Owl.Data do
       "\n",
       lines
       |> Enum.map(fn {line, length} ->
+        {padding_before, padding_after} =
+          case align do
+            :left ->
+              {padding_left, max_line_length - length + padding_right}
+
+            :right ->
+              {max_line_length - length + padding_left, padding_right}
+
+            :center ->
+              to_center = div(max_line_length - length, 2)
+              {padding_left + to_center, max_line_length - length - to_center + padding_right}
+          end
+
         [
           @box_symbols.left,
-          String.duplicate(" ", padding_left),
+          String.duplicate(" ", padding_before),
           line,
-          String.duplicate(" ", max_line_length - length + padding_right),
+          String.duplicate(" ", padding_after),
           @box_symbols.right
         ]
       end)
