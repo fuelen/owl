@@ -1,6 +1,6 @@
 defmodule Owl.Data do
-  def tag(sequences, data) do
-    Owl.Data.Tag.new(sequences, data)
+  def tag(data, sequences) do
+    Owl.Data.Tag.new(data, sequences)
   end
 
   @box_symbols %{
@@ -115,11 +115,11 @@ defmodule Owl.Data do
   defp maybe_wrap_to_tag([], data), do: data
 
   defp maybe_wrap_to_tag(sequences1, [%Owl.Data.Tag{sequences: sequences2, data: data}]) do
-    Owl.Data.Tag.new(collapse_sequences(sequences1 ++ sequences2), data)
+    Owl.Data.Tag.new(data, collapse_sequences(sequences1 ++ sequences2))
   end
 
   defp maybe_wrap_to_tag(sequences, data) do
-    Owl.Data.Tag.new(collapse_sequences(sequences), data)
+    Owl.Data.Tag.new(data, collapse_sequences(sequences))
   end
 
   defp reverse_and_tag(sequences, [%Owl.Data.Tag{sequences: last_sequences} | _] = data) do

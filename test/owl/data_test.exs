@@ -2,28 +2,31 @@ defmodule Owl.DataTest do
   use ExUnit.Case
 
   test inspect(&Owl.Data.length/2) do
-    assert Owl.Data.length(Owl.Data.tag(:green, "one")) == 3
-    assert Owl.Data.length(Owl.Data.tag(:green, ["one", "two"])) == 6
+    assert Owl.Data.length(Owl.Data.tag("one", :green)) == 3
+    assert Owl.Data.length(Owl.Data.tag(["one", "two"], :green)) == 6
 
     assert Owl.Data.length([
              "one",
              ["two", "three"],
-             Owl.Data.tag(:green, ["four", "five"]),
+             Owl.Data.tag(["four", "five"], :green),
              "six"
            ]) == 22
   end
 
   test inspect(&Owl.Data.add_prefix/2) do
     data =
-      Owl.Data.tag(:green, [
-        "hi",
-        "a\nand new",
-        " line ",
-        Owl.Data.tag(:red, " hey\n aloha"),
-        "!!"
-      ])
+      Owl.Data.tag(
+        [
+          "hi",
+          "a\nand new",
+          " line ",
+          Owl.Data.tag(" hey\n aloha", :red),
+          "!!"
+        ],
+        :green
+      )
 
-    assert data |> Owl.Data.add_prefix(Owl.Data.tag(:yellow, "PREFIX: ")) == [
+    assert data |> Owl.Data.add_prefix(Owl.Data.tag("PREFIX: ", :yellow)) == [
              [
                %Owl.Data.Tag{data: "PREFIX: ", sequences: [:yellow]},
                %Owl.Data.Tag{data: ["hi", "a"], sequences: [:green]}
@@ -62,14 +65,14 @@ defmodule Owl.DataTest do
     end
 
     test "2" do
-      assert Owl.Data.split(Owl.Data.tag(:green, "first\nsecond\nthird"), "\n") ==
+      assert Owl.Data.split(Owl.Data.tag("first\nsecond\nthird", :green), "\n") ==
                [
                  %Owl.Data.Tag{data: ["first"], sequences: [:green]},
                  %Owl.Data.Tag{data: ["second"], sequences: [:green]},
                  %Owl.Data.Tag{data: ["third"], sequences: [:green]}
                ]
 
-      assert Owl.Data.split(Owl.Data.tag(:green, ["first", "\n", "second", "aloha"]), "\n") == [
+      assert Owl.Data.split(Owl.Data.tag(["first", "\n", "second", "aloha"], :green), "\n") == [
                %Owl.Data.Tag{data: ["first"], sequences: [:green]},
                %Owl.Data.Tag{data: ["second", "aloha"], sequences: [:green]}
              ]
@@ -77,31 +80,37 @@ defmodule Owl.DataTest do
 
     test "3" do
       assert Owl.Data.split(
-               Owl.Data.tag(:green, [
-                 "hi",
-                 "a\nand new",
-                 " line ",
-                 Owl.Data.tag(:red, " hey\n aloha"),
-                 "!!"
-               ]),
+               Owl.Data.tag(
+                 [
+                   "hi",
+                   "a\nand new",
+                   " line ",
+                   Owl.Data.tag(" hey\n aloha", :red),
+                   "!!"
+                 ],
+                 :green
+               ),
                "\n"
              ) == [
                %Owl.Data.Tag{data: ["hi", "a"], sequences: [:green]},
                %Owl.Data.Tag{
-                 data: ["and new", " line ", Owl.Data.tag(:red, [" hey"])],
+                 data: ["and new", " line ", Owl.Data.tag([" hey"], :red)],
                  sequences: [:green]
                },
-               %Owl.Data.Tag{data: [Owl.Data.tag(:red, [" aloha"]), "!!"], sequences: [:green]}
+               %Owl.Data.Tag{data: [Owl.Data.tag([" aloha"], :red), "!!"], sequences: [:green]}
              ]
     end
 
     test "4" do
       assert Owl.Data.split(
                [
-                 Owl.Data.tag(:green, [
-                   Owl.Data.tag(:blue_background, ["one two three"]),
-                   " four"
-                 ])
+                 Owl.Data.tag(
+                   [
+                     Owl.Data.tag(["one two three"], :blue_background),
+                     " four"
+                   ],
+                   :green
+                 )
                ],
                " "
              ) == [
@@ -116,12 +125,15 @@ defmodule Owl.DataTest do
       assert Owl.Data.split(
                [
                  "one ",
-                 Owl.Data.tag(:blue_background, [
-                   "two three",
-                   Owl.Data.tag(:yellow_background, ["four", Owl.Data.tag(:red, [" five six"])])
-                 ]),
+                 Owl.Data.tag(
+                   [
+                     "two three",
+                     Owl.Data.tag(["four", Owl.Data.tag([" five six"], :red)], :yellow_background)
+                   ],
+                   :blue_background
+                 ),
                  " seven eight",
-                 Owl.Data.tag(:blue_background, [" nine ten"])
+                 Owl.Data.tag([" nine ten"], :blue_background)
                ],
                " "
              ) ==
