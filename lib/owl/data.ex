@@ -1,128 +1,164 @@
 defmodule Owl.Data do
-  def tag(data, sequences) do
-    Owl.Data.Tag.new(data, sequences)
+  @moduledoc """
+  A set of functions for `t:iodata/0` with tags.
+  """
+
+  @typedoc """
+  A recursive data type that is similar to  `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
+
+  Can be written to stdout using `Owl.IO.puts/2`.
+  """
+  # improper lists are now here, just because they were not tested
+  @type t :: [binary() | number() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t())
+
+  @doc """
+  Zips corresponding lines into 1 line.
+
+  The zipping finishes as soon as either data completes.
+
+  ## Examples
+
+      iex> Owl.Data.zip("a\\nb\\nc", "d\\ne\\nf")
+      [["a", "d"], "\\n", ["b", "e"], "\\n", ["c", "f"]]
+
+      iex> Owl.Data.zip("a\\nb", "c")
+      [["a", "c"]]
+
+      iex> 1..3 |> Enum.map(&Owl.Box.new/1) |> Enum.reduce(&Owl.Data.zip/2) |> to_string()
+      \"""
+      ┌─┐┌─┐┌─┐
+      │3││2││1│
+      └─┘└─┘└─┘
+      \""" |> String.trim_trailing()
+  """
+  @spec zip(t(), t()) :: t()
+  def zip(data1, data2) do
+    lines1 = lines(data1)
+    lines2 = lines(data2)
+
+    lines1
+    |> Enum.zip_with(lines2, &[&1, &2])
+    |> Enum.intersperse("\n")
   end
 
-  @box_symbols %{
-    top_left: "┌",
-    top: "─",
-    top_right: "┐",
-    right: "│",
-    left: "│",
-    bottom_left: "└",
-    bottom: "─",
-    bottom_right: "┘"
-  }
-  def box(data, opts \\ []) do
-    padding_top = Keyword.get(opts, :padding_top, 0)
-    padding_bottom = Keyword.get(opts, :padding_bottom, 0)
-    padding_left = Keyword.get(opts, :padding_left, 2)
-    padding_right = Keyword.get(opts, :padding_right, 2)
-    min_length = Keyword.get(opts, :min_length, 0)
-    align = Keyword.get(opts, :align, :left)
+  @doc """
+  Returns length of the data.
 
-    lines =
-      (List.duplicate([], padding_top) ++ split(data, "\n") ++ List.duplicate([], padding_bottom))
-      |> Enum.map(&{&1, Owl.Data.length(&1)})
+  ## Examples
 
-    max_line_length = Enum.max([min_length | Enum.map(lines, &elem(&1, 1))])
+      iex> Owl.Data.length(321)
+      3
 
-    [
-      @box_symbols.top_left,
-      String.duplicate(@box_symbols.top, max_line_length + padding_left + padding_right),
-      @box_symbols.top_right,
-      "\n",
-      lines
-      |> Enum.map(fn {line, length} ->
-        {padding_before, padding_after} =
-          case align do
-            :left ->
-              {padding_left, max_line_length - length + padding_right}
+      iex> Owl.Data.length(["222"])
+      3
 
-            :right ->
-              {max_line_length - length + padding_left, padding_right}
-
-            :center ->
-              to_center = div(max_line_length - length, 2)
-              {padding_left + to_center, max_line_length - length - to_center + padding_right}
-          end
-
-        [
-          @box_symbols.left,
-          String.duplicate(" ", padding_before),
-          line,
-          String.duplicate(" ", padding_after),
-          @box_symbols.right
-        ]
-      end)
-      |> Enum.intersperse("\n"),
-      "\n",
-      @box_symbols.bottom_left,
-      String.duplicate(@box_symbols.bottom, max_line_length + padding_left + padding_right),
-      @box_symbols.bottom_right
-    ]
-  end
-
+      iex> Owl.Data.length(["222", Owl.Tag.new(["333", "444"], :green)])
+      9
+  """
+  @spec length(t()) :: non_neg_integer()
   def length(data) when is_binary(data) do
     String.length(data)
+  end
+
+  def length(data) when is_number(data) do
+    Owl.Data.length(to_string(data))
   end
 
   def length(data) when is_list(data) do
     Enum.reduce(data, 0, fn item, acc -> Owl.Data.length(item) + acc end)
   end
 
-  def length(%Owl.Data.Tag{data: data}) do
+  def length(%Owl.Tag{data: data}) do
     Owl.Data.length(data)
   end
 
+  @doc """
+  Splits data by new lines.
+
+  A special case of `split/2`.
+
+  ## Example
+
+      iex> Owl.Data.lines(["first\\nsecond\\n", Owl.Tag.new("third\\nfourth", :red)])
+      ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
+  """
+  @spec lines(t()) :: [t()]
+  def lines(data) do
+    split(data, "\n")
+  end
+
+  @doc """
+  Adds a `prefix` before each line of the `data`.
+
+  An important feature is that styling of the data will be saved for each line.
+
+  ## Example
+
+      iex> "first\\nsecond" |> Owl.Tag.new(:red) |> Owl.Data.add_prefix(Owl.Tag.new("test: ", :yellow))
+      [
+        [Owl.Tag.new("test: ", :yellow), Owl.Tag.new(["first"], :red)],
+        "\\n",
+        [Owl.Tag.new("test: ", :yellow), Owl.Tag.new(["second"], :red)]
+      ]
+  """
+  @spec add_prefix(t(), t()) :: t()
   def add_prefix(data, prefix) do
     data
-    |> split("\n")
-    |> Enum.map(fn line ->
-      [prefix, line]
-    end)
+    |> lines()
+    |> Enum.map(fn line -> [prefix, line] end)
     |> Enum.intersperse("\n")
   end
 
-  def to_iodata(data) do
+  @doc """
+  Transforms data to `t:IO.ANSI.ansidata/0` format which can be consumed by `IO` module.
+
+  ## Examples
+
+      iex> "hello" |> Owl.Tag.new([:red, :cyan_background]) |> Owl.Data.to_ansidata()
+      [[[[[[[] | "\e[46m"] | "\e[31m"], "hello"] | "\e[39m"] | "\e[49m"] | "\e[0m"]
+
+  """
+  @spec to_ansidata(t()) :: IO.ANSI.ansidata()
+  def to_ansidata(data) do
+    # split by \n and then intersperse is needed in order to break background and do not spread to the end of the line
     data
-    |> split("\n")
+    |> lines()
     |> Enum.intersperse("\n")
-    |> do_to_iodata(%{foreground: :default_color, background: :default_background})
+    |> do_to_ansidata(%{foreground: :default_color, background: :default_background})
     |> IO.ANSI.format()
   end
 
-  defp do_to_iodata(
-         %Owl.Data.Tag{sequences: sequences, data: data},
+  defp do_to_ansidata(
+         %Owl.Tag{sequences: sequences, data: data},
          %{foreground: fg, background: bg}
        ) do
     parent_sequences = Enum.reject([fg, bg], &is_nil/1)
 
     [
       sequences,
-      do_to_iodata(data, sequences_to_state(parent_sequences ++ sequences)),
+      do_to_ansidata(data, sequences_to_state(parent_sequences ++ sequences)),
       parent_sequences
     ]
   end
 
-  defp do_to_iodata([head | tail], state) do
-    [do_to_iodata(head, state) | do_to_iodata(tail, state)]
+  defp do_to_ansidata([head | tail], state) do
+    [do_to_ansidata(head, state) | do_to_ansidata(tail, state)]
   end
 
-  defp do_to_iodata(term, _state), do: term
+  defp do_to_ansidata(term, _state), do: term
 
   defp maybe_wrap_to_tag([], [element]), do: element
   defp maybe_wrap_to_tag([], data), do: data
 
-  defp maybe_wrap_to_tag(sequences1, [%Owl.Data.Tag{sequences: sequences2, data: data}]) do
-    Owl.Data.Tag.new(data, collapse_sequences(sequences1 ++ sequences2))
+  defp maybe_wrap_to_tag(sequences1, [%Owl.Tag{sequences: sequences2, data: data}]) do
+    Owl.Tag.new(data, collapse_sequences(sequences1 ++ sequences2))
   end
 
   defp maybe_wrap_to_tag(sequences, data) do
-    Owl.Data.Tag.new(data, collapse_sequences(sequences))
+    Owl.Tag.new(data, collapse_sequences(sequences))
   end
 
-  defp reverse_and_tag(sequences, [%Owl.Data.Tag{sequences: last_sequences} | _] = data) do
+  defp reverse_and_tag(sequences, [%Owl.Tag{sequences: last_sequences} | _] = data) do
     maybe_wrap_to_tag(sequences -- last_sequences, Enum.reverse(data))
   end
 
@@ -138,6 +174,15 @@ defmodule Owl.Data do
     |> Enum.reject(&is_nil/1)
   end
 
+
+  @doc """
+  Divides data into parts based on a pattern saving sequences for tagged data in new tags.
+
+  ## Example
+
+      iex> Owl.Data.split(["first second ", Owl.Tag.new("third fourth", :red)], " ")
+      ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
+  """
   def split(data, pattern), do: split(data, pattern, [])
   defp split([], _pattern, _acc_sequences), do: []
 
@@ -167,13 +212,13 @@ defmodule Owl.Data do
 
         new_acc_sequences =
           case new_head do
-            [%Owl.Data.Tag{sequences: sequences} | _] -> new_acc_sequences -- sequences
+            [%Owl.Tag{sequences: sequences} | _] -> new_acc_sequences -- sequences
             _ -> new_acc_sequences
           end
 
         new_head =
           case new_head do
-            [%Owl.Data.Tag{data: []} | rest] -> rest
+            [%Owl.Tag{data: []} | rest] -> rest
             list -> list
           end
 
@@ -186,7 +231,7 @@ defmodule Owl.Data do
   end
 
   defp do_split(
-         %Owl.Data.Tag{sequences: sequences, data: data},
+         %Owl.Tag{sequences: sequences, data: data},
          pattern,
          acc,
          acc_sequences
@@ -198,7 +243,7 @@ defmodule Owl.Data do
 
     next_acc_sequences =
       case {before_pattern, after_pattern} do
-        {%Owl.Data.Tag{sequences: sequences}, []} -> next_acc_sequences -- sequences
+        {%Owl.Tag{sequences: sequences}, []} -> next_acc_sequences -- sequences
         {_, []} -> acc_sequences
         {_, _} -> next_acc_sequences
       end
@@ -217,6 +262,10 @@ defmodule Owl.Data do
       tail,
       acc_sequences
     }
+  end
+
+  defp do_split(value, pattern, acc, acc_sequences) when is_number(value) do
+    do_split(to_string(value), pattern, acc, acc_sequences)
   end
 
   defp sequences_to_state(sequences) do
