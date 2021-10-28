@@ -28,12 +28,13 @@ defmodule Owl.Palette do
       light_color = :"light_#{color}"
 
       [
-        Owl.Tag.new(@demo_block, color), " #{String.pad_trailing(to_string(color), 13)}",
+        Owl.Tag.new(@demo_block, color),
+        " #{String.pad_trailing(to_string(color), 13)}",
         Owl.Tag.new(@demo_block, light_color),
         " #{String.pad_trailing(to_string(light_color), 13)}    "
       ]
     end)
-    |> Enum.intersperse("\n")
+    |> Owl.Data.unlines()
   end
 
   @doc """

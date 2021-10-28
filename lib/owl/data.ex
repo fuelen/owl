@@ -6,10 +6,10 @@ defmodule Owl.Data do
   @typedoc """
   A recursive data type that is similar to  `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
 
-  Can be written to stdout using `Owl.IO.puts/2`.
+  Can be written to stdout using `Owl.IO.puts/1`.
   """
   # improper lists are now here, just because they were not tested
-  @type t :: [binary() | number() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t())
+  @type t :: [binary() | number() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t()) | binary()
 
   @doc """
   Zips corresponding lines into 1 line.
@@ -38,7 +38,7 @@ defmodule Owl.Data do
 
     lines1
     |> Enum.zip_with(lines2, &[&1, &2])
-    |> Enum.intersperse("\n")
+    |> unlines()
   end
 
   @doc """
@@ -87,6 +87,10 @@ defmodule Owl.Data do
     split(data, "\n")
   end
 
+  def unlines(data) do
+    Enum.intersperse(data, "\n")
+  end
+
   @doc """
   Adds a `prefix` before each line of the `data`.
 
@@ -106,7 +110,7 @@ defmodule Owl.Data do
     data
     |> lines()
     |> Enum.map(fn line -> [prefix, line] end)
-    |> Enum.intersperse("\n")
+    |> unlines()
   end
 
   @doc """
@@ -123,7 +127,7 @@ defmodule Owl.Data do
     # split by \n and then intersperse is needed in order to break background and do not spread to the end of the line
     data
     |> lines()
-    |> Enum.intersperse("\n")
+    |> unlines()
     |> do_to_ansidata(%{foreground: :default_color, background: :default_background})
     |> IO.ANSI.format()
   end
@@ -173,7 +177,6 @@ defmodule Owl.Data do
     |> Map.values()
     |> Enum.reject(&is_nil/1)
   end
-
 
   @doc """
   Divides data into parts based on a pattern saving sequences for tagged data in new tags.

@@ -20,7 +20,8 @@ defmodule Owl.System do
       {"1\\n", 0}
 
   """
-  @spec cmd(binary(), [binary()], keyword()) :: {Collectable.t(), exit_status :: non_neg_integer()}
+  @spec cmd(binary(), [binary()], keyword()) ::
+          {Collectable.t(), exit_status :: non_neg_integer()}
   def cmd(command, args, opts \\ []) do
     log_shell_command(command, args)
     System.cmd(command, args, opts)
@@ -29,15 +30,19 @@ defmodule Owl.System do
   defp log_shell_command(command, args) do
     command =
       case args do
-        [] -> command
+        [] ->
+          command
+
         args ->
-          args = Enum.map_join(args, " ", fn arg ->
-            if String.contains?(arg, [" ", ";"]) do
-              "'" <> String.replace(arg, "'", "'\\''") <> "'"
-            else
-              arg
-            end
-          end)
+          args =
+            Enum.map_join(args, " ", fn arg ->
+              if String.contains?(arg, [" ", ";"]) do
+                "'" <> String.replace(arg, "'", "'\\''") <> "'"
+              else
+                arg
+              end
+            end)
+
           "#{command} #{args}"
       end
 

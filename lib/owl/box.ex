@@ -201,7 +201,7 @@ defmodule Owl.Box do
           border_symbols.right
         ]
       end)
-      |> Enum.intersperse("\n"),
+      |> Owl.Data.unlines(),
       bottom_border
     ]
   end
