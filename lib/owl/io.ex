@@ -1,19 +1,16 @@
 defmodule Owl.IO do
   @moduledoc "A set of functions for handling IO with support of `t:Owl.Data.t/0`"
 
-  @type select_opt :: {:label, Owl.Data.t()} | {:as, (any() -> Owl.Data.t())}
-
+  @type select_option :: {:label, Owl.Data.t() | nil} | {:render_as, (any() -> Owl.Data.t())}
   @doc """
-  Selects one of the suggested items.
-
-  Returns `nil` if empty list is given.
+  Selects one item from the given nonempty list.
 
   Returns value immediatelly if list contains only 1 element.
 
   ## Options
 
   * `:label` - a text label. Defaults to `nil` (no label).
-  * `:as` - a function that renders given item. Defaults to `Function.identity/1`.
+  * `:render_as` - a function that renders given item. Defaults to `Function.identity/1`.
 
   ## Examples
 
@@ -29,7 +26,7 @@ defmodule Owl.IO do
       ~D[2001-01-01]
       |> Date.range(~D[2001-01-03])
       |> Enum.to_list()
-      |> Owl.IO.select(as: &Date.to_iso8601/1, label: "Please select a date")
+      |> Owl.IO.select(render_as: &Date.to_iso8601/1, label: "Please select a date")
       #=> 1. 2001-01-01
       #=> 2. 2001-01-02
       #=> 3. 2001-01-03
@@ -45,7 +42,7 @@ defmodule Owl.IO do
         %{name: "neovim", description: "fork of vim"}
       ]
       Owl.IO.select(packages,
-        as: fn %{name: name, description: description} ->
+        render_as: fn %{name: name, description: description} ->
           [Owl.Tag.new(name, :cyan), "\\n  ", Owl.Tag.new(description, :light_black)]
         end
       )
@@ -59,38 +56,129 @@ defmodule Owl.IO do
       #=> > 3
       %{description: "fork of vim", name: "neovim"}
   """
-  @spec select([], [select_opt()]) :: nil
-  @spec select([item], [select_opt()]) :: item when item: any()
-  def select(list, opts \\ []) do
+  @spec select(nonempty_list(item), [select_option()]) :: item when item: any()
+  def select([_ | _] = list, opts \\ []) do
     label = Keyword.get(opts, :label)
-    render_item = Keyword.get(opts, :as, &Function.identity/1)
+    render_item = Keyword.get(opts, :render_as, &Function.identity/1)
 
     case list do
-      [] ->
-        nil
-
       [item] ->
+        puts(label)
         puts("Autoselect: #{render_item.(item)}")
         item
 
       list ->
         list
         |> Enum.with_index(1)
-        |> Enum.map(fn {item, index} ->
-          rendered_item = render_item.(item)
-
-          [Owl.Tag.new(index, :blue), ". "]
-          |> Owl.Box.new(border_style: :none, min_height: length(Owl.Data.lines(rendered_item)))
-          |> Owl.Data.zip(rendered_item)
-        end)
-        |> Owl.Data.unlines()
-        |> puts()
+        |> puts_ordered_list(render_item)
 
         IO.puts([])
 
-        index = input(cast: {:integer, bounds: 1..length(list)}, label: label) - 1
+        index = input(cast: {:integer, min: 1, max: length(list)}, label: label) - 1
         Enum.at(list, index)
     end
+  end
+
+  @type multiselect_option ::
+          {:label, Owl.Data.t() | nil}
+          | {:render_as, (any() -> Owl.Data.t())}
+          | {:min, non_neg_integer() | nil}
+          | {:max, non_neg_integer() | nil}
+
+  @doc """
+  Select multiple values from the given nonempty list.
+
+  Input item numbers must be separated by any non-digit character. Most likely you'd want to use spaces or commas.
+
+  ## Options
+
+  * `:label` - a text label. Defaults to `nil` (no label).
+  * `:render_as` - a function that renders given item. Defaults to `Function.identity/1`.
+  * `:min` - a minimum output list length. Defaults to `nil` (no lower bound).
+  * `:max` - a maximum output list length. Defaults to `nil` (no upper bound).
+
+  ## Example
+
+      Owl.IO.multiselect(["one", "two", "three"], min: 2, label: "Select 2 numbers:", render_as: &String.upcase/1)
+      #=> 1. ONE
+      #=> 2. TWO
+      #=> 3. THREE
+      #=>
+      #=> Select 2 numbers:
+      #=> > 1
+      #=> the number of elements must be greater than or equal to 2
+      #=> Select 2 numbers:
+      #=> > 1 3
+      ["one", "three"]
+  """
+  @spec multiselect(nonempty_list(item), [multiselect_option()]) :: [item] when item: any()
+  def multiselect([_ | _] = list, opts \\ []) do
+    label = Keyword.get(opts, :label)
+    render_item = Keyword.get(opts, :render_as, &Function.identity/1)
+    min_elements = Keyword.get(opts, :min)
+    max_elements = Keyword.get(opts, :max)
+
+    ordered_list = Enum.with_index(list, 1)
+    indexed_values = Map.new(ordered_list, fn {value, index} -> {index, value} end)
+    list_size = map_size(indexed_values)
+
+    if is_integer(min_elements) and min_elements > list_size do
+      raise ArgumentError, "input list must contain at least #{min_elements} elements"
+    end
+
+    puts_ordered_list(ordered_list, render_item)
+
+    IO.puts([])
+
+    bounds = 1..list_size
+
+    numbers =
+      input(
+        cast: &cast_multiselect_input(&1, bounds, min_elements, max_elements),
+        label: label,
+        optional: true
+      )
+
+    indexed_values |> Map.take(numbers) |> Map.values()
+  end
+
+  defp cast_multiselect_input(value, bounds, min_elements, max_elements) do
+    numbers =
+      ~r/\d+/
+      |> Regex.scan(to_string(value))
+      |> List.flatten()
+      |> Enum.map(fn string ->
+        {number, ""} = Integer.parse(string)
+        number
+      end)
+
+    case Enum.reject(numbers, &(&1 in bounds)) do
+      [] ->
+        numbers_length = length(numbers)
+
+        with :ok <- validate_bounds(numbers_length, :min, min_elements),
+             :ok <- validate_bounds(numbers_length, :max, max_elements) do
+          {:ok, numbers}
+        else
+          {:error, reason} -> {:error, "the number of elements #{reason}"}
+        end
+
+      invalid_numbers ->
+        {:error, "unknown values: #{inspect(invalid_numbers)}"}
+    end
+  end
+
+  defp puts_ordered_list(ordered_list, render_item) do
+    ordered_list
+    |> Enum.map(fn {item, index} ->
+      rendered_item = render_item.(item)
+
+      [Owl.Tag.new(index, :blue), ". "]
+      |> Owl.Box.new(border_style: :none, min_height: length(Owl.Data.lines(rendered_item)))
+      |> Owl.Data.zip(rendered_item)
+    end)
+    |> Owl.Data.unlines()
+    |> puts()
   end
 
   @doc """
@@ -136,7 +224,7 @@ defmodule Owl.IO do
     |> binary_part(0, length)
   end
 
-  @type confirm_opt :: {:message, Owl.Data.t()} | {:default, boolean()}
+  @type confirm_option :: {:message, Owl.Data.t()} | {:default, boolean()}
 
   @default_confirmation_message "Are you sure?"
   @doc """
@@ -159,7 +247,7 @@ defmodule Owl.IO do
       #=> Really? [Yn]
       true
   """
-  @spec confirm([confirm_opt()]) :: boolean()
+  @spec confirm([confirm_option()]) :: boolean()
   def confirm(opts \\ []) do
     message = Keyword.get(opts, :message, @default_confirmation_message)
     default = Keyword.get(opts, :default, false)
@@ -187,8 +275,9 @@ defmodule Owl.IO do
     end
   end
 
-  @type cast_input :: (String.t() -> {:ok, value :: any()} | {:error, reason :: String.Chars.t()})
-  @type input_opt ::
+  @type cast_input ::
+          (String.t() | nil -> {:ok, value :: any()} | {:error, reason :: String.Chars.t()})
+  @type input_option ::
           {:label, Owl.Data.t()} | {:cast, atom() | {atom(), Keyword.t()} | cast_input()}
 
   @doc """
@@ -204,11 +293,12 @@ defmodule Owl.IO do
   * `:optional` - a boolean that sets whether value is optional. Defaults to `false`.
   * `:cast` - casts a value after reading it from `stdio`. Defaults to `:string`. Possible values:
     * an anonymous function with arity 1 that is described by `t:cast_input/0`
-    * a pair with atom which references to built-in type and options:
+    * a pair with built-in type represented as atom and a keyword-list with options. Built-in types:
+      * `:integer`, options:
+        * `:min` - a minimum allowed value. Defaults to `nil` (no lower bound).
+        * `:max` - a maximum allowed value. Defaults to `nil` (no upper bound).
       * `:string`, options:
         * no options
-      * `:integer`, options:
-        * `:bounds` - a range of valid values.
     * an atom which is simply an alias to `{atom(), []}`
 
   ## Examples
@@ -225,10 +315,13 @@ defmodule Owl.IO do
       #=> > 
       nil
 
-      Owl.IO.input(label: "Your age", cast: {:integer, bounds: 18..100})
+      Owl.IO.input(label: "Your age", cast: {:integer, min: 18, max: 100})
       #=> Your age
-      #=> > 101
-      #=> must be between 18..100
+      #=> > 12
+      #=> must be greater than or equal to 18
+      #=> Your age
+      #=> > 102 
+      #=> must be less than or equal to 100
       #=> Your age
       #=> > 18
       18
@@ -241,7 +334,7 @@ defmodule Owl.IO do
       #=> > 2021-01-01
       ~D[2021-01-01]
   """
-  @spec input([input_opt()]) :: any()
+  @spec input([input_option()]) :: any()
   def input(opts \\ []) do
     cast =
       case Keyword.get(opts, :cast) || :string do
@@ -346,16 +439,9 @@ defmodule Owl.IO do
   defp cast_input(:integer, binary, opts) do
     case Integer.parse(binary) do
       {number, ""} ->
-        case opts[:bounds] do
-          nil ->
-            {:ok, number}
-
-          bounds ->
-            if number in bounds do
-              {:ok, number}
-            else
-              {:error, "must be between #{inspect(bounds)}"}
-            end
+        with :ok <- validate_bounds(number, :min, opts[:min]),
+             :ok <- validate_bounds(number, :max, opts[:max]) do
+          {:ok, number}
         end
 
       _ ->
@@ -364,6 +450,24 @@ defmodule Owl.IO do
   end
 
   defp cast_input(:string, binary, _opts), do: {:ok, binary}
+
+  defp validate_bounds(_number, _, nil), do: :ok
+
+  defp validate_bounds(number, :max, limit) do
+    if number > limit do
+      {:error, "must be less than or equal to #{limit}"}
+    else
+      :ok
+    end
+  end
+
+  defp validate_bounds(number, :min, limit) do
+    if number < limit do
+      {:error, "must be greater than or equal to #{limit}"}
+    else
+      :ok
+    end
+  end
 
   @doc """
   Wrapper around `IO.puts/2` that accepts `t:Owl.Data.t/0`
