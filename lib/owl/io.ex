@@ -63,7 +63,7 @@ defmodule Owl.IO do
 
     case list do
       [item] ->
-        puts(label)
+        if label, do: puts(label)
         puts("Autoselect: #{render_item.(item)}")
         item
 
@@ -259,7 +259,7 @@ defmodule Owl.IO do
         "yN"
       end
 
-    case gets(:string, [message, " [", choices, "]: "]) do
+    case gets(false, [message, " [", choices, "]: "]) do
       nil ->
         default
 
@@ -403,11 +403,15 @@ defmodule Owl.IO do
     |> normalize_gets_result()
   end
 
-  defp normalize_gets_result(value) do
+  defp normalize_gets_result(value) when is_binary(value) do
     case String.trim(value) do
       "" -> nil
       string -> string
     end
+  end
+
+  defp normalize_gets_result(_) do
+    nil
   end
 
   defp loop_prompt(prompt) do

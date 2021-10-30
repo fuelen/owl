@@ -66,6 +66,34 @@ defmodule Owl.Box do
       ╚════════════════════╝
       \""" |> String.trim_trailing()
 
+      iex> "Success"
+      ...> |> Owl.Box.new(
+      ...>   min_width: 20,
+      ...>   min_height: 3,
+      ...>   border_style: :none,
+      ...>   horizontal_align: :right,
+      ...>   vertical_align: :bottom
+      ...> )
+      ...> |> to_string()
+      \"""
+                          
+                          
+                   Success
+      \""" |> String.trim_trailing()
+
+      iex> "OK"
+      ...> |> Owl.Box.new(min_height: 5, vertical_align: :middle)
+      ...> |> to_string()
+      \"""
+      ┌──┐
+      │  │
+      │  │
+      │OK│
+      │  │
+      │  │
+      └──┘
+      \""" |> String.trim_trailing()
+
       iex> "Green!"
       ...> |> Owl.Tag.new(:green)
       ...> |> Owl.Box.new(title: Owl.Tag.new("Red!", :red))

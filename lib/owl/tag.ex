@@ -53,9 +53,11 @@ defmodule Owl.Tag do
 
   ## Examples
 
-      Owl.Tag.new(["hello ", Owl.Tag.new("world", :green), "!!!"], :red)
+      iex> Owl.Tag.new(["hello ", Owl.Tag.new("world", :green), "!!!"], :red) |> inspect()
+      ~s|#Owl.Tag[:red]<["hello ", #Owl.Tag[:green]<"world">, "!!!"]>|
 
-      Owl.Tag.new("hello world", [:green, :red_background])
+      iex> Owl.Tag.new("hello world", [:green, :red_background]) |> inspect()
+      ~s|#Owl.Tag[:green, :red_background]<"hello world">|
   """
   @spec new(data, sequence() | [sequence()]) :: t(data) when data: Owl.Data.t()
   def new(data, sequences) do
