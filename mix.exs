@@ -8,7 +8,8 @@ defmodule Owl.MixProject do
       elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_coverage: [ignore_modules: [Owl.Palette]]
+      test_coverage: [ignore_modules: [Owl.Palette]],
+      name: "Owl"
     ]
   end
 
