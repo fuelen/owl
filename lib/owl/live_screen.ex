@@ -1,100 +1,99 @@
 defmodule Owl.LiveScreen do
   use GenServer
 
-  def start(opts) do
+  def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def add_block(block_name, content) do
-    GenServer.cast(__MODULE__, {:add_block, block_name, content})
+  def add_block(block_name, params) do
+    GenServer.cast(__MODULE__, {:add_block, block_name, params})
   end
 
-  def replace_block(block_name, content) do
-    GenServer.cast(__MODULE__, {:replace_block, block_name, content})
+  def send(block_name, message) do
+    GenServer.cast(__MODULE__, {:send, block_name, message})
   end
 
-  def clear do
-    GenServer.cast(__MODULE__, :clear)
-  end
-
-  def render do
-    GenServer.call(__MODULE__, :render)
+  def stop do
+    GenServer.stop(__MODULE__)
   end
 
   @impl true
   def init(opts) do
-    refresh_every = opts[:refresh_every] || 300
-    Process.send_after(self(), :render, refresh_every)
+    refresh_every = opts[:refresh_every] || 100
 
     {:ok,
      %{
        refresh_every: refresh_every,
        content: %{},
+       messages: %{},
+       handlers: %{},
        rendered_blocks: [],
        rendered_content_height: %{},
-       blocks_to_add: [],
-       blocks_to_replace: MapSet.new()
+       blocks_to_add: []
      }}
   end
 
   @impl true
-  def handle_call(:render, _from, state) do
+  def terminate(_, state) do
     render(state)
-    {:reply, :ok, state}
   end
 
   @impl true
-  def handle_cast({:add_block, block_name, content}, state) do
+  def handle_cast({:add_block, block_name, params}, state) do
+    message = params[:message]
+    handler = params[:handler] || (&Function.identity/1)
+
+    # initiate rendering when adding first block
+    if state.rendered_blocks == [] and state.blocks_to_add == [] do
+      Process.send_after(self(), :render, state.refresh_every)
+    end
+
     {:noreply,
      %{
        state
        | blocks_to_add: state.blocks_to_add ++ [block_name],
-         content: Map.put(state.content, block_name, content)
+         messages: Map.put(state.messages, block_name, message),
+         handlers: Map.put(state.handlers, block_name, handler)
      }}
   end
 
-  @impl true
-  def handle_cast(:clear, state) do
+  def handle_cast({:send, block_name, message}, state) do
     {:noreply,
      %{
        state
-       | content: %{},
-         rendered_blocks: [],
-         rendered_content_height: %{},
-         blocks_to_add: [],
-         blocks_to_replace: MapSet.new()
-     }}
-  end
-
-  def handle_cast({:replace_block, block_name, content}, state) do
-    {:noreply,
-     %{
-       state
-       | content: Map.put(state.content, block_name, content),
-         blocks_to_replace: MapSet.put(state.blocks_to_replace, block_name)
+       | messages: Map.put(state.messages, block_name, message)
      }}
   end
 
   @impl true
   def handle_info(:render, state) do
     state = render(state)
-
     Process.send_after(self(), :render, state.refresh_every)
     {:noreply, state}
   end
 
+  def handle_info({:send, block_name, message}, state) do
+    {:noreply, %{state | messages: Map.put(state.messages, block_name, message)}}
+  end
+
   defp render(state) do
-    %{
-      state
-      | blocks_to_replace:
-          MapSet.new(MapSet.to_list(state.blocks_to_replace) -- state.blocks_to_add)
-    }
+    state
     |> rerender_updated_blocks()
     |> render_added_blocks()
+    |> Map.put(:messages, %{})
+  end
+
+  defp get_content(state, block_name) do
+    case Map.fetch(state.messages, block_name) do
+      {:ok, message} -> state.handlers[block_name].(message)
+      :error -> state.content[block_name]
+    end
   end
 
   defp rerender_updated_blocks(state) do
-    if Enum.empty?(state.blocks_to_replace) do
+    blocks_to_replace = Map.keys(state.messages) -- state.blocks_to_add
+
+    if Enum.empty?(blocks_to_replace) do
       state
     else
       {content_blocks, %{total_height: total_height, state: state, next_offset: return_to_end}} =
@@ -108,8 +107,9 @@ defmodule Owl.LiveScreen do
                state: state,
                force_rerender?: force_rerender?
              } ->
-            if force_rerender? or block_name in state.blocks_to_replace do
-              block_content = state.content[block_name]
+            if force_rerender? or block_name in blocks_to_replace do
+              block_content = get_content(state, block_name)
+
               lines = Owl.Data.lines(block_content)
               height = length(lines)
               max_height = max(height, state.rendered_content_height[block_name])
@@ -119,7 +119,7 @@ defmodule Owl.LiveScreen do
                    offset: next_offset,
                    content:
                      Owl.Box.new(block_content,
-                       min_width: 80,
+                       min_width: width(),
                        border_style: :none,
                        min_height: max_height
                      )
@@ -133,7 +133,8 @@ defmodule Owl.LiveScreen do
                  state: %{
                    state
                    | rendered_content_height:
-                       Map.put(state.rendered_content_height, block_name, max_height)
+                       Map.put(state.rendered_content_height, block_name, max_height),
+                     content: Map.put(state.content, block_name, block_content)
                  }
                }}
             else
@@ -149,8 +150,6 @@ defmodule Owl.LiveScreen do
             end
           end
         )
-
-      state = %{state | blocks_to_replace: MapSet.new()}
 
       # TODO: optimize Owl.IO.puts, so it doesn't invoke lines+unlines before output, as this operation has been already done
       Owl.IO.puts([
@@ -172,16 +171,16 @@ defmodule Owl.LiveScreen do
 
   defp render_added_blocks(state) do
     {content_blocks, state} =
-      state.blocks_to_add
-      |> Enum.map_reduce(state, fn block_name, state ->
-        block_content = state.content[block_name]
+      Enum.map_reduce(state.blocks_to_add, state, fn block_name, state ->
+        block_content = get_content(state, block_name)
         lines = Owl.Data.lines(block_content)
         height = length(lines)
 
         {block_content,
          %{
            state
-           | rendered_content_height: Map.put(state.rendered_content_height, block_name, height)
+           | rendered_content_height: Map.put(state.rendered_content_height, block_name, height),
+             content: Map.put(state.content, block_name, block_content)
          }}
       end)
 
@@ -197,5 +196,16 @@ defmodule Owl.LiveScreen do
     |> Owl.IO.puts()
 
     state
+  end
+
+  def width do
+    case :io.columns() do
+      {:ok, width} ->
+        # -1 fixes an issue in iex when for some reason sometimes 1 space is moved to the next line
+        width - 1
+
+      _ ->
+        80
+    end
   end
 end
