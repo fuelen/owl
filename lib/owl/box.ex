@@ -94,6 +94,22 @@ defmodule Owl.Box do
       └──┘
       \""" |> String.trim_trailing()
 
+      iex> "VeryLongLine" |> Owl.Box.new(max_width: 6) |> to_string()
+      \"""
+      ┌────┐
+      │Very│
+      │Long│
+      │Line│
+      └────┘
+      \""" |> String.trim_trailing()
+
+      iex> "VeryLongLine" |> Owl.Box.new(max_width: 4, border_style: :none) |> to_string()
+      \"""
+      Very
+      Long
+      Line
+      \""" |> String.trim_trailing()
+
       iex> "Green!"
       ...> |> Owl.Tag.new(:green)
       ...> |> Owl.Box.new(title: Owl.Tag.new("Red!", :red))
@@ -113,6 +129,7 @@ defmodule Owl.Box do
           | {:padding_left, non_neg_integer()}
           | {:min_height, non_neg_integer()}
           | {:min_width, non_neg_integer()}
+          | {:max_width, non_neg_integer()}
           | {:horizontal_align, :left | :center | :right}
           | {:vertical_align, :top | :middle | :bottom}
           | {:border_style, :solid | :double | :none}
@@ -125,13 +142,26 @@ defmodule Owl.Box do
     padding_right = Keyword.get(opts, :padding_right, 0)
     min_width = Keyword.get(opts, :min_width, 0)
     min_height = Keyword.get(opts, :min_height, 0)
+    max_width = Keyword.get_lazy(opts, :max_width, &Owl.LiveScreen.width/0)
     horizontal_align = Keyword.get(opts, :horizontal_align, :left)
     vertical_align = Keyword.get(opts, :vertical_align, :top)
     border_style = Keyword.get(opts, :border_style, :solid)
     border_symbols = Map.fetch!(@border_styles, border_style)
     title = Keyword.get(opts, :title)
 
-    lines = Owl.Data.lines(data)
+    max_width =
+      case border_style do
+        :none -> max_width
+        _ -> max_width - 2
+      end
+
+    lines =
+      data
+      |> Owl.Data.lines()
+      |> Enum.flat_map(fn line ->
+        Owl.Data.chunk_every(line, max_width)
+      end)
+
     lines_number = Enum.count(lines)
     height = max(lines_number, min_height)
 
@@ -149,10 +179,10 @@ defmodule Owl.Box do
       end
 
     lines =
-      Enum.map(
-        List.duplicate([], padding_before) ++ lines ++ List.duplicate([], padding_after),
-        &{&1, Owl.Data.length(&1)}
-      )
+      List.duplicate({[], 0}, padding_before) ++
+        Enum.map(lines, fn line ->
+          {line, Owl.Data.length(line)}
+        end) ++ List.duplicate({[], 0}, padding_after)
 
     title_length = if is_nil(title), do: 0, else: Owl.Data.length(title)
 

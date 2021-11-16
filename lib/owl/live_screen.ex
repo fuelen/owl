@@ -1,12 +1,17 @@
 defmodule Owl.LiveScreen do
   use GenServer
 
+  @doc false
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
   def add_block(block_name, params) do
     GenServer.cast(__MODULE__, {:add_block, block_name, params})
+  end
+
+  def put_above(message) do
+    GenServer.cast(__MODULE__, {:put_above, message})
   end
 
   def send(block_name, message) do
@@ -17,6 +22,12 @@ defmodule Owl.LiveScreen do
     GenServer.stop(__MODULE__)
   end
 
+  # we define child_spec just to disable doc
+  @doc false
+  def child_spec(init_arg) do
+    super(init_arg)
+  end
+
   @impl true
   def init(opts) do
     refresh_every = opts[:refresh_every] || 100
@@ -24,6 +35,7 @@ defmodule Owl.LiveScreen do
     {:ok,
      %{
        refresh_every: refresh_every,
+       put_above: [],
        content: %{},
        messages: %{},
        handlers: %{},
@@ -65,6 +77,10 @@ defmodule Owl.LiveScreen do
      }}
   end
 
+  def handle_cast({:put_above, message}, state) do
+    {:noreply, %{state | put_above: [message | state.put_above]}}
+  end
+
   @impl true
   def handle_info(:render, state) do
     state = render(state)
@@ -77,29 +93,70 @@ defmodule Owl.LiveScreen do
   end
 
   defp render(state) do
-    state
-    |> rerender_updated_blocks()
-    |> render_added_blocks()
-    |> Map.put(:messages, %{})
+    {state, render_above_data} = render_above(state)
+    {state, render_updated_blocks_data} = rerender_updated_blocks(state, render_above_data != [])
+    {state, render_added_blocks_data} = render_added_blocks(state)
+
+    data =
+      [
+        render_above_data,
+        render_updated_blocks_data,
+        render_added_blocks_data
+      ]
+      |> Enum.reject(&(&1 == []))
+      |> Owl.Data.unlines()
+
+    if data != [] do
+      Owl.IO.puts(data)
+    end
+
+    %{state | messages: %{}}
   end
 
   defp get_content(state, block_name) do
     case Map.fetch(state.messages, block_name) do
-      {:ok, message} -> state.handlers[block_name].(message)
-      :error -> state.content[block_name]
+      {:ok, message} ->
+        block_content = state.handlers[block_name].(message)
+
+        lines =
+          block_content
+          |> Owl.Data.lines()
+          |> Enum.flat_map(&Owl.Data.chunk_every(&1, width()))
+
+        {Owl.Data.unlines(lines), length(lines)}
+
+      :error ->
+        {state.content[block_name], state.rendered_content_height[block_name]}
     end
   end
 
-  defp rerender_updated_blocks(state) do
+  defp render_above(%{put_above: []} = state), do: {state, []}
+
+  defp render_above(%{put_above: put_above} = state) do
+    put_above = put_above |> Enum.reverse() |> Owl.Data.unlines()
+    screen_height = Enum.sum(Map.values(state.rendered_content_height))
+
+    data = [
+      if(screen_height == 0, do: [], else: IO.ANSI.cursor_up(screen_height)),
+      Owl.Box.new(put_above,
+        min_width: width(),
+        border_style: :none
+      )
+    ]
+
+    {%{state | put_above: []}, data}
+  end
+
+  defp rerender_updated_blocks(state, rendered_above?) do
     blocks_to_replace = Map.keys(state.messages) -- state.blocks_to_add
 
-    if Enum.empty?(blocks_to_replace) do
-      state
+    if not rendered_above? and Enum.empty?(blocks_to_replace) do
+      {state, []}
     else
       {content_blocks, %{total_height: total_height, state: state, next_offset: return_to_end}} =
         state.rendered_blocks
         |> Enum.flat_map_reduce(
-          %{total_height: 0, next_offset: 0, force_rerender?: false, state: state},
+          %{total_height: 0, next_offset: 0, force_rerender?: rendered_above?, state: state},
           fn block_name,
              %{
                total_height: total_height,
@@ -108,10 +165,8 @@ defmodule Owl.LiveScreen do
                force_rerender?: force_rerender?
              } ->
             if force_rerender? or block_name in blocks_to_replace do
-              block_content = get_content(state, block_name)
+              {block_content, height} = get_content(state, block_name)
 
-              lines = Owl.Data.lines(block_content)
-              height = length(lines)
               max_height = max(height, state.rendered_content_height[block_name])
 
               {[
@@ -151,9 +206,8 @@ defmodule Owl.LiveScreen do
           end
         )
 
-      # TODO: optimize Owl.IO.puts, so it doesn't invoke lines+unlines before output, as this operation has been already done
-      Owl.IO.puts([
-        IO.ANSI.cursor_up(total_height),
+      data = [
+        if(rendered_above? or total_height == 0, do: [], else: IO.ANSI.cursor_up(total_height)),
         content_blocks
         |> Enum.map(fn
           %{offset: 0, content: content} -> content
@@ -161,20 +215,18 @@ defmodule Owl.LiveScreen do
         end)
         |> Owl.Data.unlines(),
         if(return_to_end == 0, do: [], else: IO.ANSI.cursor_down(return_to_end))
-      ])
+      ]
 
-      state
+      {state, data}
     end
   end
 
-  defp render_added_blocks(%{blocks_to_add: []} = state), do: state
+  defp render_added_blocks(%{blocks_to_add: []} = state), do: {state, []}
 
   defp render_added_blocks(state) do
     {content_blocks, state} =
       Enum.map_reduce(state.blocks_to_add, state, fn block_name, state ->
-        block_content = get_content(state, block_name)
-        lines = Owl.Data.lines(block_content)
-        height = length(lines)
+        {block_content, height} = get_content(state, block_name)
 
         {block_content,
          %{
@@ -190,22 +242,18 @@ defmodule Owl.LiveScreen do
         rendered_blocks: state.rendered_blocks ++ state.blocks_to_add
     }
 
-    # TODO: optimize Owl.IO.puts, so it doesn't invoke lines+unlines before output, as this operation has been already done
-    content_blocks
-    |> Owl.Data.unlines()
-    |> Owl.IO.puts()
-
-    state
+    {state, Owl.Data.unlines(content_blocks)}
   end
 
+  @doc """
+  Returns a width of the terminal.
+
+  """
   def width do
     case :io.columns() do
-      {:ok, width} ->
-        # -1 fixes an issue in iex when for some reason sometimes 1 space is moved to the next line
-        width - 1
-
-      _ ->
-        80
+      {:ok, width} -> width
+      # TODO: find more elegant solution
+      _ -> 99999
     end
   end
 end

@@ -52,6 +52,9 @@ defmodule Owl.Data do
       iex> Owl.Data.length(["222"])
       3
 
+      iex> Owl.Data.length([[[]]])
+      0
+
       iex> Owl.Data.length(["222", Owl.Tag.new(["333", "444"], :green)])
       9
   """
@@ -186,89 +189,19 @@ defmodule Owl.Data do
       iex> Owl.Data.split(["first second ", Owl.Tag.new("third fourth", :red)], " ")
       ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
   """
-  def split(data, pattern), do: split(data, pattern, [])
-  defp split([], _pattern, _acc_sequences), do: []
+  def split(data, pattern) do
+    chunk_by(
+      data,
+      pattern,
+      fn value, pattern ->
+        [head | tail] = String.split(value, pattern, parts: 2)
 
-  defp split(data, pattern, acc_sequences) do
-    case do_split(data, pattern, [], acc_sequences) do
-      {before_pattern, after_pattern, []} ->
-        [
-          reverse_and_tag(acc_sequences, before_pattern)
-          | split(after_pattern, pattern, acc_sequences)
-        ]
+        head = if head == "", do: [], else: head
+        resolution = if tail == [], do: :cont, else: :chunk
 
-      {before_pattern, after_pattern, next_acc_sequences} ->
-        [
-          reverse_and_tag(acc_sequences ++ next_acc_sequences, before_pattern)
-          | split(after_pattern, pattern, next_acc_sequences)
-        ]
-    end
-  end
-
-  defp do_split([head | tail], pattern, acc, acc_sequences) do
-    case do_split(head, pattern, acc, acc_sequences) do
-      {new_head, [], new_acc_sequences} ->
-        do_split(tail, pattern, new_head, new_acc_sequences)
-
-      {new_head, new_tail, new_acc_sequences} ->
-        new_tail = maybe_wrap_to_tag(new_acc_sequences -- acc_sequences, new_tail)
-
-        new_acc_sequences =
-          case new_head do
-            [%Owl.Tag{sequences: sequences} | _] -> new_acc_sequences -- sequences
-            _ -> new_acc_sequences
-          end
-
-        new_head =
-          case new_head do
-            [%Owl.Tag{data: []} | rest] -> rest
-            list -> list
-          end
-
-        {new_head, [new_tail | tail], new_acc_sequences}
-    end
-  end
-
-  defp do_split([], _pattern, acc, acc_sequences) do
-    {acc, [], acc_sequences}
-  end
-
-  defp do_split(
-         %Owl.Tag{sequences: sequences, data: data},
-         pattern,
-         acc,
-         acc_sequences
-       ) do
-    {before_pattern, after_pattern, next_acc_sequences} =
-      do_split(data, pattern, [], acc_sequences ++ sequences)
-
-    before_pattern = reverse_and_tag(sequences, before_pattern)
-
-    next_acc_sequences =
-      case {before_pattern, after_pattern} do
-        {%Owl.Tag{sequences: sequences}, []} -> next_acc_sequences -- sequences
-        {_, []} -> acc_sequences
-        {_, _} -> next_acc_sequences
+        {resolution, pattern, head, tail}
       end
-
-    {[before_pattern | acc], after_pattern, next_acc_sequences}
-  end
-
-  defp do_split(value, pattern, acc, acc_sequences) when is_binary(value) do
-    [head | tail] = String.split(value, pattern, parts: 2)
-
-    {
-      case head do
-        "" -> acc
-        value -> [value | acc]
-      end,
-      tail,
-      acc_sequences
-    }
-  end
-
-  defp do_split(value, pattern, acc, acc_sequences) when is_number(value) do
-    do_split(to_string(value), pattern, acc, acc_sequences)
+    )
   end
 
   defp sequences_to_state(sequences) do
@@ -292,4 +225,127 @@ defmodule Owl.Data do
 
   # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L87
   defp sequence_type("\e[48;5;" <> _), do: :background
+
+  @doc """
+  Returns list of `t()` containing `count` elements each.
+
+  ## Example
+
+      iex> Owl.Data.chunk_every(
+      ...>   ["first second ", Owl.Tag.new(["third", Owl.Tag.new(" fourth", :blue)], :red)],
+      ...>   7
+      ...> )
+      [
+        "first s",
+        ["econd ", Owl.Tag.new(["t"], :red)],
+        Owl.Tag.new(["hird", Owl.Tag.new([" fo"], :blue)], :red),
+        Owl.Tag.new(["urth"], :blue)
+      ]
+  """
+  @spec chunk_every(data :: t(), count :: pos_integer()) :: [t()]
+  def chunk_every(data, count) when count > 0 do
+    chunk_by(
+      data,
+      {0, count},
+      fn value, {cut_left, count} ->
+        split_at = if cut_left == 0, do: count, else: cut_left
+
+        case String.split_at(value, split_at) do
+          {head, ""} ->
+            left = split_at - String.length(head)
+            resolution = if left == 0, do: :chunk, else: :cont
+
+            {resolution, {left, count}, head, []}
+
+          {head, rest} ->
+            {:chunk, {0, count}, head, [rest]}
+        end
+      end
+    )
+  end
+
+  defp chunk_by(data, chunk_acc, chunk_fun), do: chunk_by(data, chunk_acc, chunk_fun, [])
+  defp chunk_by([], _chunk_acc, _chunk_fun, _acc_sequences), do: []
+
+  defp chunk_by(data, chunk_acc, chunk_fun, acc_sequences) do
+    {_, before_pattern, after_pattern, chunk_acc, next_acc_sequences} =
+      do_chunk_by(data, chunk_acc, chunk_fun, [], acc_sequences)
+
+    [
+      reverse_and_tag(acc_sequences ++ next_acc_sequences, before_pattern)
+      | chunk_by(after_pattern, chunk_acc, chunk_fun, next_acc_sequences)
+    ]
+  end
+
+  defp do_chunk_by([head | tail], chunk_acc, chunk_fun, acc, acc_sequences) do
+    case do_chunk_by(head, chunk_acc, chunk_fun, acc, acc_sequences) do
+      {:cont, new_head, new_tail, chunk_acc, new_acc_sequences} ->
+        new_tail
+        |> put_nonempty_head(tail)
+        |> do_chunk_by(chunk_acc, chunk_fun, new_head, new_acc_sequences)
+
+      {:chunk, new_head, new_tail, chunk_acc, new_acc_sequences} ->
+        new_tail = maybe_wrap_to_tag(new_acc_sequences -- acc_sequences, new_tail)
+
+        new_acc_sequences =
+          case new_head do
+            [%Owl.Tag{sequences: sequences} | _] -> new_acc_sequences -- sequences
+            _ -> new_acc_sequences
+          end
+
+        new_head =
+          case new_head do
+            [%Owl.Tag{data: []} | rest] -> rest
+            list -> list
+          end
+
+        new_tail = put_nonempty_head(new_tail, tail)
+
+        {:chunk, new_head, new_tail, chunk_acc, new_acc_sequences}
+    end
+  end
+
+  defp do_chunk_by([], chunk_acc, _chunk_fun, acc, acc_sequences) do
+    {:cont, acc, [], chunk_acc, acc_sequences}
+  end
+
+  defp do_chunk_by(
+         %Owl.Tag{sequences: sequences, data: data},
+         chunk_acc,
+         chunk_fun,
+         acc,
+         acc_sequences
+       ) do
+    {resolution, before_pattern, after_pattern, chunk_acc, next_acc_sequences} =
+      do_chunk_by(data, chunk_acc, chunk_fun, [], acc_sequences ++ sequences)
+
+    before_pattern = reverse_and_tag(sequences, before_pattern)
+
+    next_acc_sequences =
+      case after_pattern do
+        [] -> next_acc_sequences -- sequences
+        _ -> next_acc_sequences
+      end
+
+    {resolution, [before_pattern | acc], after_pattern, chunk_acc, next_acc_sequences}
+  end
+
+  defp do_chunk_by(value, chunk_acc, chunk_fun, acc, acc_sequences) when is_binary(value) do
+    {resolution, new_chunk_acc, head, rest} = chunk_fun.(value, chunk_acc)
+
+    {
+      resolution,
+      put_nonempty_head(head, acc),
+      rest,
+      new_chunk_acc,
+      acc_sequences
+    }
+  end
+
+  defp do_chunk_by(value, chunk_acc, chunk_fun, acc, acc_sequences) when is_number(value) do
+    do_chunk_by(to_string(value), chunk_acc, chunk_fun, acc, acc_sequences)
+  end
+
+  defp put_nonempty_head([], tail), do: tail
+  defp put_nonempty_head(head, tail), do: [head | tail]
 end

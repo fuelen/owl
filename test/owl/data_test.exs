@@ -206,5 +206,42 @@ defmodule Owl.DataTest do
                }
              ]
     end
+
+    test "7" do
+      assert Owl.Data.split(
+               [
+                 Owl.Tag.new(["1\n", Owl.Tag.new(["2"], :red)], :cyan),
+                 "\n---"
+               ],
+               "\n"
+             ) == [
+               Owl.Tag.new(["1"], :cyan),
+               Owl.Tag.new(["2"], :red),
+               "---"
+             ]
+    end
+  end
+
+  describe inspect(&Owl.Data.chunk_very/2) do
+    test "1" do
+      input = [
+        "first second ",
+        Owl.Tag.new(["third fourth", Owl.Tag.new(" fifth sixth", :blue)], :red)
+      ]
+
+      assert Owl.Data.chunk_every(input, 10) == [
+               "first seco",
+               ["nd ", Owl.Tag.new(["third f"], :red)],
+               Owl.Tag.new(["ourth", Owl.Tag.new([" fift"], :blue)], :red),
+               Owl.Tag.new(["h sixth"], :blue)
+             ]
+
+      # same length as in first element
+      assert Owl.Data.chunk_every(input, 13) == [
+               "first second ",
+               Owl.Tag.new(["third fourth", Owl.Tag.new([" "], :blue)], :red),
+               Owl.Tag.new(["fifth sixth"], :blue)
+             ]
+    end
   end
 end
