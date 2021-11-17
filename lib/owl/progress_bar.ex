@@ -53,7 +53,7 @@ defmodule Owl.ProgressBar do
   * `:partial_symbols` - a list of symbols that are used when `current` value is too small to render
   `filled_symbol`. Defaults to `["-", "="]`.
   * `:empty_symbol` - an empty symbol. Defaults to `" "`.
-  * `:screen_width` - a width of output data. Defaults to `Owl.LiveScreen.width/0`.
+  * `:screen_width` - a width of output data. Defaults to width of the terminal or 80 symbols, if a terminal is not available.
   """
   @spec start([start_option()]) :: DynamicSupervisor.on_start_child()
   def start(opts) do
@@ -93,7 +93,7 @@ defmodule Owl.ProgressBar do
     empty_symbol = opts[:empty_symbol] || " "
     start_symbol = opts[:start_symbol] || "["
     end_symbol = opts[:end_symbol] || "]"
-    screen_width = opts[:screen_width] || Owl.LiveScreen.width()
+    screen_width = opts[:screen_width] || Owl.IO.columns() || 80
     current = opts[:current] || 0
 
     start_time =

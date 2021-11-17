@@ -129,7 +129,7 @@ defmodule Owl.Box do
           | {:padding_left, non_neg_integer()}
           | {:min_height, non_neg_integer()}
           | {:min_width, non_neg_integer()}
-          | {:max_width, non_neg_integer()}
+          | {:max_width, non_neg_integer() | :infinity}
           | {:horizontal_align, :left | :center | :right}
           | {:vertical_align, :top | :middle | :bottom}
           | {:border_style, :solid | :double | :none}
@@ -142,25 +142,30 @@ defmodule Owl.Box do
     padding_right = Keyword.get(opts, :padding_right, 0)
     min_width = Keyword.get(opts, :min_width, 0)
     min_height = Keyword.get(opts, :min_height, 0)
-    max_width = Keyword.get_lazy(opts, :max_width, &Owl.LiveScreen.width/0)
     horizontal_align = Keyword.get(opts, :horizontal_align, :left)
     vertical_align = Keyword.get(opts, :vertical_align, :top)
     border_style = Keyword.get(opts, :border_style, :solid)
     border_symbols = Map.fetch!(@border_styles, border_style)
     title = Keyword.get(opts, :title)
 
-    max_width =
-      case border_style do
-        :none -> max_width
-        _ -> max_width - 2
-      end
+    max_width = opts[:max_width] || Owl.IO.columns() || :infinity
+
+    lines = Owl.Data.lines(data)
 
     lines =
-      data
-      |> Owl.Data.lines()
-      |> Enum.flat_map(fn line ->
-        Owl.Data.chunk_every(line, max_width)
-      end)
+      case max_width do
+        :infinity ->
+          lines
+
+        max_width ->
+          max_width =
+            case border_style do
+              :none -> max_width
+              _ -> max_width - 2
+            end
+
+          Enum.flat_map(lines, fn line -> Owl.Data.chunk_every(line, max_width) end)
+      end
 
     lines_number = Enum.count(lines)
     height = max(lines_number, min_height)

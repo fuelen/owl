@@ -118,10 +118,12 @@ defmodule Owl.LiveScreen do
       {:ok, message} ->
         block_content = state.handlers[block_name].(message)
 
+        terminal_width = Owl.IO.columns()
+
         lines =
           block_content
           |> Owl.Data.lines()
-          |> Enum.flat_map(&Owl.Data.chunk_every(&1, width()))
+          |> Enum.flat_map(&Owl.Data.chunk_every(&1, terminal_width))
 
         {Owl.Data.unlines(lines), length(lines)}
 
@@ -139,7 +141,7 @@ defmodule Owl.LiveScreen do
     data = [
       if(screen_height == 0, do: [], else: IO.ANSI.cursor_up(screen_height)),
       Owl.Box.new(put_above,
-        min_width: width(),
+        min_width: Owl.IO.columns(),
         border_style: :none
       )
     ]
@@ -153,6 +155,8 @@ defmodule Owl.LiveScreen do
     if not rendered_above? and Enum.empty?(blocks_to_replace) do
       {state, []}
     else
+      terminal_width = Owl.IO.columns()
+
       {content_blocks, %{total_height: total_height, state: state, next_offset: return_to_end}} =
         state.rendered_blocks
         |> Enum.flat_map_reduce(
@@ -174,7 +178,7 @@ defmodule Owl.LiveScreen do
                    offset: next_offset,
                    content:
                      Owl.Box.new(block_content,
-                       min_width: width(),
+                       min_width: terminal_width,
                        border_style: :none,
                        min_height: max_height
                      )
@@ -243,17 +247,5 @@ defmodule Owl.LiveScreen do
     }
 
     {state, Owl.Data.unlines(content_blocks)}
-  end
-
-  @doc """
-  Returns a width of the terminal.
-
-  """
-  def width do
-    case :io.columns() do
-      {:ok, width} -> width
-      # TODO: find more elegant solution
-      _ -> 99999
-    end
   end
 end

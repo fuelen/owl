@@ -487,4 +487,22 @@ defmodule Owl.IO do
 
     IO.puts(data)
   end
+
+  @doc """
+  Returns a width of a terminal.
+
+  A wrapper around `:io.columns/0`, but returns `nil` if terminal is not found.
+  This is useful for convinient falling back to other value using `||/2` operator.
+
+  ## Example
+
+      Owl.IO.columns() || 80
+  """
+  @spec columns() :: pos_integer() | nil
+  def columns do
+    case :io.columns() do
+      {:ok, value} -> value
+      _ -> nil
+    end
+  end
 end
