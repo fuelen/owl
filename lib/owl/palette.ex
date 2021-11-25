@@ -1,6 +1,6 @@
 defmodule Owl.Palette do
   @moduledoc """
-  Poor man's color picker
+  Poor man's color picker.
   """
   @demo_block "████"
 

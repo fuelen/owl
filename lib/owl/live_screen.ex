@@ -1,25 +1,120 @@
 defmodule Owl.LiveScreen do
+  @moduledoc ~S"""
+  A server that handles live updates in terminal.
+
+  ## Example
+
+      Owl.LiveScreen.add_block(:dependency,
+        state: :init,
+        render: fn
+          :init -> "init..."
+          dependency -> ["dependency: ", Owl.Tag.new(dependency, :yellow)]
+        end
+      )
+
+      Owl.LiveScreen.add_block(:compiling,
+        render: fn
+          :init -> "init..."
+          date -> ["compiling: ", Owl.Tag.new(to_string(date), :cyan)]
+        end
+      )
+
+      ["ecto", "phoenix", "ex_doc", "broadway"]
+      |> Enum.each(fn dependency ->
+        Owl.LiveScreen.update(:dependency, dependency)
+
+        1..5
+        |> Enum.map(&"filename#{&1}.ex")
+        |> Enum.each(fn filename ->
+          Owl.LiveScreen.update(:compiling, filename)
+          Process.sleep(1000)
+          Owl.LiveScreen.put("#{filename} compiled for dependency #{dependency}")
+        end)
+      end)
+  """
   use GenServer
 
-  @doc false
+  @type block_id :: any()
+  @type add_block_option :: {:state, any()} | {:render, (block_state :: any() -> Owl.Data.t())}
+  @type start_option ::
+          {:name, GenServer.name()}
+          | {:refresh_every, pos_integer()}
+          | {:terminal_width, pos_integer() | :auto}
+
+  @doc """
+  Starts a server.
+
+  Server is started automatically by `:owl` application as a named process.
+
+  ## Options
+
+  * `:name` - used for name registration as described in the "Name
+  registration" section in the documentation for `GenServer`. Defaults to `Owl.LiveScreen`
+  * `:refresh_every` - a period of refreshing a screen in milliseconds. Defaults to 100.
+  * `:terminal_width` - a width of terminal in symbols. Defaults to `:auto`, which gets value from `Owl.IO.columns/0`.
+  If terminal is now a available, then the server won't be started.
+  """
+  @spec start_link([start_option()]) :: GenServer.on_start()
   def start_link(opts) do
     server_options = Keyword.take(opts, [:name])
 
     GenServer.start_link(__MODULE__, opts, server_options)
   end
 
+  @doc """
+  Add a block that can be updated using `update/3`.
+
+  ## Options
+
+  * `:render` - a function that accepts `state` and returns a view of the block. Defaults to `Function.identity/1`, which
+  means that state has to have type `t:Owl.Data.t/0`.
+  * `:state` - initial state of the block. Defaults to `nil`.
+
+  ## Example
+
+      Owl.LiveScreen.add_block(:footer, state: "starting...")
+      # which is equivalent to
+      Owl.LiveScreen.add_block(:footer, render: fn
+        nil -> "starting..."
+        data -> data
+      end)
+  """
+  @spec add_block(GenServer.server(), block_id(), add_block_option()) :: :ok
   def add_block(server \\ __MODULE__, block_id, params) do
     GenServer.cast(server, {:add_block, block_id, params})
   end
 
-  def put_above(server \\ __MODULE__, message) do
-    GenServer.cast(server, {:put_above, message})
+  @doc """
+  Writes data on the screen, similar to `Owl.IO.puts/1`, but puts data above blocks.
+
+  ## Example
+
+      Owl.LiveScreen.put("Hello\\nworld" |> Owl.Tag.new(:cyan))
+  """
+  @spec put(GenServer.server(), Owl.Data.t()) :: :ok
+  def put(server \\ __MODULE__, content) do
+    GenServer.cast(server, {:put, content})
   end
 
-  def send(server \\ __MODULE__, block_id, message) do
-    GenServer.cast(server, {:send, block_id, message})
+  @doc """
+  Updates a state of the block for using in the next render iteration.
+
+  ## Example
+
+      Owl.LiveScreen.add_block(:footer, state: "starting...")
+      Owl.LiveScreen.update(:footer, "...almost done...")
+      Owl.LiveScreen.update(:footer, "done!!!")
+
+  """
+  @spec update(GenServer.server(), block_id(), block_state :: any()) :: :ok
+  def update(server \\ __MODULE__, block_id, block_state) do
+    GenServer.cast(server, {:update, block_id, block_state})
   end
 
+  @doc """
+  Renders data in buffer and terminates a server.
+  """
+  @spec stop(GenServer.server()) :: :ok
   def stop(server \\ __MODULE__) do
     GenServer.stop(server)
   end
@@ -43,10 +138,10 @@ defmodule Owl.LiveScreen do
        %{
          terminal_width: terminal_width,
          refresh_every: refresh_every,
-         put_above: [],
+         put: [],
          content: %{},
-         messages: %{},
-         handlers: %{},
+         block_states: %{},
+         render_functions: %{},
          rendered_blocks: [],
          rendered_content_height: %{},
          blocks_to_add: []
@@ -63,8 +158,8 @@ defmodule Owl.LiveScreen do
 
   @impl true
   def handle_cast({:add_block, block_id, params}, state) do
-    message = params[:message]
-    handler = params[:handler] || (&Function.identity/1)
+    block_state = params[:state]
+    render = params[:render] || (&Function.identity/1)
 
     # initiate rendering when adding first block
     if state.rendered_blocks == [] and state.blocks_to_add == [] do
@@ -75,21 +170,21 @@ defmodule Owl.LiveScreen do
      %{
        state
        | blocks_to_add: state.blocks_to_add ++ [block_id],
-         messages: Map.put(state.messages, block_id, message),
-         handlers: Map.put(state.handlers, block_id, handler)
+         block_states: Map.put(state.block_states, block_id, block_state),
+         render_functions: Map.put(state.render_functions, block_id, render)
      }}
   end
 
-  def handle_cast({:send, block_id, message}, state) do
+  def handle_cast({:update, block_id, block_state}, state) do
     {:noreply,
      %{
        state
-       | messages: Map.put(state.messages, block_id, message)
+       | block_states: Map.put(state.block_states, block_id, block_state)
      }}
   end
 
-  def handle_cast({:put_above, message}, state) do
-    {:noreply, %{state | put_above: [message | state.put_above]}}
+  def handle_cast({:put, block_state}, state) do
+    {:noreply, %{state | put: [block_state | state.put]}}
   end
 
   @impl true
@@ -125,13 +220,13 @@ defmodule Owl.LiveScreen do
       Owl.IO.puts(data)
     end
 
-    %{state | messages: %{}}
+    %{state | block_states: %{}}
   end
 
   defp get_content(state, block_id, terminal_width) do
-    case Map.fetch(state.messages, block_id) do
-      {:ok, message} ->
-        block_content = state.handlers[block_id].(message)
+    case Map.fetch(state.block_states, block_id) do
+      {:ok, block_state} ->
+        block_content = state.render_functions[block_id].(block_state)
 
         lines =
           block_content
@@ -145,25 +240,25 @@ defmodule Owl.LiveScreen do
     end
   end
 
-  defp render_above(%{put_above: []} = state, _terminal_width), do: {state, []}
+  defp render_above(%{put: []} = state, _terminal_width), do: {state, []}
 
-  defp render_above(%{put_above: put_above} = state, terminal_width) do
-    put_above = put_above |> Enum.reverse() |> Owl.Data.unlines()
+  defp render_above(%{put: put} = state, terminal_width) do
+    put = put |> Enum.reverse() |> Owl.Data.unlines()
     screen_height = Enum.sum(Map.values(state.rendered_content_height))
 
     data = [
       if(screen_height == 0, do: [], else: IO.ANSI.cursor_up(screen_height)),
-      Owl.Box.new(put_above,
+      Owl.Box.new(put,
         min_width: terminal_width,
         border_style: :none
       )
     ]
 
-    {%{state | put_above: []}, data}
+    {%{state | put: []}, data}
   end
 
   defp rerender_updated_blocks(state, rendered_above?, terminal_width) do
-    blocks_to_replace = Map.keys(state.messages) -- state.blocks_to_add
+    blocks_to_replace = Map.keys(state.block_states) -- state.blocks_to_add
 
     if not rendered_above? and Enum.empty?(blocks_to_replace) do
       {state, []}

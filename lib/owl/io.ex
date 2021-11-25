@@ -1,5 +1,5 @@
 defmodule Owl.IO do
-  @moduledoc "A set of functions for handling IO with support of `t:Owl.Data.t/0`"
+  @moduledoc "A set of functions for handling IO with support of `t:Owl.Data.t/0`."
 
   @type select_option :: {:label, Owl.Data.t() | nil} | {:render_as, (any() -> Owl.Data.t())}
   @doc """

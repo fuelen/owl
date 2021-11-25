@@ -128,8 +128,8 @@ defmodule Owl.ProgressBar do
     }
 
     Owl.LiveScreen.add_block(live_screen_server, live_screen_ref,
-      message: state,
-      handler: &render/1
+      state: state,
+      render: &render/1
     )
 
     {:ok, state}
@@ -138,7 +138,7 @@ defmodule Owl.ProgressBar do
   @impl true
   def handle_cast({:inc, step}, state) do
     state = %{state | current: state.current + step}
-    Owl.LiveScreen.send(state.live_screen_server, state.live_screen_ref, state)
+    Owl.LiveScreen.update(state.live_screen_server, state.live_screen_ref, state)
 
     if state.current >= state.total do
       {:stop, :normal, state}
@@ -151,7 +151,7 @@ defmodule Owl.ProgressBar do
   def handle_info(:tick, state) do
     if state.current < state.total do
       Process.send_after(self(), :tick, @tick_interval_ms)
-      Owl.LiveScreen.send(state.live_screen_server, state.live_screen_ref, state)
+      Owl.LiveScreen.update(state.live_screen_server, state.live_screen_ref, state)
     end
 
     {:noreply, state}
@@ -176,7 +176,7 @@ defmodule Owl.ProgressBar do
   @doc """
   Renders a progress bar that can be consumed by `Owl.IO.puts/1`.
 
-  Used as a handler for `Owl.LiveScreen`.
+  Used as a callback for blocks in `Owl.LiveScreen`.
 
   ## Examples
 

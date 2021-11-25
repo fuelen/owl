@@ -1,6 +1,6 @@
 defmodule Owl.Tag do
   @moduledoc """
-  A tag struct
+  A tag struct.
 
   Tag is a container for data and ANSI sequences associated with it.
   It allows having local binding for styles in console, similar to tags in HTML.

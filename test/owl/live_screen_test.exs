@@ -22,21 +22,21 @@ defmodule Owl.LiveScreenTest do
           IO.write(@render_separator)
         end
 
-        Owl.LiveScreen.put_above(live_screen_pid, "first\nput")
+        Owl.LiveScreen.put(live_screen_pid, "first\nput")
         render.()
         block1 = make_ref()
-        Owl.LiveScreen.add_block(live_screen_pid, block1, message: "First block:\nupdate #1")
+        Owl.LiveScreen.add_block(live_screen_pid, block1, state: "First block:\nupdate #1")
         render.()
-        Owl.LiveScreen.put_above(live_screen_pid, "second\nput")
+        Owl.LiveScreen.put(live_screen_pid, "second\nput")
         render.()
         block2 = make_ref()
 
-        Owl.LiveScreen.add_block(live_screen_pid, block2, message: "Second block:\nupdate #1")
+        Owl.LiveScreen.add_block(live_screen_pid, block2, state: "Second block:\nupdate #1")
 
         render.()
-        Owl.LiveScreen.put_above(live_screen_pid, "third\nput")
+        Owl.LiveScreen.put(live_screen_pid, "third\nput")
         render.()
-        Owl.LiveScreen.send(live_screen_pid, block2, "Second block\nupdate #2")
+        Owl.LiveScreen.update(live_screen_pid, block2, "Second block\nupdate #2")
         Process.sleep(@sleep)
         Owl.LiveScreen.stop(live_screen_pid)
       end)

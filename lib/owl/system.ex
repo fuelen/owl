@@ -1,6 +1,6 @@
 defmodule Owl.System do
   @moduledoc """
-  An alternative to some `System` functions
+  An alternative to some `System` functions.
   """
   @doc """
   A wrapper around `System.cmd/3` which additionally logs executed `command` and `args`.
