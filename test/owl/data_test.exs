@@ -1,5 +1,5 @@
 defmodule Owl.DataTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest Owl.Data
 
   test inspect(&Owl.Data.length/2) do

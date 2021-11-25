@@ -1,5 +1,5 @@
 defmodule Owl.IOTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import ExUnit.CaptureIO
 
   test inspect(&Owl.IO.confirm/1) do
