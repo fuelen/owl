@@ -11,22 +11,9 @@ defmodule Owl.ProgressBar do
       end)
   """
   use GenServer, restart: :transient
+
   @type id :: any()
   @type label :: String.t()
-  @type inc_option :: {:id, id()} | {:step, integer()}
-  @type start_option ::
-          {:label, String.t()}
-          | {:id, id()}
-          | {:total, pos_integer()}
-          | {:timer, boolean()}
-          | {:current, non_neg_integer()}
-          | {:bar_width_ratio, nil | float()}
-          | {:start_symbol, Owl.Data.t()}
-          | {:end_symbol, Owl.Data.t()}
-          | {:filled_symbol, Owl.Data.t()}
-          | {:partial_symbols, [Owl.Data.t()]}
-          | {:empty_symbol, Owl.Data.t()}
-          | {:screen_width, pos_integer()}
 
   @tick_interval_ms 100
 
@@ -60,7 +47,20 @@ defmodule Owl.ProgressBar do
   * `:empty_symbol` - an empty symbol. Defaults to `" "`.
   * `:screen_width` - a width of output data. Defaults to width of the terminal or 80 symbols, if a terminal is not available.
   """
-  @spec start([start_option()]) :: DynamicSupervisor.on_start_child()
+  @spec start(
+          label: String.t(),
+          id: id(),
+          total: pos_integer(),
+          timer: boolean(),
+          current: non_neg_integer(),
+          bar_width_ratio: nil | float(),
+          start_symbol: Owl.Data.t(),
+          end_symbol: Owl.Data.t(),
+          filled_symbol: Owl.Data.t(),
+          partial_symbols: [Owl.Data.t()],
+          empty_symbol: Owl.Data.t(),
+          screen_width: pos_integer()
+        ) :: DynamicSupervisor.on_start_child()
   def start(opts) do
     DynamicSupervisor.start_child(__MODULE__.Supervisor, {__MODULE__, opts})
   end
@@ -81,7 +81,7 @@ defmodule Owl.ProgressBar do
 
       Owl.ProgressBar.inc(id: "Creating users", step: 10)
   """
-  @spec inc([inc_option()]) :: :ok
+  @spec inc(id: id(), step: integer()) :: :ok
   def inc(opts \\ []) do
     step = opts[:step] || 1
     id = Keyword.fetch!(opts, :id)
@@ -174,7 +174,7 @@ defmodule Owl.ProgressBar do
   end
 
   @doc """
-  Renders a progress bar that can be consumed by `Owl.IO.puts/1`.
+  Renders a progress bar that can be consumed by `Owl.IO.puts/2`.
 
   Used as a callback for blocks in `Owl.LiveScreen`.
 

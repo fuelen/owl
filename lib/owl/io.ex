@@ -173,7 +173,7 @@ defmodule Owl.IO do
     |> Enum.map(fn {item, index} ->
       rendered_item = render_item.(item)
 
-      [Owl.Tag.new(index, :blue), ". "]
+      [Owl.Tag.new(to_string(index), :blue), ". "]
       |> Owl.Box.new(border_style: :none, min_height: length(Owl.Data.lines(rendered_item)))
       |> Owl.Data.zip(rendered_item)
     end)
@@ -482,10 +482,10 @@ defmodule Owl.IO do
       #=> Hello world
   """
   @spec puts(Owl.Data.t()) :: :ok
-  def puts(data) do
+  def puts(device \\ :stdio, data) do
     data = Owl.Data.to_ansidata(data)
 
-    IO.puts(data)
+    IO.puts(device, data)
   end
 
   @doc """

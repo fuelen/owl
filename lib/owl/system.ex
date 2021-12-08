@@ -2,6 +2,8 @@ defmodule Owl.System do
   @moduledoc """
   An alternative to some `System` functions.
   """
+  require Logger
+
   @doc """
   A wrapper around `System.cmd/3` which additionally logs executed `command` and `args`.
 
@@ -10,13 +12,11 @@ defmodule Owl.System do
   ## Examples
 
       > Owl.System.cmd("echo", ["test"])
-      # next line is printed to stdout in light_black color
-      $ echo test
+      # 10:25:34.252 [debug] $ echo test
       {"test\\n", 0}
 
       > Owl.System.cmd("psql", ["postgresql://postgres:postgres@127.0.0.1:5432", "-tAc", "SELECT 1;"])
-      # next line is printed to stdout in light_black color
-      $ psql postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'
+      # 10:25:50.947 [debug] $ psql postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'
       {"1\\n", 0}
 
   """
@@ -48,7 +48,7 @@ defmodule Owl.System do
 
     command = sanitize_passwords_in_urls(command)
 
-    Owl.IO.puts(Owl.Tag.new("$ #{command}", :light_black))
+    Logger.debug("$ #{command}")
   end
 
   defp sanitize_passwords_in_urls(text) do

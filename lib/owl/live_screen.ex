@@ -2,7 +2,14 @@ defmodule Owl.LiveScreen do
   @moduledoc ~S"""
   A server that handles live updates in terminal.
 
+  It partially implements [The Erlang I/O Protocol](https://www.erlang.org/doc/apps/stdlib/io_protocol.html),
+  so it is possible to use `Owl.LiveScreen` as an I/O-device in `Logger.Backends.Console`
+  and functions like `Owl.IO.puts/2`, `IO.puts/2`. When used as I/O-device, then output is printed above dynamic blocks.
+
   ## Example
+
+      require Logger
+      Logger.configure_backend(:console, device: Owl.LiveScreen)
 
       Owl.LiveScreen.add_block(:dependency,
         state: :init,
@@ -15,7 +22,7 @@ defmodule Owl.LiveScreen do
       Owl.LiveScreen.add_block(:compiling,
         render: fn
           :init -> "init..."
-          date -> ["compiling: ", Owl.Tag.new(to_string(date), :cyan)]
+          filename -> ["compiling: ", Owl.Tag.new(to_string(filename), :cyan)]
         end
       )
 
@@ -28,7 +35,7 @@ defmodule Owl.LiveScreen do
         |> Enum.each(fn filename ->
           Owl.LiveScreen.update(:compiling, filename)
           Process.sleep(1000)
-          Owl.LiveScreen.put("#{filename} compiled for dependency #{dependency}")
+          Logger.debug("#{filename} compiled for dependency #{dependency}")
         end)
       end)
   """
@@ -85,24 +92,14 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
-  Writes data on the screen, similar to `Owl.IO.puts/1`, but puts data above blocks.
-
-  ## Example
-
-      Owl.LiveScreen.put("Hello\\nworld" |> Owl.Tag.new(:cyan))
-  """
-  @spec put(GenServer.server(), Owl.Data.t()) :: :ok
-  def put(server \\ __MODULE__, content) do
-    GenServer.cast(server, {:put, content})
-  end
-
-  @doc """
-  Updates a state of the block for using in the next render iteration.
+  Updates a state of the block for using it in the next render iteration.
 
   ## Example
 
       Owl.LiveScreen.add_block(:footer, state: "starting...")
+      Process.sleep(1000)
       Owl.LiveScreen.update(:footer, "...almost done...")
+      Process.sleep(1000)
       Owl.LiveScreen.update(:footer, "done!!!")
 
   """
@@ -136,9 +133,12 @@ defmodule Owl.LiveScreen do
     if terminal_device? do
       {:ok,
        %{
+         timer_ref: nil,
          terminal_width: terminal_width,
          refresh_every: refresh_every,
-         put: [],
+         put_above_blocks: [],
+         put_above_blocks_performed?: false,
+         put_above_blocks_sources: [],
          content: %{},
          block_states: %{},
          render_functions: %{},
@@ -162,16 +162,20 @@ defmodule Owl.LiveScreen do
     render = params[:render] || (&Function.identity/1)
 
     # initiate rendering when adding first block
-    if state.rendered_blocks == [] and state.blocks_to_add == [] do
-      Process.send_after(self(), :render, state.refresh_every)
-    end
+    timer_ref =
+      if is_nil(state.timer_ref) and empty_blocks_list?(state) do
+        Process.send_after(self(), :render, state.refresh_every)
+      else
+        state.timer_ref
+      end
 
     {:noreply,
      %{
        state
        | blocks_to_add: state.blocks_to_add ++ [block_id],
          block_states: Map.put(state.block_states, block_id, block_state),
-         render_functions: Map.put(state.render_functions, block_id, render)
+         render_functions: Map.put(state.render_functions, block_id, render),
+         timer_ref: timer_ref
      }}
   end
 
@@ -183,15 +187,126 @@ defmodule Owl.LiveScreen do
      }}
   end
 
-  def handle_cast({:put, block_state}, state) do
-    {:noreply, %{state | put: [block_state | state.put]}}
+  # for private usage without public interface
+  @impl true
+  def handle_call(:render, _, state) do
+    state = render(state)
+    {:reply, :ok, state}
   end
 
   @impl true
   def handle_info(:render, state) do
     state = render(state)
-    Process.send_after(self(), :render, state.refresh_every)
+
+    timer_ref =
+      unless is_nil(state.timer_ref) do
+        Process.send_after(self(), :render, state.refresh_every)
+      end
+
+    {:noreply, %{state | timer_ref: timer_ref}}
+  end
+
+  def handle_info({:io_request, from, reply_as, req}, state) do
+    state = io_request(from, reply_as, req, state)
     {:noreply, state}
+  end
+
+  def handle_info(_message, state) do
+    {:noreply, state}
+  end
+
+  defp io_request(from, reply_as, {:put_chars, chars}, state) do
+    put_chars(from, reply_as, chars, state)
+  end
+
+  defp io_request(from, reply_as, {:put_chars, mod, fun, args}, state) do
+    put_chars(from, reply_as, apply(mod, fun, args), state)
+  end
+
+  defp io_request(from, reply_as, {:put_chars, _encoding, chars}, state) do
+    put_chars(from, reply_as, chars, state)
+  end
+
+  defp io_request(from, reply_as, {:put_chars, _encoding, mod, fun, args}, state) do
+    put_chars(from, reply_as, apply(mod, fun, args), state)
+  end
+
+  defp io_request(from, reply_as, req, state) do
+    {reply, state} = io_request(req, state)
+    io_reply(from, reply_as, reply)
+    state
+  end
+
+  defp io_request({:get_chars, _prompt, _count}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_chars, _encoding, _prompt, _count}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_line, _prompt}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_line, _encoding, _prompt}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_until, _prompt, _mod, _fun, _args}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_until, _encoding, _prompt, _mod, _fun, _args}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_password, _encoding}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:setopts, _opts}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request(:getopts, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_geometry, :columns}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:get_geometry, :rows}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request({:requests, _reqs}, state) do
+    {{:error, :enotsup}, state}
+  end
+
+  defp io_request(_, state) do
+    {{:error, :request}, state}
+  end
+
+  defp put_chars(from, reply_as, chars, state) do
+    timer_ref =
+      if is_nil(state.timer_ref) do
+        Process.send_after(self(), :render, state.refresh_every)
+      else
+        state.timer_ref
+      end
+
+    %{
+      state
+      | put_above_blocks: [chars | state.put_above_blocks],
+        put_above_blocks_sources: [{from, reply_as} | state.put_above_blocks_sources],
+        timer_ref: timer_ref
+    }
+  end
+
+  defp io_reply(from, reply_as, reply) do
+    send(from, {:io_reply, reply_as, reply})
   end
 
   defp get_terminal_width(:auto), do: Owl.IO.columns()
@@ -200,7 +315,7 @@ defmodule Owl.LiveScreen do
   defp render(state) do
     terminal_width = get_terminal_width(state.terminal_width)
 
-    {state, render_above_data} = render_above(state, terminal_width)
+    {state, render_above_data, io_reply} = render_above(state, terminal_width)
 
     {state, render_updated_blocks_data} =
       rerender_updated_blocks(state, render_above_data != [], terminal_width)
@@ -218,6 +333,7 @@ defmodule Owl.LiveScreen do
 
     if data != [] do
       Owl.IO.puts(data)
+      io_reply.()
     end
 
     %{state | block_states: %{}}
@@ -231,7 +347,10 @@ defmodule Owl.LiveScreen do
         lines =
           block_content
           |> Owl.Data.lines()
-          |> Enum.flat_map(&Owl.Data.chunk_every(&1, terminal_width))
+          |> Enum.flat_map(fn
+            [] -> [[]]
+            line -> Owl.Data.chunk_every(line, terminal_width)
+          end)
 
         {Owl.Data.unlines(lines), length(lines)}
 
@@ -240,21 +359,83 @@ defmodule Owl.LiveScreen do
     end
   end
 
-  defp render_above(%{put: []} = state, _terminal_width), do: {state, []}
+  defp noop, do: :noop
 
-  defp render_above(%{put: put} = state, terminal_width) do
-    put = put |> Enum.reverse() |> Owl.Data.unlines()
-    screen_height = Enum.sum(Map.values(state.rendered_content_height))
+  defp render_above(%{put_above_blocks: []} = state, _terminal_width), do: {state, [], &noop/0}
 
-    data = [
-      if(screen_height == 0, do: [], else: IO.ANSI.cursor_up(screen_height)),
-      Owl.Box.new(put,
-        min_width: terminal_width,
-        border_style: :none
+  defp render_above(%{put_above_blocks: put_above_blocks} = state, terminal_width) do
+    blocks_height = Enum.sum(Map.values(state.rendered_content_height))
+    data = Enum.reverse(put_above_blocks)
+
+    cursor_up =
+      if state.put_above_blocks_performed? do
+        blocks_height + 1
+      else
+        blocks_height
+      end
+
+    data =
+      if cursor_up == 0 do
+        data
+      else
+        [
+          IO.ANSI.cursor_up(cursor_up),
+          fill_with_spaces(data, terminal_width)
+        ]
+      end
+
+    {%{
+       state
+       | put_above_blocks: [],
+         put_above_blocks_performed?: true,
+         put_above_blocks_sources: []
+     }, data,
+     fn ->
+       state.put_above_blocks_sources
+       |> Enum.reverse()
+       |> Enum.each(fn {from, reply_as} ->
+         io_reply(from, reply_as, :ok)
+       end)
+     end}
+  end
+
+  def fill_with_spaces(content, terminal_width) do
+    content
+    |> to_string()
+    |> String.split("\n")
+    |> Enum.map_intersperse("\n", fn line ->
+      ~r/\e\[\d*[mKJHA-D]/
+      |> Regex.split(line, include_captures: true, trim: true)
+      |> chunk_line(terminal_width)
+    end)
+  end
+
+  defp chunk_line(line, terminal_width) do
+    {head_length, chunks} =
+      line
+      |> Enum.reduce(
+        {0, []},
+        fn
+          "\e" <> _ = sequence, {len, list} ->
+            {len, [sequence | list]}
+
+          string, {len, list} ->
+            chunk_binary({len, string}, terminal_width, list)
+        end
       )
-    ]
 
-    {%{state | put: []}, data}
+    [List.duplicate(" ", terminal_width - head_length) | chunks]
+    |> Enum.reverse()
+  end
+
+  defp chunk_binary({len, string}, count, acc) do
+    case String.split_at(string, count - len) do
+      {result, ""} ->
+        {String.length(result), [result | acc]}
+
+      {result, rest} ->
+        chunk_binary({0, rest}, count, [result | acc])
+    end
   end
 
   defp rerender_updated_blocks(state, rendered_above?, terminal_width) do
@@ -357,5 +538,9 @@ defmodule Owl.LiveScreen do
     }
 
     {state, Owl.Data.unlines(content_blocks)}
+  end
+
+  defp empty_blocks_list?(state) do
+    state.rendered_blocks == [] and state.blocks_to_add == []
   end
 end

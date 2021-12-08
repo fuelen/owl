@@ -6,10 +6,10 @@ defmodule Owl.Data do
   @typedoc """
   A recursive data type that is similar to  `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
 
-  Can be written to stdout using `Owl.IO.puts/1`.
+  Can be written to stdout using `Owl.IO.puts/2`.
   """
-  # improper lists are now here, just because they were not tested
-  @type t :: [binary() | number() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t()) | binary()
+  # improper lists are not here, just because they were not tested
+  @type t :: [binary() | non_neg_integer() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t()) | binary()
 
   @doc """
   Zips corresponding lines into 1 line.
@@ -24,7 +24,9 @@ defmodule Owl.Data do
       iex> Owl.Data.zip("a\\nb", "c")
       [["a", "c"]]
 
-      iex> 1..3 |> Enum.map(&Owl.Box.new/1) |> Enum.reduce(&Owl.Data.zip/2) |> to_string()
+      iex> 1..3
+      ...> |> Enum.map(&to_string/1)
+      ...> |> Enum.map(&Owl.Box.new/1) |> Enum.reduce(&Owl.Data.zip/2) |> to_string()
       \"""
       ┌─┐┌─┐┌─┐
       │3││2││1│
@@ -46,11 +48,11 @@ defmodule Owl.Data do
 
   ## Examples
 
-      iex> Owl.Data.length(321)
-      3
-
       iex> Owl.Data.length(["222"])
       3
+
+      iex> Owl.Data.length([222])
+      1
 
       iex> Owl.Data.length([[[]]])
       0
@@ -63,12 +65,11 @@ defmodule Owl.Data do
     String.length(data)
   end
 
-  def length(data) when is_number(data) do
-    Owl.Data.length(to_string(data))
-  end
-
   def length(data) when is_list(data) do
-    Enum.reduce(data, 0, fn item, acc -> Owl.Data.length(item) + acc end)
+    Enum.reduce(data, 0, fn
+      item, acc when is_integer(item) -> Owl.Data.length(<<item::utf8>>) + acc
+      item, acc -> Owl.Data.length(item) + acc
+    end)
   end
 
   def length(%Owl.Tag{data: data}) do
@@ -342,8 +343,8 @@ defmodule Owl.Data do
     }
   end
 
-  defp do_chunk_by(value, chunk_acc, chunk_fun, acc, acc_sequences) when is_number(value) do
-    do_chunk_by(to_string(value), chunk_acc, chunk_fun, acc, acc_sequences)
+  defp do_chunk_by(value, chunk_acc, chunk_fun, acc, acc_sequences) when is_integer(value) do
+    do_chunk_by(<<value::utf8>>, chunk_acc, chunk_fun, acc, acc_sequences)
   end
 
   defp put_nonempty_head([], tail), do: tail

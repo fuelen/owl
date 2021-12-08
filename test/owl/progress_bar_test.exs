@@ -31,8 +31,7 @@ defmodule Owl.ProgressBarTest do
           )
 
         render = fn ->
-          send(live_screen_pid, :render)
-          Process.sleep(@sleep)
+          GenServer.call(live_screen_pid, :render)
           IO.write(@render_separator)
         end
 
