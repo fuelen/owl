@@ -1,14 +1,44 @@
 defmodule Owl.ProgressBar do
-  @moduledoc """
+  @moduledoc ~S"""
   A live progress bar.
 
-  ## Example
+  ## Examples
+
+  ### Single bar
 
       Owl.ProgressBar.start(id: :users, label: "Creating users", total: 1000)
 
       Enum.each(1..1000, fn _ ->
         Owl.ProgressBar.inc(id: :users)
       end)
+
+  ### Multiple bars
+
+      1..10
+      |> Enum.map(fn index ->
+        Task.async(fn ->
+          range = 1..Enum.random(100..500)
+
+          label = "Demo Progress ##{index}"
+
+          Owl.ProgressBar.start(
+            id: {:demo, index},
+            label: label,
+            total: range.last,
+            timer: true,
+            filled_symbol: "#",
+            partial_symbols: []
+          )
+
+          Enum.each(range, fn _ ->
+            Process.sleep(Enum.random(10..120))
+            Owl.ProgressBar.inc(id: {:demo, index})
+          end)
+        end)
+      end)
+      |> Task.await_many(:infinity)
+
+      Owl.LiveScreen.flush()
   """
   use GenServer, restart: :transient
 
@@ -293,7 +323,6 @@ defmodule Owl.ProgressBar do
       end
 
     [
-      # TODO: use Owl.Box without borders, when it has word wrapping
       String.pad_trailing(label, label_width),
       case elapsed_time do
         nil -> []
