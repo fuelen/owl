@@ -32,7 +32,11 @@ defmodule Owl.LiveScreenTest do
         IO.puts(live_screen_pid, "third\nput")
         render.()
         Owl.LiveScreen.update(live_screen_pid, block2, "Second block\nupdate #2")
+        Owl.LiveScreen.flush(live_screen_pid)
         Process.sleep(@sleep)
+        IO.write(@render_separator)
+        IO.puts(live_screen_pid, "new line")
+        IO.puts(live_screen_pid, "new line")
         Owl.LiveScreen.stop(live_screen_pid)
       end)
 
@@ -42,7 +46,8 @@ defmodule Owl.LiveScreenTest do
              "\e[3Asecond              \nput                 \n                    \nFirst block:        \nupdate #1           \n",
              "Second block:\nupdate #1\n\n\n",
              "\e[7Athird               \nput                 \n                    \nFirst block:        \nupdate #1           \nSecond block:       \nupdate #1           \n                    \n                    \n",
-             "\e[6A\e[2BSecond block        \nupdate #2           \n                    \n                    \n"
+             "\e[6A\e[2BSecond block        \nupdate #2           \n                    \n                    \n",
+             "new line\n\n\e[1Anew line            \n                    \n"
            ]
   end
 end

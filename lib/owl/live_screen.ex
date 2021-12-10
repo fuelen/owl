@@ -69,7 +69,7 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
-  Add a block that can be updated using `update/3`.
+  Adds a sticky block to the bottom of the screen that can be updated using `update/3`.
 
   ## Options
 
@@ -96,7 +96,7 @@ defmodule Owl.LiveScreen do
 
   ## Example
 
-      Owl.LiveScreen.add_block(:footer, state: "starting...")
+      Owl.LiveScreen.add_block(:footer, "starting...")
       Process.sleep(1000)
       Owl.LiveScreen.update(:footer, "...almost done...")
       Process.sleep(1000)
@@ -106,6 +106,14 @@ defmodule Owl.LiveScreen do
   @spec update(GenServer.server(), block_id(), block_state :: any()) :: :ok
   def update(server \\ __MODULE__, block_id, block_state) do
     GenServer.cast(server, {:update, block_id, block_state})
+  end
+
+  @doc """
+  Renders data in buffer and detaches blocks.
+  """
+  @spec flush(GenServer.server()) :: :ok
+  def flush(server \\ __MODULE__) do
+    GenServer.call(server, :flush)
   end
 
   @doc """
@@ -131,24 +139,27 @@ defmodule Owl.LiveScreen do
     terminal_device? = not is_nil(get_terminal_width(terminal_width))
 
     if terminal_device? do
-      {:ok,
-       %{
-         timer_ref: nil,
-         terminal_width: terminal_width,
-         refresh_every: refresh_every,
-         put_above_blocks: [],
-         put_above_blocks_performed?: false,
-         put_above_blocks_sources: [],
-         content: %{},
-         block_states: %{},
-         render_functions: %{},
-         rendered_blocks: [],
-         rendered_content_height: %{},
-         blocks_to_add: []
-       }}
+      {:ok, init_state(terminal_width, refresh_every)}
     else
       :ignore
     end
+  end
+
+  defp init_state(terminal_width, refresh_every) do
+    %{
+      timer_ref: nil,
+      terminal_width: terminal_width,
+      refresh_every: refresh_every,
+      put_above_blocks: [],
+      put_above_blocks_performed?: false,
+      put_above_blocks_sources: [],
+      content: %{},
+      block_states: %{},
+      render_functions: %{},
+      rendered_blocks: [],
+      rendered_content_height: %{},
+      blocks_to_add: []
+    }
   end
 
   @impl true
@@ -187,8 +198,16 @@ defmodule Owl.LiveScreen do
      }}
   end
 
-  # for private usage without public interface
   @impl true
+  def handle_call(:flush, _, state) do
+    state = render(state)
+
+    state = init_state(state.terminal_width, state.refresh_every)
+
+    {:reply, :ok, state}
+  end
+
+  # for private usage without public interface
   def handle_call(:render, _, state) do
     state = render(state)
     {:reply, :ok, state}
@@ -399,7 +418,7 @@ defmodule Owl.LiveScreen do
      end}
   end
 
-  def fill_with_spaces(content, terminal_width) do
+  defp fill_with_spaces(content, terminal_width) do
     content
     |> to_string()
     |> String.split("\n")
