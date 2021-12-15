@@ -7,7 +7,7 @@
 ```
 Owl is a toolkit for writing command-line user interfaces in Elixir.
 
-It provides a convinient interface for
+It provides a convenient interface for
 
 * colorizing text using tags
 * input control with validations and casting to various data types
