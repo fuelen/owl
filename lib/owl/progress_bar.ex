@@ -2,17 +2,19 @@ defmodule Owl.ProgressBar do
   @moduledoc ~S"""
   A live progress bar.
 
-  ## Examples
-
-  ### Single bar
+  ## Single bar
 
       Owl.ProgressBar.start(id: :users, label: "Creating users", total: 1000)
 
-      Enum.each(1..1000, fn _ ->
+      Enum.each(1..100, fn _ ->
+        Process.sleep(10)
         Owl.ProgressBar.inc(id: :users)
       end)
+      # Wait a bit to give ProgressBar server a time to send last state update to LiveScreen
+      Process.sleep(1)
+      Owl.LiveScreen.flush()
 
-  ### Multiple bars
+  ## Multiple bars
 
       1..10
       |> Enum.map(fn index ->
@@ -26,12 +28,13 @@ defmodule Owl.ProgressBar do
             label: label,
             total: range.last,
             timer: true,
+            bar_width_ratio: 0.3,
             filled_symbol: "#",
             partial_symbols: []
           )
 
           Enum.each(range, fn _ ->
-            Process.sleep(Enum.random(10..120))
+            Process.sleep(Enum.random(10..50))
             Owl.ProgressBar.inc(id: {:demo, index})
           end)
         end)
@@ -68,6 +71,7 @@ defmodule Owl.ProgressBar do
   * `:label` - a label of the progress bar. Required.
   * `:total` - a total value. Required.
   * `:current` - a current value. Defaults to `0`.
+  * `:bar_width_ratio` - a bar width ratio. Defaults to 0.7.
   * `:timer` - set to `true` to launch a timer. Defaults to `false`.
   * `:start_symbol` - a symbol that is rendered at the beginning of the progress bar. Defaults to `"["`.
   * `:end_symbol` - a symbol that rendered at the end of the progress bar. Defaults to `"]"`.
@@ -306,7 +310,8 @@ defmodule Owl.ProgressBar do
       screen_width - bar_width - percentage_width - start_end_symbols_width - elapsed_time_width
 
     progress = min(current / (total / bar_width), bar_width * 1.0)
-    filled_blocks_integer = floor(progress)
+    # Float.ceil(x, 2) is needed to handle numbers like 56.99999999999999
+    filled_blocks_integer = progress |> Float.ceil(2) |> floor()
 
     next_block =
       case partial_symbols do

@@ -132,7 +132,7 @@ defmodule Owl.LiveScreen do
 
   @impl true
   def init(opts) do
-    refresh_every = opts[:refresh_every] || 100
+    refresh_every = opts[:refresh_every] || 50
 
     terminal_width = opts[:terminal_width] || :auto
 
@@ -418,12 +418,13 @@ defmodule Owl.LiveScreen do
      end}
   end
 
-  defp fill_with_spaces(content, terminal_width) do
+  @doc false
+  def fill_with_spaces(content, terminal_width) do
     content
     |> to_string()
     |> String.split("\n")
     |> Enum.map_intersperse("\n", fn line ->
-      ~r/\e\[\d*[mKJHA-D]/
+      ~r/(\e\[\d*[mKJHA-D])+/
       |> Regex.split(line, include_captures: true, trim: true)
       |> chunk_line(terminal_width)
     end)
@@ -450,7 +451,7 @@ defmodule Owl.LiveScreen do
   defp chunk_binary({len, string}, count, acc) do
     case String.split_at(string, count - len) do
       {result, ""} ->
-        {String.length(result), [result | acc]}
+        {len + String.length(result), [result | acc]}
 
       {result, rest} ->
         chunk_binary({0, rest}, count, [result | acc])

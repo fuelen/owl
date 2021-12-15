@@ -50,4 +50,65 @@ defmodule Owl.LiveScreenTest do
              "new line\n\n\e[1Anew line            \n                    \n"
            ]
   end
+
+  test "fill_with_spaces" do
+    assert "qwe\e[22m\n14:34:08.584 [info]  qqwewwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n\e[0m"
+           |> Owl.LiveScreen.fill_with_spaces(11) == [
+             ["qwe", "\e[22m", [" ", " ", " ", " ", " ", " ", " ", " "]],
+             "\n",
+             [
+               "14:34:08.58",
+               "4 [info]  q",
+               "qwewwwwwwww",
+               "wwwwwwwwwww",
+               "wwwwwwwwwww",
+               "wwwwwwwwwww",
+               "wwwwwwwwwww",
+               "wwwwwwwwwww",
+               "ww",
+               [" ", " ", " ", " ", " ", " ", " ", " ", " "]
+             ],
+             "\n",
+             ["\e[0m", [" ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "]]
+           ]
+
+    assert "\e[33mDemo Progress #1: \e[39m\e[49mtest 2test 2test 2test 2test 2test 2test 2test 2test 2test 2\e[0m\n"
+           |> Owl.LiveScreen.fill_with_spaces(100) == [
+             [
+               "\e[33m",
+               "Demo Progress #1: ",
+               "\e[39m\e[49m",
+               "test 2test 2test 2test 2test 2test 2test 2test 2test 2test 2",
+               "\e[0m",
+               [
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " ",
+                 " "
+               ]
+             ],
+             "\n",
+             [
+               List.duplicate(" ", 100)
+             ]
+           ]
+  end
 end
