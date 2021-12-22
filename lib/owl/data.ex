@@ -91,6 +91,21 @@ defmodule Owl.Data do
     split(data, "\n")
   end
 
+  @doc """
+  Creates a `t:t/0` from an a list of `t:t/0`, it inserts new line characters between original elements.
+
+  ## Examples
+
+      iex> Owl.Data.unlines(["a", "b", "c"])
+      ["a", "\\n", "b", "\\n", "c"]
+
+      iex> ["first\\nsecond\\n", Owl.Tag.new("third\\nfourth", :red)]
+      ...> |> Owl.Data.lines()
+      ...> |> Owl.Data.unlines()
+      ...> |> Owl.Data.to_ansidata()
+      Owl.Data.to_ansidata(["first\\nsecond\\n", Owl.Tag.new("third\\nfourth", :red)])
+  """
+  @spec unlines([t()]) :: [t()]
   def unlines(data) do
     Enum.intersperse(data, "\n")
   end
@@ -189,7 +204,11 @@ defmodule Owl.Data do
 
       iex> Owl.Data.split(["first second ", Owl.Tag.new("third fourth", :red)], " ")
       ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
+
+      iex> Owl.Data.split(["first   second ", Owl.Tag.new("third    fourth", :red)], ~r/\s+/)
+      ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
   """
+  @spec split(t(), String.pattern() | Regex.t()) :: [t()]
   def split(data, pattern) do
     chunk_by(
       data,
