@@ -42,73 +42,12 @@ defmodule Owl.LiveScreenTest do
 
     assert String.split(renders, @render_separator) == [
              "first\nput\n\n",
-             "First block:\nupdate #1\n",
-             "\e[3Asecond              \nput                 \n                    \nFirst block:        \nupdate #1           \n",
-             "Second block:\nupdate #1\n\n\n",
-             "\e[7Athird               \nput                 \n                    \nFirst block:        \nupdate #1           \nSecond block:       \nupdate #1           \n                    \n                    \n",
-             "\e[6A\e[2BSecond block        \nupdate #2           \n                    \n                    \n",
-             "new line\n\n\e[1Anew line            \n                    \n"
-           ]
-  end
-
-  test "fill_with_spaces" do
-    assert "qwe\e[22m\n14:34:08.584 [info]  qqwewwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n\e[0m"
-           |> Owl.LiveScreen.fill_with_spaces(11) == [
-             ["qwe", "\e[22m", [" ", " ", " ", " ", " ", " ", " ", " "]],
-             "\n",
-             [
-               "14:34:08.58",
-               "4 [info]  q",
-               "qwewwwwwwww",
-               "wwwwwwwwwww",
-               "wwwwwwwwwww",
-               "wwwwwwwwwww",
-               "wwwwwwwwwww",
-               "wwwwwwwwwww",
-               "ww",
-               [" ", " ", " ", " ", " ", " ", " ", " ", " "]
-             ],
-             "\n",
-             ["\e[0m", [" ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "]]
-           ]
-
-    assert "\e[33mDemo Progress #1: \e[39m\e[49mtest 2test 2test 2test 2test 2test 2test 2test 2test 2test 2\e[0m\n"
-           |> Owl.LiveScreen.fill_with_spaces(100) == [
-             [
-               "\e[33m",
-               "Demo Progress #1: ",
-               "\e[39m\e[49m",
-               "test 2test 2test 2test 2test 2test 2test 2test 2test 2test 2",
-               "\e[0m",
-               [
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " ",
-                 " "
-               ]
-             ],
-             "\n",
-             [
-               List.duplicate(" ", 100)
-             ]
+             "First block:\n\e[2Kupdate #1\n",
+             "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Ksecond\nput\n\nFirst block:\n\e[2Kupdate #1\n",
+             "Second block:\nupdate #1\n\n\e[2K\n",
+             "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Kthird\nput\n\nFirst block:\n\e[2Kupdate #1\nSecond block:\nupdate #1\n\n\e[2K\n",
+             "\e[6A\e[2BSecond block\n\e[2Kupdate #2\n\e[2K\n\e[2K\n",
+             "new line\n\n\e[1A\e[2Knew line\n\n"
            ]
   end
 end

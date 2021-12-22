@@ -334,7 +334,7 @@ defmodule Owl.LiveScreen do
   defp render(state) do
     terminal_width = get_terminal_width(state.terminal_width)
 
-    {state, render_above_data, io_reply} = render_above(state, terminal_width)
+    {state, render_above_data, io_reply} = render_above(state)
 
     {state, render_updated_blocks_data} =
       rerender_updated_blocks(state, render_above_data != [], terminal_width)
@@ -371,7 +371,12 @@ defmodule Owl.LiveScreen do
             line -> Owl.Data.chunk_every(line, terminal_width)
           end)
 
-        {Owl.Data.unlines(lines), length(lines)}
+        {
+          lines
+          |> List.update_at(-1, &[IO.ANSI.clear_line(), &1])
+          |> Owl.Data.unlines(),
+          length(lines)
+        }
 
       :error ->
         {state.content[block_id], state.rendered_content_height[block_id]}
@@ -380,9 +385,9 @@ defmodule Owl.LiveScreen do
 
   defp noop, do: :noop
 
-  defp render_above(%{put_above_blocks: []} = state, _terminal_width), do: {state, [], &noop/0}
+  defp render_above(%{put_above_blocks: []} = state), do: {state, [], &noop/0}
 
-  defp render_above(%{put_above_blocks: put_above_blocks} = state, terminal_width) do
+  defp render_above(%{put_above_blocks: put_above_blocks} = state) do
     blocks_height = Enum.sum(Map.values(state.rendered_content_height))
     data = Enum.reverse(put_above_blocks)
 
@@ -397,10 +402,7 @@ defmodule Owl.LiveScreen do
       if cursor_up == 0 do
         data
       else
-        [
-          IO.ANSI.cursor_up(cursor_up),
-          fill_with_spaces(data, terminal_width)
-        ]
+        [cursor_up_and_clear_lines(cursor_up), data]
       end
 
     {%{
@@ -418,44 +420,8 @@ defmodule Owl.LiveScreen do
      end}
   end
 
-  @doc false
-  def fill_with_spaces(content, terminal_width) do
-    content
-    |> to_string()
-    |> String.split("\n")
-    |> Enum.map_intersperse("\n", fn line ->
-      ~r/(\e\[\d*[mKJHA-D])+/
-      |> Regex.split(line, include_captures: true, trim: true)
-      |> chunk_line(terminal_width)
-    end)
-  end
-
-  defp chunk_line(line, terminal_width) do
-    {head_length, chunks} =
-      line
-      |> Enum.reduce(
-        {0, []},
-        fn
-          "\e" <> _ = sequence, {len, list} ->
-            {len, [sequence | list]}
-
-          string, {len, list} ->
-            chunk_binary({len, string}, terminal_width, list)
-        end
-      )
-
-    [List.duplicate(" ", terminal_width - head_length) | chunks]
-    |> Enum.reverse()
-  end
-
-  defp chunk_binary({len, string}, count, acc) do
-    case String.split_at(string, count - len) do
-      {result, ""} ->
-        {len + String.length(result), [result | acc]}
-
-      {result, rest} ->
-        chunk_binary({0, rest}, count, [result | acc])
-    end
+  defp cursor_up_and_clear_lines(n) do
+    List.duplicate([IO.ANSI.cursor_up(1), IO.ANSI.clear_line()], n)
   end
 
   defp rerender_updated_blocks(state, rendered_above?, terminal_width) do
@@ -480,17 +446,12 @@ defmodule Owl.LiveScreen do
 
               max_height = max(height, state.rendered_content_height[block_id])
 
-              {[
-                 %{
-                   offset: next_offset,
-                   content:
-                     Owl.Box.new(block_content,
-                       min_width: terminal_width,
-                       border_style: :none,
-                       min_height: max_height
-                     )
-                 }
-               ],
+              block_content = [
+                block_content,
+                List.duplicate(["\n", IO.ANSI.clear_line()], max_height - height)
+              ]
+
+              {[%{offset: next_offset, content: block_content}],
                %{
                  total_height: total_height + state.rendered_content_height[block_id],
                  next_offset: 0,

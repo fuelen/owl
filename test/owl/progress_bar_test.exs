@@ -50,9 +50,9 @@ defmodule Owl.ProgressBarTest do
       |> String.split(@render_separator)
 
     assert frames == [
-             "users   [                                   ]   0%\n",
-             "\e[1Ausers   [≡≡≡-                               ]  10%\n",
-             "\e[1Ausers   [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡] 100%\n"
+             "\e[2Kusers   [                                   ]   0%\n",
+             "\e[1A\e[2Kusers   [≡≡≡-                               ]  10%\n",
+             "\e[1A\e[2Kusers   [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡] 100%\n"
            ]
   end
 
@@ -88,6 +88,6 @@ defmodule Owl.ProgressBarTest do
       end)
       |> String.split(@render_separator)
 
-    assert frames == ["users               00:00.1 [               ]   0%\n"]
+    assert frames == ["\e[2Kusers               00:00.1 [               ]   0%\n"]
   end
 end

@@ -309,9 +309,9 @@ defmodule Owl.ProgressBar do
     label_width =
       screen_width - bar_width - percentage_width - start_end_symbols_width - elapsed_time_width
 
-    progress = min(current / (total / bar_width), bar_width * 1.0)
     # Float.ceil(x, 2) is needed to handle numbers like 56.99999999999999
-    filled_blocks_integer = progress |> Float.ceil(2) |> floor()
+    progress = min(Float.ceil(current / (total / bar_width), 2), bar_width * 1.0)
+    filled_blocks_integer = floor(progress)
 
     next_block =
       case partial_symbols do
