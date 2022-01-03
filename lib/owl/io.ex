@@ -278,7 +278,9 @@ defmodule Owl.IO do
   @type cast_input ::
           (String.t() | nil -> {:ok, value :: any()} | {:error, reason :: String.Chars.t()})
   @type input_option ::
-          {:label, Owl.Data.t()} | {:cast, atom() | {atom(), Keyword.t()} | cast_input()}
+          {:label, Owl.Data.t()}
+          | {:cast, atom() | {atom(), Keyword.t()} | cast_input()}
+          | {:optional, boolean()}
 
   @doc """
   Reads a line from the `stdio` and casts a value to the given type.
