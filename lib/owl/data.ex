@@ -76,6 +76,49 @@ defmodule Owl.Data do
   end
 
   @doc """
+  Removes information about sequences and keeps only content of the tag.
+
+  ## Examples
+
+      iex> Owl.Data.tag("Hello", :red) |> Owl.Data.untag()
+      "Hello"
+
+      iex> Owl.Data.tag([72, 101, 108, 108, 111], :red) |> Owl.Data.untag()
+      'Hello'
+
+      iex> ["Hello ", Owl.Data.tag("world", :red), "!"] |> Owl.Data.untag()
+      ["Hello ", "world", "!"]
+  """
+  @spec untag(t()) :: iodata()
+  def untag(data) when is_list(data) do
+    Enum.map(data, &untag_child/1)
+  end
+
+  def untag(%Owl.Tag{data: data}) do
+    data
+  end
+
+  def untag(data) when is_binary(data) do
+    data
+  end
+
+  defp untag_child(data) when is_list(data) do
+    Enum.map(data, &untag_child/1)
+  end
+
+  defp untag_child(%Owl.Tag{data: data}) do
+    data
+  end
+
+  defp untag_child(data) when is_binary(data) do
+    data
+  end
+
+  defp untag_child(data) when is_integer(data) do
+    data
+  end
+
+  @doc """
   Zips corresponding lines into 1 line.
 
   The zipping finishes as soon as either data completes.
