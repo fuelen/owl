@@ -251,8 +251,8 @@ defmodule Owl.ProgressBar do
       ...>   bar_width_ratio: 0.7,
       ...>   start_symbol: "[",
       ...>   end_symbol: "]",
-      ...>   filled_symbol: Owl.Tag.new("≡", :cyan),
-      ...>   partial_symbols: [Owl.Tag.new("-", :green), Owl.Tag.new("=", :blue)],
+      ...>   filled_symbol: Owl.Data.tag("≡", :cyan),
+      ...>   partial_symbols: [Owl.Data.tag("-", :green), Owl.Data.tag("=", :blue)],
       ...>   empty_symbol: " ",
       ...>   screen_width: 40
       ...> })|> Owl.Data.to_ansidata() |> to_string

@@ -11,8 +11,8 @@
       total: range.last,
       timer: true,
       bar_width_ratio: 0.3,
-      filled_symbol: Owl.Tag.new("#", :red),
-      empty_symbol: Owl.Tag.new("-", :light_black),
+      filled_symbol: Owl.Data.tag("#", :red),
+      empty_symbol: Owl.Data.tag("-", :light_black),
       partial_symbols: []
     )
 

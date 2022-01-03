@@ -2,6 +2,8 @@ defmodule Owl.Tag do
   @moduledoc """
   A tag struct.
 
+  Use `Owl.Data.tag/2` to build a tag.
+
   Tag is a container for data and ANSI sequences associated with it.
   It allows having local binding for styles in console, similar to tags in HTML.
 
@@ -25,75 +27,22 @@ defmodule Owl.Tag do
 
       substring = [IO.ANSI.green(), IO.ANSI.red_background() "world"]
       IO.puts([IO.ANSI.red(), "Hello \#{substring}\#{[IO.ANSI.red(), IO.ANSI.default_background()]}!!"])
+
   Such code is very hard to maintain.
-  This is how the issue can be addressed with `Owl.Tag`:
+  This is how the issue can be addressed with `Owl.Data.tag/2`:
 
-      substring = Owl.Tag.new("world", :green)
-      Owl.IO.puts(Owl.Tag.new(["Hello ", substring, "!!"], :red))
+      substring = Owl.Data.tag("world", :green)
+      Owl.IO.puts(Owl.Data.tag(["Hello ", substring, "!!"], :red))
 
-      substring = Owl.Tag.new("world", [:green, :red_background])
-      Owl.IO.puts(Owl.Tag.new(["Hello ", substring, "!!"], :red))
+      substring = Owl.Data.tag("world", [:green, :red_background])
+      Owl.IO.puts(Owl.Data.tag(["Hello ", substring, "!!"], :red))
   """
 
-  @typedoc """
-  ANSI escape sequence.
-
-  An atom alias of ANSI escape sequence.
-
-  A binary representation of color like `"\e[38;5;33m"` (which is `IO.ANSI.color(33)` or `IO.ANSI.color(0, 2, 5)`).
-  """
-  @type sequence ::
-          :black
-          | :red
-          | :green
-          | :yellow
-          | :blue
-          | :magenta
-          | :cyan
-          | :white
-          | :black_background
-          | :red_background
-          | :green_background
-          | :yellow_background
-          | :blue_background
-          | :magenta_background
-          | :cyan_background
-          | :white_background
-          | :light_black_background
-          | :light_red_background
-          | :light_green_background
-          | :light_yellow_background
-          | :light_blue_background
-          | :light_magenta_background
-          | :light_cyan_background
-          | :light_white_background
-          | :default_color
-          | :default_background
-          | :blink_slow
-          | :blink_rapid
-          | :faint
-          | :bright
-          | :inverse
-          | :underline
-          | :italic
-          | :overlined
-          | :reverse
-          | binary()
-  @type t(data) :: %__MODULE__{sequences: [sequence()], data: data}
+  @type t(data) :: %__MODULE__{sequences: [Owl.Data.sequence()], data: data}
   defstruct sequences: [], data: []
 
-  @doc """
-  Builds a tag.
-
-  ## Examples
-
-      iex> Owl.Tag.new(["hello ", Owl.Tag.new("world", :green), "!!!"], :red) |> inspect()
-      ~s|#Owl.Tag[:red]<["hello ", #Owl.Tag[:green]<"world">, "!!!"]>|
-
-      iex> Owl.Tag.new("hello world", [:green, :red_background]) |> inspect()
-      ~s|#Owl.Tag[:green, :red_background]<"hello world">|
-  """
-  @spec new(data, sequence() | [sequence()]) :: t(data) when data: Owl.Data.t()
+  @deprecated "Use `Owl.Data.tag/2` instead"
+  @doc "Use `Owl.Data.tag/2` instead"
   def new(data, sequences) do
     %__MODULE__{
       sequences: List.wrap(sequences),

@@ -15,14 +15,14 @@ defmodule Owl.LiveScreen do
         state: :init,
         render: fn
           :init -> "init..."
-          dependency -> ["dependency: ", Owl.Tag.new(dependency, :yellow)]
+          dependency -> ["dependency: ", Owl.Data.tag(dependency, :yellow)]
         end
       )
 
       Owl.LiveScreen.add_block(:compiling,
         render: fn
           :init -> "init..."
-          filename -> ["compiling: ", Owl.Tag.new(to_string(filename), :cyan)]
+          filename -> ["compiling: ", Owl.Data.tag(to_string(filename), :cyan)]
         end
       )
 

@@ -11,6 +11,70 @@ defmodule Owl.Data do
   # improper lists are not here, just because they were not tested
   @type t :: [binary() | non_neg_integer() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t()) | binary()
 
+  @typedoc """
+  ANSI escape sequence.
+
+  An atom alias of ANSI escape sequence.
+
+  A binary representation of color like `"\e[38;5;33m"` (which is `IO.ANSI.color(33)` or `IO.ANSI.color(0, 2, 5)`).
+  """
+  @type sequence ::
+          :black
+          | :red
+          | :green
+          | :yellow
+          | :blue
+          | :magenta
+          | :cyan
+          | :white
+          | :black_background
+          | :red_background
+          | :green_background
+          | :yellow_background
+          | :blue_background
+          | :magenta_background
+          | :cyan_background
+          | :white_background
+          | :light_black_background
+          | :light_red_background
+          | :light_green_background
+          | :light_yellow_background
+          | :light_blue_background
+          | :light_magenta_background
+          | :light_cyan_background
+          | :light_white_background
+          | :default_color
+          | :default_background
+          | :blink_slow
+          | :blink_rapid
+          | :faint
+          | :bright
+          | :inverse
+          | :underline
+          | :italic
+          | :overlined
+          | :reverse
+          | binary()
+
+  @doc """
+  Builds a tag.
+
+  ## Examples
+
+      iex> Owl.Data.tag(["hello ", Owl.Data.tag("world", :green), "!!!"], :red) |> inspect()
+      ~s|#Owl.Tag[:red]<["hello ", #Owl.Tag[:green]<"world">, "!!!"]>|
+
+      iex> Owl.Data.tag("hello world", [:green, :red_background]) |> inspect()
+      ~s|#Owl.Tag[:green, :red_background]<"hello world">|
+  """
+  @spec tag(data, sequence() | [sequence()]) :: Owl.Tag.t(data) when data: t()
+  def tag(data, sequence_or_sequences) do
+    %Owl.Tag{
+      sequences: List.wrap(sequence_or_sequences),
+      data: data
+    }
+  end
+
   @doc """
   Zips corresponding lines into 1 line.
 
@@ -57,7 +121,7 @@ defmodule Owl.Data do
       iex> Owl.Data.length([[[]]])
       0
 
-      iex> Owl.Data.length(["222", Owl.Tag.new(["333", "444"], :green)])
+      iex> Owl.Data.length(["222", Owl.Data.tag(["333", "444"], :green)])
       9
   """
   @spec length(t()) :: non_neg_integer()
@@ -83,8 +147,8 @@ defmodule Owl.Data do
 
   ## Example
 
-      iex> Owl.Data.lines(["first\\nsecond\\n", Owl.Tag.new("third\\nfourth", :red)])
-      ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
+      iex> Owl.Data.lines(["first\\nsecond\\n", Owl.Data.tag("third\\nfourth", :red)])
+      ["first", "second", Owl.Data.tag(["third"], :red), Owl.Data.tag(["fourth"], :red)]
   """
   @spec lines(t()) :: [t()]
   def lines(data) do
@@ -99,11 +163,11 @@ defmodule Owl.Data do
       iex> Owl.Data.unlines(["a", "b", "c"])
       ["a", "\\n", "b", "\\n", "c"]
 
-      iex> ["first\\nsecond\\n", Owl.Tag.new("third\\nfourth", :red)]
+      iex> ["first\\nsecond\\n", Owl.Data.tag("third\\nfourth", :red)]
       ...> |> Owl.Data.lines()
       ...> |> Owl.Data.unlines()
       ...> |> Owl.Data.to_ansidata()
-      Owl.Data.to_ansidata(["first\\nsecond\\n", Owl.Tag.new("third\\nfourth", :red)])
+      Owl.Data.to_ansidata(["first\\nsecond\\n", Owl.Data.tag("third\\nfourth", :red)])
   """
   @spec unlines([t()]) :: [t()]
   def unlines(data) do
@@ -117,11 +181,11 @@ defmodule Owl.Data do
 
   ## Example
 
-      iex> "first\\nsecond" |> Owl.Tag.new(:red) |> Owl.Data.add_prefix(Owl.Tag.new("test: ", :yellow))
+      iex> "first\\nsecond" |> Owl.Data.tag(:red) |> Owl.Data.add_prefix(Owl.Data.tag("test: ", :yellow))
       [
-        [Owl.Tag.new("test: ", :yellow), Owl.Tag.new(["first"], :red)],
+        [Owl.Data.tag("test: ", :yellow), Owl.Data.tag(["first"], :red)],
         "\\n",
-        [Owl.Tag.new("test: ", :yellow), Owl.Tag.new(["second"], :red)]
+        [Owl.Data.tag("test: ", :yellow), Owl.Data.tag(["second"], :red)]
       ]
   """
   @spec add_prefix(t(), t()) :: t()
@@ -137,7 +201,7 @@ defmodule Owl.Data do
 
   ## Examples
 
-      iex> "hello" |> Owl.Tag.new([:red, :cyan_background]) |> Owl.Data.to_ansidata()
+      iex> "hello" |> Owl.Data.tag([:red, :cyan_background]) |> Owl.Data.to_ansidata()
       [[[[[[[] | "\e[46m"] | "\e[31m"], "hello"] | "\e[39m"] | "\e[49m"] | "\e[0m"]
 
   """
@@ -187,11 +251,11 @@ defmodule Owl.Data do
   defp maybe_wrap_to_tag([], data), do: data
 
   defp maybe_wrap_to_tag(sequences1, [%Owl.Tag{sequences: sequences2, data: data}]) do
-    Owl.Tag.new(data, collapse_sequences(sequences1 ++ sequences2))
+    tag(data, collapse_sequences(sequences1 ++ sequences2))
   end
 
   defp maybe_wrap_to_tag(sequences, data) do
-    Owl.Tag.new(data, collapse_sequences(sequences))
+    tag(data, collapse_sequences(sequences))
   end
 
   defp reverse_and_tag(sequences, [%Owl.Tag{sequences: last_sequences} | _] = data) do
@@ -215,11 +279,11 @@ defmodule Owl.Data do
 
   ## Example
 
-      iex> Owl.Data.split(["first second ", Owl.Tag.new("third fourth", :red)], " ")
-      ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
+      iex> Owl.Data.split(["first second ", Owl.Data.tag("third fourth", :red)], " ")
+      ["first", "second", Owl.Data.tag(["third"], :red), Owl.Data.tag(["fourth"], :red)]
 
-      iex> Owl.Data.split(["first   second ", Owl.Tag.new("third    fourth", :red)], ~r/\s+/)
-      ["first", "second", Owl.Tag.new(["third"], :red), Owl.Tag.new(["fourth"], :red)]
+      iex> Owl.Data.split(["first   second ", Owl.Data.tag("third    fourth", :red)], ~r/\s+/)
+      ["first", "second", Owl.Data.tag(["third"], :red), Owl.Data.tag(["fourth"], :red)]
   """
   @spec split(t(), String.pattern() | Regex.t()) :: [t()]
   def split(data, pattern) do
@@ -269,15 +333,15 @@ defmodule Owl.Data do
   # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L87
   defp sequence_type("\e[48;5;" <> _), do: :background
 
-  def default_value_by_sequence_type(:foreground), do: :default_color
-  def default_value_by_sequence_type(:background), do: :default_background
-  def default_value_by_sequence_type(:blink), do: :blink_off
-  def default_value_by_sequence_type(:intensity), do: :normal
-  def default_value_by_sequence_type(:inverse), do: :inverse_off
-  def default_value_by_sequence_type(:underline), do: :no_underline
-  def default_value_by_sequence_type(:italic), do: :not_italic
-  def default_value_by_sequence_type(:overlined), do: :not_overlined
-  def default_value_by_sequence_type(:reverse), do: :reverse_off
+  defp default_value_by_sequence_type(:foreground), do: :default_color
+  defp default_value_by_sequence_type(:background), do: :default_background
+  defp default_value_by_sequence_type(:blink), do: :blink_off
+  defp default_value_by_sequence_type(:intensity), do: :normal
+  defp default_value_by_sequence_type(:inverse), do: :inverse_off
+  defp default_value_by_sequence_type(:underline), do: :no_underline
+  defp default_value_by_sequence_type(:italic), do: :not_italic
+  defp default_value_by_sequence_type(:overlined), do: :not_overlined
+  defp default_value_by_sequence_type(:reverse), do: :reverse_off
 
   @doc """
   Returns list of `t()` containing `count` elements each.
@@ -285,14 +349,14 @@ defmodule Owl.Data do
   ## Example
 
       iex> Owl.Data.chunk_every(
-      ...>   ["first second ", Owl.Tag.new(["third", Owl.Tag.new(" fourth", :blue)], :red)],
+      ...>   ["first second ", Owl.Data.tag(["third", Owl.Data.tag(" fourth", :blue)], :red)],
       ...>   7
       ...> )
       [
         "first s",
-        ["econd ", Owl.Tag.new(["t"], :red)],
-        Owl.Tag.new(["hird", Owl.Tag.new([" fo"], :blue)], :red),
-        Owl.Tag.new(["urth"], :blue)
+        ["econd ", Owl.Data.tag(["t"], :red)],
+        Owl.Data.tag(["hird", Owl.Data.tag([" fo"], :blue)], :red),
+        Owl.Data.tag(["urth"], :blue)
       ]
   """
   @spec chunk_every(data :: t(), count :: pos_integer()) :: [t()]

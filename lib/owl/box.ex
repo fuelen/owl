@@ -111,9 +111,9 @@ defmodule Owl.Box do
       \""" |> String.trim_trailing()
 
       iex> "Green!"
-      ...> |> Owl.Tag.new(:green)
-      ...> |> Owl.Box.new(title: Owl.Tag.new("Red!", :red))
-      ...> |> Owl.Tag.new(:cyan)
+      ...> |> Owl.Data.tag(:green)
+      ...> |> Owl.Box.new(title: Owl.Data.tag("Red!", :red))
+      ...> |> Owl.Data.tag(:cyan)
       ...> |> Owl.Data.to_ansidata()
       ...> |> to_string()
       \"""

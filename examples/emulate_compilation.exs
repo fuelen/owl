@@ -15,20 +15,20 @@ Logger.configure_backend(:console, device: Owl.LiveScreen)
         :compiled ->
           [
             "dependency: ",
-            Owl.Tag.new(dependency, :yellow),
+            Owl.Data.tag(dependency, :yellow),
             "\n",
             "compiling: ",
-            Owl.Tag.new("done", :green),
+            Owl.Data.tag("done", :green),
             "\n"
           ]
 
         {:filename, filename} ->
           [
             "dependency: ",
-            Owl.Tag.new(dependency, :yellow),
+            Owl.Data.tag(dependency, :yellow),
             "\n",
             "compiling: ",
-            Owl.Tag.new(to_string(filename), :cyan),
+            Owl.Data.tag(to_string(filename), :cyan),
             "\n"
           ]
       end

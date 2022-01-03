@@ -43,7 +43,7 @@ defmodule Owl.IO do
       ]
       Owl.IO.select(packages,
         render_as: fn %{name: name, description: description} ->
-          [Owl.Tag.new(name, :cyan), "\\n  ", Owl.Tag.new(description, :light_black)]
+          [Owl.Data.tag(name, :cyan), "\\n  ", Owl.Data.tag(description, :light_black)]
         end
       )
       #=> 1. elixir
@@ -173,7 +173,7 @@ defmodule Owl.IO do
     |> Enum.map(fn {item, index} ->
       rendered_item = render_item.(item)
 
-      [Owl.Tag.new(to_string(index), :blue), ". "]
+      [Owl.Data.tag(to_string(index), :blue), ". "]
       |> Owl.Box.new(border_style: :none, min_height: length(Owl.Data.lines(rendered_item)))
       |> Owl.Data.zip(rendered_item)
     end)
@@ -243,7 +243,7 @@ defmodule Owl.IO do
       #=> Are you sure? [yN] n
       false
 
-      Owl.IO.confirm(message: Owl.Tag.new("Really?", :red), default: true)
+      Owl.IO.confirm(message: Owl.Data.tag("Really?", :red), default: true)
       #=> Really? [Yn]
       true
   """
@@ -358,7 +358,7 @@ defmodule Owl.IO do
 
     secret = Keyword.get(opts, :secret, false)
 
-    value = gets(secret, [label, Owl.Tag.new("> ", :blue)])
+    value = gets(secret, [label, Owl.Data.tag("> ", :blue)])
 
     [&validate_required(&1, opts), cast]
     |> Enum.reduce_while({:ok, value}, fn
@@ -429,7 +429,7 @@ defmodule Owl.IO do
   end
 
   defp report_error(text) do
-    Owl.IO.puts(Owl.Tag.new(text, :red))
+    Owl.IO.puts(Owl.Data.tag(text, :red))
   end
 
   defp validate_required(value, opts) do
@@ -480,7 +480,7 @@ defmodule Owl.IO do
 
   ## Example
 
-      Owl.IO.puts(["Hello ", Owl.Tag.new("world", :green)])
+      Owl.IO.puts(["Hello ", Owl.Data.tag("world", :green)])
       #=> Hello world
   """
   @spec puts(Owl.Data.t()) :: :ok

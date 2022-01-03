@@ -12,7 +12,7 @@ defmodule Owl.IOTest do
            end) == "Really? [yN]: "
 
     assert capture_io([input: ""], fn ->
-             assert Owl.IO.confirm(message: Owl.Tag.new("Really?", :red), default: true)
+             assert Owl.IO.confirm(message: Owl.Data.tag("Really?", :red), default: true)
            end) == "\e[31mReally?\e[39m [Yn]: \e[0m"
 
     assert capture_io([input: "YES\ny"], fn ->

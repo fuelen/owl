@@ -21,14 +21,14 @@ Owl.LiveScreen.add_block(:demo,
 
     state ->
       owl
-      |> Owl.Tag.new(state.owl_color)
+      |> Owl.Data.tag(state.owl_color)
       |> Owl.Box.new(
         min_width: width - state.padding_left,
         min_height: height - state.padding_top,
         padding_top: state.padding_top,
         padding_left: state.padding_left
       )
-      |> Owl.Tag.new(:magenta)
+      |> Owl.Data.tag(:magenta)
   end
 )
 
