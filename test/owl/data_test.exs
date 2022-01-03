@@ -244,4 +244,72 @@ defmodule Owl.DataTest do
              ]
     end
   end
+
+  test inspect(&Owl.Data.to_ansidata/1) do
+    assert Owl.Data.to_ansidata(["1", "2", ["3", "4"], "5"]) == [
+             [[[[[], "1"], "2"], "3"], "4"],
+             "5"
+           ]
+
+    assert Owl.Data.to_ansidata(Owl.Tag.new("Hello", :red)) == [
+             [[[[] | "\e[31m"], "Hello"] | "\e[39m"] | "\e[0m"
+           ]
+
+    assert to_string(
+             Owl.Data.to_ansidata([
+               Owl.Tag.new(
+                 [
+                   Owl.Tag.new("prefix: ", [:red_background, :yellow]),
+                   "Hello",
+                   Owl.Tag.new(" inner ", :yellow),
+                   " world"
+                 ],
+                 :red
+               ),
+               Owl.Tag.new("!!!", :blue),
+               "!!"
+             ])
+           ) ==
+             "\e[31m\e[41m\e[33mprefix: \e[31m\e[49mHello\e[33m inner \e[31m world\e[39m\e[34m!!!\e[39m!!\e[0m"
+
+    assert Owl.Data.to_ansidata([Owl.Tag.new("#", :red), Owl.Tag.new("#", :red)]) == [
+             [[[[[[[] | "\e[31m"], "#"] | "\e[39m"] | "\e[31m"], "#"] | "\e[39m"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :blink_slow), "!"]) == [
+             [[[[[[], "Hello "] | "\e[5m"], "world"] | "\e[25m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :blink_rapid), "!"]) == [
+             [[[[[[], "Hello "] | "\e[6m"], "world"] | "\e[25m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :faint), "!"]) == [
+             [[[[[[], "Hello "] | "\e[2m"], "world"] | "\e[22m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :bright), "!"]) == [
+             [[[[[[], "Hello "] | "\e[1m"], "world"] | "\e[22m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :inverse), "!"]) == [
+             [[[[[[], "Hello "] | "\e[7m"], "world"] | "\e[27m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :underline), "!"]) == [
+             [[[[[[], "Hello "] | "\e[4m"], "world"] | "\e[24m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :italic), "!"]) == [
+             [[[[[[], "Hello "] | "\e[3m"], "world"] | "\e[23m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :overlined), "!"]) == [
+             [[[[[[], "Hello "] | "\e[53m"], "world"] | "\e[55m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Tag.new("world", :reverse), "!"]) == [
+             [[[[[[], "Hello "] | "\e[7m"], "world"] | "\e[27m"], "!"] | "\e[0m"
+           ]
+  end
 end

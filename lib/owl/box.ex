@@ -117,9 +117,9 @@ defmodule Owl.Box do
       ...> |> Owl.Data.to_ansidata()
       ...> |> to_string()
       \"""
-      \e[36m┌─\e[31mRed!\e[36m\e[49m────┐\e[39m\e[49m
-      \e[36m│\e[32mGreen!\e[36m\e[49m   │\e[39m\e[49m
-      \e[36m└─────────┘\e[39m\e[49m\e[0m
+      \e[36m┌─\e[31mRed!\e[36m────┐\e[39m
+      \e[36m│\e[32mGreen!\e[36m   │\e[39m
+      \e[36m└─────────┘\e[39m\e[0m
       \""" |> String.trim_trailing()
   """
   @type opt ::

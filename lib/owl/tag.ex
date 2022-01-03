@@ -38,13 +38,47 @@ defmodule Owl.Tag do
   @typedoc """
   ANSI escape sequence.
 
-  An atom like `:green`, `:red_background`, `:light_cyan`, `light_red_background`.
+  An atom alias of ANSI escape sequence.
 
-  A binary like `"\e[38;5;33m"` (which is `IO.ANSI.color(33)` or `IO.ANSI.color(0, 2, 5)`).
-
-  Currently, only colors are supported. Read about all available values in doc for `IO.ANSI` or `Owl.Palette`.
+  A binary representation of color like `"\e[38;5;33m"` (which is `IO.ANSI.color(33)` or `IO.ANSI.color(0, 2, 5)`).
   """
-  @type sequence :: atom() | binary()
+  @type sequence ::
+          :black
+          | :red
+          | :green
+          | :yellow
+          | :blue
+          | :magenta
+          | :cyan
+          | :white
+          | :black_background
+          | :red_background
+          | :green_background
+          | :yellow_background
+          | :blue_background
+          | :magenta_background
+          | :cyan_background
+          | :white_background
+          | :light_black_background
+          | :light_red_background
+          | :light_green_background
+          | :light_yellow_background
+          | :light_blue_background
+          | :light_magenta_background
+          | :light_cyan_background
+          | :light_white_background
+          | :default_color
+          | :default_background
+          | :blink_slow
+          | :blink_rapid
+          | :faint
+          | :bright
+          | :inverse
+          | :underline
+          | :italic
+          | :overlined
+          | :reverse
+          | binary()
   @type t(data) :: %__MODULE__{sequences: [sequence()], data: data}
   defstruct sequences: [], data: []
 

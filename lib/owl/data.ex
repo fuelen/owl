@@ -147,28 +147,41 @@ defmodule Owl.Data do
     data
     |> lines()
     |> unlines()
-    |> do_to_ansidata(%{foreground: :default_color, background: :default_background})
+    |> do_to_ansidata(%{})
     |> IO.ANSI.format()
   end
 
   defp do_to_ansidata(
          %Owl.Tag{sequences: sequences, data: data},
-         %{foreground: fg, background: bg}
+         open_tags
        ) do
-    parent_sequences = Enum.reject([fg, bg], &is_nil/1)
+    new_open_tags = sequences_to_state(open_tags, sequences)
 
-    [
-      sequences,
-      do_to_ansidata(data, sequences_to_state(parent_sequences ++ sequences)),
-      parent_sequences
-    ]
+    close_tags =
+      Enum.reduce(new_open_tags, [], fn {sequence_type, sequence}, acc ->
+        case Map.get(open_tags, sequence_type) do
+          nil ->
+            return_to = default_value_by_sequence_type(sequence_type)
+
+            [return_to | acc]
+
+          previous_sequence ->
+            if previous_sequence == sequence do
+              acc
+            else
+              [previous_sequence | acc]
+            end
+        end
+      end)
+
+    [sequences, do_to_ansidata(data, new_open_tags), close_tags]
   end
 
-  defp do_to_ansidata([head | tail], state) do
-    [do_to_ansidata(head, state) | do_to_ansidata(tail, state)]
+  defp do_to_ansidata(list, open_tags) when is_list(list) do
+    Enum.map(list, &do_to_ansidata(&1, open_tags))
   end
 
-  defp do_to_ansidata(term, _state), do: term
+  defp do_to_ansidata(term, _open_tags), do: term
 
   defp maybe_wrap_to_tag([], [element]), do: element
   defp maybe_wrap_to_tag([], data), do: data
@@ -191,8 +204,8 @@ defmodule Owl.Data do
 
   # last write wins
   defp collapse_sequences(sequences) do
-    sequences
-    |> sequences_to_state()
+    %{foreground: nil, background: nil}
+    |> sequences_to_state(sequences)
     |> Map.values()
     |> Enum.reject(&is_nil/1)
   end
@@ -224,8 +237,8 @@ defmodule Owl.Data do
     )
   end
 
-  defp sequences_to_state(sequences) do
-    Enum.reduce(sequences, %{foreground: nil, background: nil}, fn sequence, acc ->
+  defp sequences_to_state(init, sequences) do
+    Enum.reduce(sequences, init, fn sequence, acc ->
       Map.put(acc, sequence_type(sequence), sequence)
     end)
   end
@@ -240,11 +253,31 @@ defmodule Owl.Data do
   defp sequence_type(:default_color), do: :foreground
   defp sequence_type(:default_background), do: :background
 
+  defp sequence_type(:blink_slow), do: :blink
+  defp sequence_type(:blink_rapid), do: :blink
+  defp sequence_type(:faint), do: :intensity
+  defp sequence_type(:bright), do: :intensity
+  defp sequence_type(:inverse), do: :inverse
+  defp sequence_type(:underline), do: :underline
+  defp sequence_type(:italic), do: :italic
+  defp sequence_type(:overlined), do: :overlined
+  defp sequence_type(:reverse), do: :reverse
+
   # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L73
   defp sequence_type("\e[38;5;" <> _), do: :foreground
 
   # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L87
   defp sequence_type("\e[48;5;" <> _), do: :background
+
+  def default_value_by_sequence_type(:foreground), do: :default_color
+  def default_value_by_sequence_type(:background), do: :default_background
+  def default_value_by_sequence_type(:blink), do: :blink_off
+  def default_value_by_sequence_type(:intensity), do: :normal
+  def default_value_by_sequence_type(:inverse), do: :inverse_off
+  def default_value_by_sequence_type(:underline), do: :no_underline
+  def default_value_by_sequence_type(:italic), do: :not_italic
+  def default_value_by_sequence_type(:overlined), do: :not_overlined
+  def default_value_by_sequence_type(:reverse), do: :reverse_off
 
   @doc """
   Returns list of `t()` containing `count` elements each.

@@ -256,7 +256,7 @@ defmodule Owl.ProgressBar do
       ...>   empty_symbol: " ",
       ...>   screen_width: 40
       ...> })|> Owl.Data.to_ansidata() |> to_string
-      "Demo [\e[36m≡\e[39m\e[49m\e[32m-\e[39m\e[49m                          ]   4%\e[0m"
+      "Demo [\e[36m≡\e[39m\e[32m-\e[39m                          ]   4%\e[0m"
 
   """
   @spec render(%{
