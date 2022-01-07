@@ -11,13 +11,24 @@ defmodule Owl.IOTest do
              assert Owl.IO.confirm(message: "Really?")
            end) == "Really? [yN]: "
 
+    assert capture_io([input: "yEs"], fn ->
+             assert Owl.IO.confirm(message: "Really?")
+           end) == "Really? [yN]: "
+
+    assert capture_io([input: "ТАК"], fn ->
+             assert Owl.IO.confirm(
+                      message: "Справді?",
+                      answers: [true: {"т", ["так", "y", "yes"]}, false: {"н", ["ні", "n", "no"]}]
+                    )
+           end) == "Справді? [тН]: "
+
     assert capture_io([input: ""], fn ->
              assert Owl.IO.confirm(message: Owl.Data.tag("Really?", :red), default: true)
            end) == "\e[31mReally?\e[39m [Yn]: \e[0m"
 
-    assert capture_io([input: "YES\ny"], fn ->
+    assert capture_io([input: "YESS\ny"], fn ->
              assert Owl.IO.confirm(message: "Really?")
-           end) == "Really? [yN]: \e[31munknown choice\e[39m\e[0m\nReally? [yN]: "
+           end) == "Really? [yN]: \e[31munknown answer\e[39m\e[0m\nReally? [yN]: "
   end
 
   test inspect(&Owl.IO.input/1) do

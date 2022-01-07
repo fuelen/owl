@@ -224,18 +224,27 @@ defmodule Owl.IO do
     |> binary_part(0, length)
   end
 
-  @type confirm_option :: {:message, Owl.Data.t()} | {:default, boolean()}
+  @type confirm_option ::
+          {:message, Owl.Data.t()}
+          | {:default, boolean()}
+          | {:answers,
+             [
+               true: {primary_true_answer :: binary(), other_true_answers :: [binary()]},
+               false: {primary_false_answer :: binary(), other_false_answers :: [binary()]}
+             ]}
 
   @default_confirmation_message "Are you sure?"
   @doc """
   Asks user to type a confirmation.
 
-  Valid inputs are `y`, `Y`, `n`, `N` and blank string. User will be asked to type a confirmation again on invalid input.
+  Valid inputs are a blank string and values specified in `:answers` option.
+  User will be asked to type a confirmation again on invalid input.
 
   ## Options
 
   * `:message` - typically a question about performing operation. Defaults to `#{inspect(@default_confirmation_message)}`.
   * `:default` - a value that is used when user responds with a blank string. Defaults to `false`.
+  * `:answers` - allows to specify alternative answers. Defaults to `[true: {"y", ["yes"]}, false: {"n", ["no"]}]`.
 
   ## Examples
 
@@ -246,31 +255,49 @@ defmodule Owl.IO do
       Owl.IO.confirm(message: Owl.Data.tag("Really?", :red), default: true)
       #=> Really? [Yn]
       true
+
+      Owl.IO.confirm(
+        message: Owl.Data.tag("Справді?", :red),
+        answers: [true: {"т", ["так", "y", "yes"]}, false: {"н", ["ні", "n", "no"]}]
+      )
+      #=> Справді? [тН] НІ
+      false
   """
   @spec confirm([confirm_option()]) :: boolean()
   def confirm(opts \\ []) do
     message = Keyword.get(opts, :message, @default_confirmation_message)
     default = Keyword.get(opts, :default, false)
 
-    choices =
+    {primary_true_answer, other_true_answers} = get_in(opts, [:answers, true]) || {"y", ["yes"]}
+    {primary_false_answer, other_false_answers} = get_in(opts, [:answers, false]) || {"n", ["no"]}
+
+    answers =
       if default do
-        "Yn"
+        String.upcase(primary_true_answer) <> String.downcase(primary_false_answer)
       else
-        "yN"
+        String.downcase(primary_true_answer) <> String.upcase(primary_false_answer)
       end
 
-    case gets(false, [message, " [", choices, "]: "]) do
-      nil ->
+    result = gets(false, [message, " [", answers, "]: "])
+
+    cond do
+      is_nil(result) ->
         default
 
-      value when value in ["Y", "y"] ->
+      String.downcase(result) in Enum.map(
+        [primary_true_answer | other_true_answers],
+        &String.downcase/1
+      ) ->
         true
 
-      value when value in ["N", "n"] ->
+      String.downcase(result) in Enum.map(
+        [primary_false_answer | other_false_answers],
+        &String.downcase/1
+      ) ->
         false
 
-      _unknown ->
-        report_error("unknown choice")
+      true ->
+        report_error("unknown answer")
         confirm(opts)
     end
   end
