@@ -97,6 +97,25 @@ defmodule Owl.IOTest do
              \e[34m> \e[39m\e[0m
              """
              |> String.trim_trailing()
+
+    assert capture_io([input: "2\n"], fn ->
+             assert Owl.IO.select(Enum.to_list(1..11), render_as: &to_string/1) == 2
+           end) ==
+             String.trim_trailing("""
+              \e[34m1\e[39m. 1
+              \e[34m2\e[39m. 2
+              \e[34m3\e[39m. 3
+              \e[34m4\e[39m. 4
+              \e[34m5\e[39m. 5
+              \e[34m6\e[39m. 6
+              \e[34m7\e[39m. 7
+              \e[34m8\e[39m. 8
+              \e[34m9\e[39m. 9
+             \e[34m10\e[39m. 10
+             \e[34m11\e[39m. 11\e[0m
+
+             \e[34m> \e[39m\e[0m
+             """)
   end
 
   test inspect(&Owl.IO.multiselect/2) do
@@ -124,6 +143,25 @@ defmodule Owl.IOTest do
     assert capture_io([input: "\n"], fn ->
              assert Owl.IO.multiselect(["one"]) == []
            end) == "\e[34m1\e[39m. one\e[0m\n\n\e[34m> \e[39m\e[0m"
+
+    assert capture_io([input: "1 2 3\n"], fn ->
+             assert Owl.IO.multiselect(Enum.to_list(1..11), render_as: &to_string/1) == [1, 2, 3]
+           end) ==
+             String.trim_trailing("""
+              \e[34m1\e[39m. 1
+              \e[34m2\e[39m. 2
+              \e[34m3\e[39m. 3
+              \e[34m4\e[39m. 4
+              \e[34m5\e[39m. 5
+              \e[34m6\e[39m. 6
+              \e[34m7\e[39m. 7
+              \e[34m8\e[39m. 8
+              \e[34m9\e[39m. 9
+             \e[34m10\e[39m. 10
+             \e[34m11\e[39m. 11\e[0m
+
+             \e[34m> \e[39m\e[0m
+             """)
 
     assert_raise(ArgumentError, fn ->
       Owl.IO.multiselect(["one"], min: 2)

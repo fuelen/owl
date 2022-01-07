@@ -169,12 +169,23 @@ defmodule Owl.IO do
   end
 
   defp puts_ordered_list(ordered_list, render_item) do
+    last_index_width =
+      ordered_list |> Enum.reverse() |> hd() |> elem(1) |> to_string() |> String.length()
+
+    # 2 is length of ". "
+    max_width = last_index_width + 2
+
     ordered_list
     |> Enum.map(fn {item, index} ->
       rendered_item = render_item.(item)
 
       [Owl.Data.tag(to_string(index), :blue), ". "]
-      |> Owl.Box.new(border_style: :none, min_height: length(Owl.Data.lines(rendered_item)))
+      |> Owl.Box.new(
+        border_style: :none,
+        min_height: length(Owl.Data.lines(rendered_item)),
+        min_width: max_width,
+        horizontal_align: :right
+      )
       |> Owl.Data.zip(rendered_item)
     end)
     |> Owl.Data.unlines()
