@@ -220,6 +220,27 @@ defmodule Owl.DataTest do
                "---"
              ]
     end
+
+    test "8" do
+      assert Owl.Data.split(["foo@", Owl.Data.tag("bar!", :red), Owl.Data.tag("baz?", :green)], [
+               "@",
+               "!",
+               "?"
+             ]) == ["foo", Owl.Data.tag(["bar"], :red), Owl.Data.tag(["baz"], :green), []]
+
+      assert Owl.Data.split(
+               ["@foo@", Owl.Data.tag("!bar!", :red), Owl.Data.tag("?baz?", :green)],
+               ["@", "!", "?"]
+             ) == [
+               [],
+               "foo",
+               [],
+               Owl.Data.tag(["bar"], :red),
+               [],
+               Owl.Data.tag(["baz"], :green),
+               []
+             ]
+    end
   end
 
   describe inspect(&Owl.Data.chunk_very/2) do

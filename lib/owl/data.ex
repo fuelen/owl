@@ -484,6 +484,7 @@ defmodule Owl.Data do
     next_acc_sequences =
       case after_pattern do
         [] -> next_acc_sequences -- sequences
+        [""] -> next_acc_sequences -- sequences
         _ -> next_acc_sequences
       end
 
