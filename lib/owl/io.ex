@@ -511,6 +511,10 @@ defmodule Owl.IO do
 
       Owl.IO.puts(["Hello ", Owl.Data.tag("world", :green)])
       #=> Hello world
+
+      # specify Owl.LiveScreen as a device in order to print data above rendered live blocks
+      Owl.IO.puts(Owl.LiveScreen, ["Hello ", Owl.Data.tag("world", :green)])
+      #=> Hello world
   """
   @spec puts(Owl.Data.t()) :: :ok
   def puts(device \\ :stdio, data) do
