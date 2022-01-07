@@ -185,7 +185,7 @@ defmodule Owl.IO do
   Opens `data` in editor for editing.
 
   Returns updated data when file is saved and editor is closed.
-  Similarly to `IEx.Helpers.open/1`, this function uses `ELIXIR_EDITOR` environment variable.
+  Similarly to `IEx.Helpers.open/1`, this function uses `ELIXIR_EDITOR` environment variable by default.
   `__FILE__` notation is supported as well.
 
   ## Example
@@ -195,10 +195,12 @@ defmodule Owl.IO do
 
       # open editor from Elixir code
       Owl.IO.open_in_editor("hello\\nworld")
+
+      # specify editor explicitly
+      Owl.IO.open_in_editor("hello\\nworld", "alacritty -e nvim")
   """
   @spec open_in_editor(iodata()) :: String.t()
-  def open_in_editor(data) do
-    elixir_editor = System.fetch_env!("ELIXIR_EDITOR")
+  def open_in_editor(data, elixir_editor \\ System.fetch_env!("ELIXIR_EDITOR")) do
     dir = System.tmp_dir!()
     filename = "owl-#{random_string()}"
     tmp_file = Path.join(dir, filename)

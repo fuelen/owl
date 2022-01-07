@@ -130,6 +130,10 @@ defmodule Owl.IOTest do
     end)
   end
 
+  test inspect(&Owl.IO.open_in_editor/2) do
+    assert Owl.IO.open_in_editor("data\n", "echo 'new data' >>") == "data\nnew data\n"
+  end
+
   test inspect(&Owl.IO.open_in_editor/1) do
     System.put_env("ELIXIR_EDITOR", "echo 'new data' >> __FILE__")
     assert Owl.IO.open_in_editor("data\n") == "data\nnew data\n"
