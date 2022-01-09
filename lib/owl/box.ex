@@ -39,7 +39,7 @@ defmodule Owl.Box do
   @doc """
   Wraps data into a box.
 
-  Options are self-descriptive in definition of the type `t:opt/0`, numbers mean number of symbols.
+  Options are self-descriptive in definition of the type `t:option/0`, numbers mean number of symbols.
 
   ## Examples
 
@@ -60,10 +60,10 @@ defmodule Owl.Box do
       ...> )
       ...> |> to_string()
       \"""
-      ╔═Greeting!══════════╗
-      ║       Hello        ║
-      ║       world!       ║
-      ╚════════════════════╝
+      ╔═Greeting!════════╗
+      ║      Hello       ║
+      ║      world!      ║
+      ╚══════════════════╝
       \""" |> String.trim_trailing()
 
       iex> "Success"
@@ -87,9 +87,7 @@ defmodule Owl.Box do
       \"""
       ┌──┐
       │  │
-      │  │
       │OK│
-      │  │
       │  │
       └──┘
       \""" |> String.trim_trailing()
@@ -122,7 +120,7 @@ defmodule Owl.Box do
       \e[36m└─────────┘\e[39m\e[0m
       \""" |> String.trim_trailing()
   """
-  @type opt ::
+  @type option ::
           {:padding_top, non_neg_integer()}
           | {:padding_bottom, non_neg_integer()}
           | {:padding_right, non_neg_integer()}
@@ -134,7 +132,7 @@ defmodule Owl.Box do
           | {:vertical_align, :top | :middle | :bottom}
           | {:border_style, :solid | :double | :none}
           | {:title, nil | Owl.Data.t()}
-  @spec new(Owl.Data.t(), [opt()]) :: Owl.Data.t()
+  @spec new(Owl.Data.t(), [option()]) :: Owl.Data.t()
   def new(data, opts \\ []) do
     padding_top = Keyword.get(opts, :padding_top, 0)
     padding_bottom = Keyword.get(opts, :padding_bottom, 0)
@@ -150,37 +148,46 @@ defmodule Owl.Box do
 
     max_width = opts[:max_width] || Owl.IO.columns() || :infinity
 
+    max_width =
+      if is_integer(max_width) and max_width < min_width do
+        min_width
+      else
+        max_width
+      end
+
+    max_inner_width =
+      case max_width do
+        :infinity -> :infinity
+        width -> width - borders_size(border_style) - padding_right - padding_left
+      end
+
     lines = Owl.Data.lines(data)
 
     lines =
-      case max_width do
-        :infinity ->
-          lines
-
-        max_width ->
-          max_width =
-            case border_style do
-              :none -> max_width
-              _ -> max_width - 2
-            end
-
-          Enum.flat_map(lines, fn line -> Owl.Data.chunk_every(line, max_width) end)
+      case max_inner_width do
+        :infinity -> lines
+        max_width -> Enum.flat_map(lines, fn line -> Owl.Data.chunk_every(line, max_width) end)
       end
 
-    lines_number = Enum.count(lines)
-    height = max(lines_number, min_height)
+    data_height = length(lines)
+
+    inner_height =
+      max(
+        data_height,
+        min_height - borders_size(border_style) - padding_bottom - padding_top
+      )
 
     {padding_before, padding_after} =
       case vertical_align do
         :top ->
-          {padding_top, padding_bottom + height - lines_number}
+          {padding_top, padding_bottom + inner_height - data_height}
 
         :middle ->
-          to_center = div(height - lines_number, 2)
-          {padding_top + to_center, height - lines_number - to_center + padding_bottom}
+          to_center = div(inner_height - data_height, 2)
+          {padding_top + to_center, inner_height - data_height - to_center + padding_bottom}
 
         :bottom ->
-          {padding_bottom + height - lines_number, padding_top}
+          {padding_bottom + inner_height - data_height, padding_top}
       end
 
     lines =
@@ -189,13 +196,23 @@ defmodule Owl.Box do
           {line, Owl.Data.length(line)}
         end) ++ List.duplicate({[], 0}, padding_after)
 
-    title_length = if is_nil(title), do: 0, else: Owl.Data.length(title)
+    min_width_required_by_title =
+      if is_nil(title) do
+        0
+      else
+        Owl.Data.length(title) + @title_padding_left + @title_padding_right +
+          borders_size(border_style)
+      end
 
-    width =
+    if is_integer(max_width) and min_width_required_by_title > max_width do
+      raise ArgumentError, "`:title` is too big for given `:max_width`"
+    end
+
+    inner_width =
       Enum.max([
-        min_width,
-        if(is_nil(title), do: 0, else: title_length + @title_padding_left + @title_padding_right)
-        | Enum.map(lines, &elem(&1, 1))
+        min_width - padding_right - padding_left - borders_size(border_style),
+        min_width_required_by_title - padding_right - padding_left - borders_size(border_style)
+        | Enum.map(lines, fn {_line, line_length} -> line_length end)
       ])
 
     top_border =
@@ -207,15 +224,15 @@ defmodule Owl.Box do
           [
             border_symbols.top_left,
             if is_nil(title) do
-              String.duplicate(border_symbols.top, width + padding_left + padding_right)
+              String.duplicate(border_symbols.top, inner_width + padding_left + padding_right)
             else
               [
                 String.duplicate(border_symbols.top, @title_padding_left),
                 title,
                 String.duplicate(
                   border_symbols.top,
-                  width - title_length + padding_left + padding_right - @title_padding_left -
-                    @title_padding_right
+                  inner_width - (min_width_required_by_title - borders_size(border_style)) +
+                    padding_left + padding_right
                 ),
                 String.duplicate(border_symbols.top, @title_padding_right)
               ]
@@ -232,9 +249,9 @@ defmodule Owl.Box do
 
         _ ->
           [
-            if(height > 0, do: "\n", else: []),
+            if(inner_height > 0, do: "\n", else: []),
             border_symbols.bottom_left,
-            String.duplicate(border_symbols.bottom, width + padding_left + padding_right),
+            String.duplicate(border_symbols.bottom, inner_width + padding_left + padding_right),
             border_symbols.bottom_right
           ]
       end
@@ -246,14 +263,14 @@ defmodule Owl.Box do
         {padding_before, padding_after} =
           case horizontal_align do
             :left ->
-              {padding_left, width - length + padding_right}
+              {padding_left, inner_width - length + padding_right}
 
             :right ->
-              {width - length + padding_left, padding_right}
+              {inner_width - length + padding_left, padding_right}
 
             :center ->
-              to_center = div(width - length, 2)
-              {padding_left + to_center, width - length - to_center + padding_right}
+              to_center = div(inner_width - length, 2)
+              {padding_left + to_center, inner_width - length - to_center + padding_right}
           end
 
         [
@@ -268,4 +285,7 @@ defmodule Owl.Box do
       bottom_border
     ]
   end
+
+  defp borders_size(:none = _border_style), do: 0
+  defp borders_size(_border_style), do: 2
 end

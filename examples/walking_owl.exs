@@ -13,6 +13,8 @@ owl_width = 8
 width = 60
 height = 20
 colors = [:red, :yellow, :cyan, :blue, :green]
+# two sides
+borders_size = 2
 
 Owl.LiveScreen.add_block(:demo,
   render: fn
@@ -23,8 +25,8 @@ Owl.LiveScreen.add_block(:demo,
       owl
       |> Owl.Data.tag(state.owl_color)
       |> Owl.Box.new(
-        min_width: width - state.padding_left,
-        min_height: height - state.padding_top,
+        min_width: width,
+        min_height: height,
         padding_top: state.padding_top,
         padding_left: state.padding_left
       )
@@ -43,7 +45,7 @@ Stream.iterate(
   fn state ->
     horizontal_shift =
       cond do
-        state.padding_left == 0 or width - state.padding_left - owl_width == 0 ->
+        state.padding_left == 0 or width - state.padding_left - owl_width - borders_size == 0 ->
           state.horizontal_shift * -1
 
         state.padding_left > 0 ->
@@ -52,7 +54,7 @@ Stream.iterate(
 
     vertical_shift =
       cond do
-        state.padding_top == 0 or height - state.padding_top - owl_height == 0 ->
+        state.padding_top == 0 or height - state.padding_top - owl_height - borders_size == 0 ->
           state.vertical_shift * -1
 
         state.padding_top > 0 ->

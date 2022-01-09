@@ -1,6 +1,7 @@
 defmodule Owl.ProgressBarTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureIO
+  doctest Owl.ProgressBar
 
   @unreachable_refresh_interval 9999
   @terminal_width 50
