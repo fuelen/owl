@@ -48,6 +48,8 @@ defmodule Owl.LiveScreen do
           | {:refresh_every, pos_integer()}
           | {:terminal_width, pos_integer() | :auto}
 
+  @refresh_every_default 60
+
   @doc """
   Starts a server.
 
@@ -57,7 +59,7 @@ defmodule Owl.LiveScreen do
 
   * `:name` - used for name registration as described in the "Name
   registration" section in the documentation for `GenServer`. Defaults to `Owl.LiveScreen`
-  * `:refresh_every` - a period of refreshing a screen in milliseconds. Defaults to 100.
+  * `:refresh_every` - a period of refreshing a screen in milliseconds. Defaults to #{@refresh_every_default}.
   * `:terminal_width` - a width of terminal in symbols. Defaults to `:auto`, which gets value from `Owl.IO.columns/0`.
   If terminal is now a available, then the server won't be started.
   """
@@ -132,7 +134,7 @@ defmodule Owl.LiveScreen do
 
   @impl true
   def init(opts) do
-    refresh_every = opts[:refresh_every] || 50
+    refresh_every = opts[:refresh_every] || @refresh_every_default
 
     terminal_width = opts[:terminal_width] || :auto
 
@@ -373,7 +375,7 @@ defmodule Owl.LiveScreen do
 
         {
           lines
-          |> List.update_at(-1, &[IO.ANSI.clear_line(), &1])
+          |> Enum.map(&[IO.ANSI.clear_line(), &1])
           |> Owl.Data.unlines(),
           length(lines)
         }

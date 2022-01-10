@@ -42,11 +42,11 @@ defmodule Owl.LiveScreenTest do
 
     assert String.split(renders, @render_separator) == [
              "first\nput\n\n",
-             "First block:\n\e[2Kupdate #1\n",
-             "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Ksecond\nput\n\nFirst block:\n\e[2Kupdate #1\n",
-             "Second block:\nupdate #1\n\n\e[2K\n",
-             "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Kthird\nput\n\nFirst block:\n\e[2Kupdate #1\nSecond block:\nupdate #1\n\n\e[2K\n",
-             "\e[6A\e[2BSecond block\n\e[2Kupdate #2\n\e[2K\n\e[2K\n",
+             "\e[2KFirst block:\n\e[2Kupdate #1\n",
+             "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Ksecond\nput\n\n\e[2KFirst block:\n\e[2Kupdate #1\n",
+             "\e[2KSecond block:\n\e[2Kupdate #1\n\e[2K\n\e[2K\n",
+             "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Kthird\nput\n\n\e[2KFirst block:\n\e[2Kupdate #1\n\e[2KSecond block:\n\e[2Kupdate #1\n\e[2K\n\e[2K\n",
+             "\e[6A\e[2B\e[2KSecond block\n\e[2Kupdate #2\n\e[2K\n\e[2K\n",
              "new line\n\n\e[1A\e[2Knew line\n\n"
            ]
   end
