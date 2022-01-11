@@ -3,6 +3,58 @@ defmodule Owl.BoxTest do
   doctest Owl.Box
 
   describe inspect(&Owl.Box.new/2) do
+    test "paddings" do
+      assert "x" |> Owl.Box.new(padding: 3) |> to_string ==
+               """
+               ┌───────┐
+               │       │
+               │       │
+               │       │
+               │   x   │
+               │       │
+               │       │
+               │       │
+               └───────┘
+               """
+               |> String.trim_trailing()
+
+      assert "x" |> Owl.Box.new(padding_x: 3) |> to_string ==
+               """
+               ┌───────┐
+               │   x   │
+               └───────┘
+               """
+               |> String.trim_trailing()
+
+      assert "x" |> Owl.Box.new(padding_y: 3) |> to_string ==
+               """
+               ┌─┐
+               │ │
+               │ │
+               │ │
+               │x│
+               │ │
+               │ │
+               │ │
+               └─┘
+               """
+               |> String.trim_trailing()
+
+      assert "x" |> Owl.Box.new(padding: 3, padding_right: 0) |> to_string ==
+               """
+               ┌────┐
+               │    │
+               │    │
+               │    │
+               │   x│
+               │    │
+               │    │
+               │    │
+               └────┘
+               """
+               |> String.trim_trailing()
+    end
+
     test "max_width < min_width makes max_width equal to min_width" do
       assert "VeryLongLine" |> Owl.Box.new(max_width: 2, min_width: 10) |> to_string() ==
                """

@@ -39,7 +39,21 @@ defmodule Owl.Box do
   @doc """
   Wraps data into a box.
 
-  Options are self-descriptive in definition of the type `t:option/0`, numbers mean number of symbols.
+  ## Options
+  * `:padding` - sets the padding area for all four sides at once.  Defaults to 0.
+  * `:padding_x` - sets `:padding_right` and `:padding_left` at once. Overrides value set by `:padding`. Defaults to 0.
+  * `:padding_y` - sets `:padding_top` and `:padding_bottom` at once. Overrides value set by `:padding`. Defaults to 0.
+  * `:padding_top` - sets the padding area for top side. Overrides value set by `:padding_y` or `:padding`.  Defaults to 0.
+  * `:padding_bottom` - sets the padding area for bottom side. Overrides value set by `:padding_y` or `:padding`. Defaults to 0.
+  * `:padding_right` - sets the padding area for right side. Overrides value set by `:padding_x` or `:padding`. Defaults to 0.
+  * `:padding_left` - sets the padding area for left side. Overrides value set by `:padding_x` or `:padding`. Defaults to 0.
+  * `:min_height` - sets the minimum height of the box, including paddings and size of the borders. Defaults to 0.
+  * `:min_width` - sets the minimum width of the box, including paddings and size of the borders. Defaults to 0.
+  * `:max_width` - sets the maximum width of the box, including paddings and size of the borders. Defaults to width of the terminal, if avaiable, `:infinity` otherwise.
+  * `:horizontal_align` - sets the horizontal alignment of the content inside a box. Defaults to `:right`.
+  * `:vertical_align` - sets the vertical alignment of the content inside a box. Defaults to `:top`.
+  * `:border_style` - sets the border style. Defaults to `:solid`.
+  * `:title` - sets a title that is displayed in a top border. Ignored if `:border_style` is `:none`. Defaults to `nil`.
 
   ## Examples
 
@@ -50,6 +64,12 @@ defmodule Owl.Box do
       └───┘
       \""" |> String.trim_trailing()
 
+      iex> "Owl" |> Owl.Box.new(padding_x: 4) |> to_string()
+      \"""
+      ┌───────────┐
+      │    Owl    │
+      └───────────┘
+      \""" |> String.trim_trailing()
 
       iex> "Hello\\nworld!"
       ...> |> Owl.Box.new(
@@ -120,24 +140,30 @@ defmodule Owl.Box do
       \e[36m└─────────┘\e[39m\e[0m
       \""" |> String.trim_trailing()
   """
-  @type option ::
-          {:padding_top, non_neg_integer()}
-          | {:padding_bottom, non_neg_integer()}
-          | {:padding_right, non_neg_integer()}
-          | {:padding_left, non_neg_integer()}
-          | {:min_height, non_neg_integer()}
-          | {:min_width, non_neg_integer()}
-          | {:max_width, non_neg_integer() | :infinity}
-          | {:horizontal_align, :left | :center | :right}
-          | {:vertical_align, :top | :middle | :bottom}
-          | {:border_style, :solid | :double | :none}
-          | {:title, nil | Owl.Data.t()}
-  @spec new(Owl.Data.t(), [option()]) :: Owl.Data.t()
+  @spec new(Owl.Data.t(),
+          padding: non_neg_integer(),
+          padding_x: non_neg_integer(),
+          padding_y: non_neg_integer(),
+          padding_top: non_neg_integer(),
+          padding_bottom: non_neg_integer(),
+          padding_right: non_neg_integer(),
+          padding_left: non_neg_integer(),
+          min_height: non_neg_integer(),
+          min_width: non_neg_integer(),
+          max_width: non_neg_integer() | :infinity,
+          horizontal_align: :left | :center | :right,
+          vertical_align: :top | :middle | :bottom,
+          border_style: :solid | :double | :none,
+          title: nil | Owl.Data.t()
+        ) :: Owl.Data.t()
   def new(data, opts \\ []) do
-    padding_top = Keyword.get(opts, :padding_top, 0)
-    padding_bottom = Keyword.get(opts, :padding_bottom, 0)
-    padding_left = Keyword.get(opts, :padding_left, 0)
-    padding_right = Keyword.get(opts, :padding_right, 0)
+    padding = Keyword.get(opts, :padding, 0)
+    padding_x = Keyword.get(opts, :padding_x, padding)
+    padding_y = Keyword.get(opts, :padding_y, padding)
+    padding_top = Keyword.get(opts, :padding_top, padding_y)
+    padding_bottom = Keyword.get(opts, :padding_bottom, padding_y)
+    padding_left = Keyword.get(opts, :padding_left, padding_x)
+    padding_right = Keyword.get(opts, :padding_right, padding_x)
     min_width = Keyword.get(opts, :min_width, 0)
     min_height = Keyword.get(opts, :min_height, 0)
     horizontal_align = Keyword.get(opts, :horizontal_align, :left)
