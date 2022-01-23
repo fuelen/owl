@@ -43,12 +43,7 @@ defmodule Owl.Tag do
 
   @deprecated "Use `Owl.Data.tag/2` instead"
   @doc "Use `Owl.Data.tag/2` instead"
-  def new(data, sequences) do
-    %__MODULE__{
-      sequences: List.wrap(sequences),
-      data: data
-    }
-  end
+  def new(data, sequences), do: Owl.Data.tag(data, sequences)
 
   defimpl Inspect do
     import Inspect.Algebra
