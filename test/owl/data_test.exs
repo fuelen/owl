@@ -241,6 +241,10 @@ defmodule Owl.DataTest do
                []
              ]
     end
+
+    test "9" do
+      assert Owl.Data.split('hello', "e") == ["h", ["l", "l", "o"]]
+    end
   end
 
   describe inspect(&Owl.Data.chunk_very/2) do
