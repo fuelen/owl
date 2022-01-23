@@ -1,53 +1,39 @@
 defmodule Owl.ProgressBarTest do
   use ExUnit.Case, async: true
-  import ExUnit.CaptureIO
+  import CaptureIOFrames
   doctest Owl.ProgressBar
 
-  @unreachable_refresh_interval 9999
   @terminal_width 50
   @sleep 10
-  @render_separator "#@₴?$0"
 
   test "without timer" do
     id = make_ref()
 
     frames =
-      capture_io(fn ->
-        {:ok, live_screen_pid} =
-          start_supervised(
-            {Owl.LiveScreen,
-             terminal_width: @terminal_width, refresh_every: @unreachable_refresh_interval}
-          )
+      capture_io_frames(
+        fn live_screen_pid, render ->
+          {:ok, bar_pid} =
+            Owl.ProgressBar.start(
+              id: id,
+              label: "users",
+              total: 10,
+              live_screen_server: live_screen_pid,
+              screen_width: @terminal_width
+            )
 
-        assert is_pid(live_screen_pid)
+          render.()
+          Owl.ProgressBar.inc(id: id)
+          Process.sleep(@sleep)
+          render.()
+          Owl.ProgressBar.inc(id: id)
+          Owl.ProgressBar.inc(id: id)
+          Owl.ProgressBar.inc(id: id, step: 7)
+          Process.sleep(@sleep)
 
-        {:ok, bar_pid} =
-          Owl.ProgressBar.start(
-            id: id,
-            label: "users",
-            total: 10,
-            live_screen_server: live_screen_pid,
-            screen_width: @terminal_width
-          )
-
-        render = fn ->
-          GenServer.call(live_screen_pid, :render)
-          IO.write(@render_separator)
-        end
-
-        render.()
-        Owl.ProgressBar.inc(id: id)
-        Process.sleep(@sleep)
-        render.()
-        Owl.ProgressBar.inc(id: id)
-        Owl.ProgressBar.inc(id: id)
-        Owl.ProgressBar.inc(id: id, step: 7)
-        Process.sleep(@sleep)
-        Owl.LiveScreen.stop(live_screen_pid)
-
-        refute Process.alive?(bar_pid)
-      end)
-      |> String.split(@render_separator)
+          refute Process.alive?(bar_pid)
+        end,
+        terminal_width: @terminal_width
+      )
 
     assert frames == [
              "\e[2Kusers   [                                   ]   0%\n",
@@ -61,15 +47,10 @@ defmodule Owl.ProgressBarTest do
     id = make_ref()
 
     frames =
-      capture_io(fn ->
-        {:ok, live_screen_pid} =
-          start_supervised(
-            {Owl.LiveScreen,
-             terminal_width: @terminal_width, refresh_every: @unreachable_refresh_interval}
-          )
-
+      capture_io_frames(fn live_screen_pid, render ->
         {:ok, bar_pid} =
           Owl.ProgressBar.start(
+            refresh_every: @tick_period_ms,
             id: id,
             label: "users",
             total: 10,
@@ -79,20 +60,13 @@ defmodule Owl.ProgressBarTest do
             screen_width: @terminal_width
           )
 
-        render = fn ->
-          GenServer.call(live_screen_pid, :render)
-          IO.write(@render_separator)
-        end
-
         Process.sleep(@tick_period_ms + @sleep)
         render.()
         Owl.ProgressBar.inc(id: id, step: 10)
         Process.sleep(@tick_period_ms + @sleep)
 
-        Owl.LiveScreen.stop(live_screen_pid)
         refute Process.alive?(bar_pid)
       end)
-      |> String.split(@render_separator)
 
     assert frames == [
              "\e[2Kusers               00:00.1 [               ]   0%\n",
