@@ -22,13 +22,12 @@ defmodule Owl.ProgressBarTest do
         assert is_pid(live_screen_pid)
 
         {:ok, bar_pid} =
-          start_supervised(
-            {Owl.ProgressBar,
-             id: id,
-             label: "users",
-             total: 10,
-             live_screen_server: live_screen_pid,
-             screen_width: @terminal_width}
+          Owl.ProgressBar.start(
+            id: id,
+            label: "users",
+            total: 10,
+            live_screen_server: live_screen_pid,
+            screen_width: @terminal_width
           )
 
         render = fn ->
@@ -69,26 +68,35 @@ defmodule Owl.ProgressBarTest do
              terminal_width: @terminal_width, refresh_every: @unreachable_refresh_interval}
           )
 
-        assert is_pid(live_screen_pid)
-
-        {:ok, _bar_pid} =
-          start_supervised(
-            {Owl.ProgressBar,
-             id: id,
-             label: "users",
-             total: 10,
-             timer: true,
-             bar_width_ratio: 0.3,
-             live_screen_server: live_screen_pid,
-             screen_width: @terminal_width}
+        {:ok, bar_pid} =
+          Owl.ProgressBar.start(
+            id: id,
+            label: "users",
+            total: 10,
+            timer: true,
+            bar_width_ratio: 0.3,
+            live_screen_server: live_screen_pid,
+            screen_width: @terminal_width
           )
 
+        render = fn ->
+          GenServer.call(live_screen_pid, :render)
+          IO.write(@render_separator)
+        end
+
+        Process.sleep(@tick_period_ms + @sleep)
+        render.()
+        Owl.ProgressBar.inc(id: id, step: 10)
         Process.sleep(@tick_period_ms + @sleep)
 
         Owl.LiveScreen.stop(live_screen_pid)
+        refute Process.alive?(bar_pid)
       end)
       |> String.split(@render_separator)
 
-    assert frames == ["\e[2Kusers               00:00.1 [               ]   0%\n"]
+    assert frames == [
+             "\e[2Kusers               00:00.1 [               ]   0%\n",
+             "\e[1A\e[2Kusers               00:00.2 [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡] 100%\n"
+           ]
   end
 end

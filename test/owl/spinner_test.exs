@@ -19,11 +19,11 @@ defmodule Owl.SpinnerTest do
              terminal_width: @terminal_width, refresh_every: @unreachable_refresh_interval}
           )
 
-        {:ok, _pid} =
-          start_supervised(
-            {Owl.Spinner,
-             id: id, refresh_every: @tick_period_ms, live_screen_server: live_screen_pid}
-          )
+        Owl.Spinner.start(
+          id: id,
+          refresh_every: @tick_period_ms,
+          live_screen_server: live_screen_pid
+        )
 
         render = fn ->
           GenServer.call(live_screen_pid, :render)
