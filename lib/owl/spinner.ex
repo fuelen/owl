@@ -145,36 +145,35 @@ defmodule Owl.Spinner do
 
         case result do
           :ok ->
-            stop(id: id, resolution: :ok, label: labels[:ok])
+            label = maybe_get_lazy_label(labels, :ok, nil)
+            stop(id: id, resolution: :ok, label: label)
 
           {:ok, value} ->
-            label =
-              case labels[:ok] do
-                callback when is_function(callback, 1) -> callback.(value)
-                label -> label
-              end
-
+            label = maybe_get_lazy_label(labels, :ok, value)
             stop(id: id, resolution: :ok, label: label)
 
           :error ->
-            stop(id: id, resolution: :error, label: labels[:error])
+            label = maybe_get_lazy_label(labels, :error, nil)
+            stop(id: id, resolution: :error, label: label)
 
           {:error, reason} ->
-            label =
-              case labels[:error] do
-                callback when is_function(callback, 1) -> callback.(reason)
-                label -> label
-              end
-
+            label = maybe_get_lazy_label(labels, :error, reason)
             stop(id: id, resolution: :error, label: label)
         end
 
         result
-      catch
+      rescue
         e ->
           stop(id: id, resolution: :error)
           reraise(e, __STACKTRACE__)
       end
+    end
+  end
+
+  defp maybe_get_lazy_label(labels, key, value) do
+    case labels[key] do
+      callback when is_function(callback, 1) -> callback.(value)
+      label -> label
     end
   end
 

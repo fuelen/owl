@@ -6,8 +6,8 @@ defmodule CaptureIOFrames do
   @terminal_width 50
   def capture_io_frames(callback, opts \\ []) when is_function(callback, 2) do
     capture_io(fn ->
-      {:ok, live_screen_pid} =
-        ExUnit.Callbacks.start_supervised(
+      live_screen_pid =
+        ExUnit.Callbacks.start_supervised!(
           {Owl.LiveScreen,
            [terminal_width: @terminal_width, refresh_every: @unreachable_refresh_interval]
            |> Keyword.merge(opts)}
