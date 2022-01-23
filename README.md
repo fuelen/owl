@@ -15,7 +15,7 @@ It provides a convenient interface for
 * editing text in `ELIXIR_EDITOR`
 * wrapping multiline colorized data into ASCII boxes
 * printing palette colors
-* progress bars, multiple bars at the same time are supported as well
+* progress bars and spinners, multiple bars/spinners at the same time are supported as well
 * live-updating of multiline blocks
 * working with virtual device which partially implements
 [The Erlang I/O Protocol](https://www.erlang.org/doc/apps/stdlib/io_protocol.html) and doesn't conflict with live blocks.
