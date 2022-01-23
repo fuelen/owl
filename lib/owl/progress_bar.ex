@@ -1,6 +1,6 @@
 defmodule Owl.ProgressBar do
   @moduledoc ~S"""
-  A live progress bar.
+  A live progress bar widget.
 
   ## Single bar
 
@@ -53,7 +53,7 @@ defmodule Owl.ProgressBar do
   @doc false
   def start_link(opts) do
     id = Keyword.fetch!(opts, :id)
-    GenServer.start_link(__MODULE__, opts, name: {:via, Registry, {__MODULE__.Registry, id}})
+    GenServer.start_link(__MODULE__, opts, name: {:via, Registry, {Owl.WidgetsRegistry, id}})
   end
 
   # we define child_spec just to disable doc
@@ -96,7 +96,7 @@ defmodule Owl.ProgressBar do
           screen_width: pos_integer()
         ) :: DynamicSupervisor.on_start_child()
   def start(opts) do
-    DynamicSupervisor.start_child(__MODULE__.Supervisor, {__MODULE__, opts})
+    DynamicSupervisor.start_child(Owl.WidgetsSupervisor, {__MODULE__, opts})
   end
 
   @doc """
@@ -119,7 +119,7 @@ defmodule Owl.ProgressBar do
   def inc(opts \\ []) do
     step = opts[:step] || 1
     id = Keyword.fetch!(opts, :id)
-    GenServer.cast({:via, Registry, {__MODULE__.Registry, id}}, {:inc, step})
+    GenServer.cast({:via, Registry, {Owl.WidgetsRegistry, id}}, {:inc, step})
   end
 
   @impl true

@@ -4,9 +4,9 @@ defmodule Owl.Application do
 
   def start(_type, _args) do
     children = [
-      {Registry, keys: :unique, name: Owl.ProgressBar.Registry},
+      {Registry, keys: :unique, name: Owl.WidgetsRegistry},
       {Owl.LiveScreen, name: Owl.LiveScreen},
-      {DynamicSupervisor, strategy: :one_for_one, name: Owl.ProgressBar.Supervisor}
+      {DynamicSupervisor, strategy: :one_for_one, name: Owl.WidgetsSupervisor}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
