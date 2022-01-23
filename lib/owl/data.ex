@@ -173,14 +173,17 @@ defmodule Owl.Data do
   end
 
   def length(data) when is_list(data) do
+    import Kernel, except: [length: 1]
+
     Enum.reduce(data, 0, fn
-      item, acc when is_integer(item) -> Owl.Data.length(<<item::utf8>>) + acc
-      item, acc -> Owl.Data.length(item) + acc
+      item, acc when is_integer(item) -> length(<<item::utf8>>) + acc
+      item, acc -> length(item) + acc
     end)
   end
 
   def length(%Owl.Tag{data: data}) do
-    Owl.Data.length(data)
+    import Kernel, except: [length: 1]
+    length(data)
   end
 
   @doc """
