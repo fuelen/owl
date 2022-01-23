@@ -86,8 +86,11 @@ defmodule Owl.Data do
       iex> Owl.Data.tag([72, 101, 108, 108, 111], :red) |> Owl.Data.untag()
       'Hello'
 
-      iex> ["Hello ", Owl.Data.tag("world", :red), "!"] |> Owl.Data.untag()
-      ["Hello ", "world", "!"]
+      iex> Owl.Data.tag(["Hello", Owl.Data.tag("world", :green)], :red) |> Owl.Data.untag()
+      ["Hello", "world"]
+
+      iex> ["Hello ", Owl.Data.tag("world", :red), ["!"]] |> Owl.Data.untag()
+      ["Hello ", "world", ["!"]]
   """
   @spec untag(t()) :: iodata()
   def untag(data) when is_list(data) do
@@ -95,7 +98,7 @@ defmodule Owl.Data do
   end
 
   def untag(%Owl.Tag{data: data}) do
-    data
+    untag(data)
   end
 
   def untag(data) when is_binary(data) do
