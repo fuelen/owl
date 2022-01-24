@@ -1,16 +1,12 @@
 defmodule CaptureIOFrames do
   import ExUnit.CaptureIO
 
-  @render_separator "#@₴?$0"
-  @unreachable_refresh_interval 9999
-  @terminal_width 50
+  @render_separator "#@(₴?$0"
   def capture_io_frames(callback, opts \\ []) when is_function(callback, 2) do
     capture_io(fn ->
       live_screen_pid =
         ExUnit.Callbacks.start_supervised!(
-          {Owl.LiveScreen,
-           [terminal_width: @terminal_width, refresh_every: @unreachable_refresh_interval]
-           |> Keyword.merge(opts)}
+          {Owl.LiveScreen, Keyword.merge([terminal_width: 50], opts)}
         )
 
       callback.(

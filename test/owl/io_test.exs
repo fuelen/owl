@@ -55,13 +55,18 @@ defmodule Owl.IOTest do
              """
              |> String.trim_trailing()
 
-    assert capture_io([input: "password\n"], fn ->
-             assert Owl.IO.input(secret: true) == "password"
-           end) == "\e[34m> \e[39m\e[0m"
+    assert capture_io(:stderr, fn ->
+             assert capture_io([input: "password\n"], fn ->
+                      assert Owl.IO.input(secret: true) == "password"
+                    end) == "\e[34m> \e[39m\e[0m"
+           end) == "\e[2K\r"
 
-    assert capture_io([input: "password\n"], fn ->
-             assert Owl.IO.input(secret: true, label: "Multi\n  line prompt:") == "password"
-           end) == "Multi\n  line prompt:\n\e[34m> \e[39m\e[0m"
+    assert capture_io(:stderr, fn ->
+             assert capture_io([input: "password\n"], fn ->
+                      assert Owl.IO.input(secret: true, label: "Multi\n  line prompt:") ==
+                               "password"
+                    end) == "Multi\n  line prompt:\n\e[34m> \e[39m\e[0m"
+           end) == "\e[2K\r"
   end
 
   test inspect(&Owl.IO.select/2) do

@@ -1,5 +1,5 @@
 long_running_tasks =
-  [9000, 8000, 4000, 6000]
+  [9000, 8000, 4000, 6000, 1000, 12000, 1300, 6000, 3000, 7900]
   |> Enum.with_index(1)
   |> Enum.map(fn {delay, index} ->
     {fn -> Process.sleep(delay) end,

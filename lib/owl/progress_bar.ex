@@ -10,9 +10,8 @@ defmodule Owl.ProgressBar do
         Process.sleep(10)
         Owl.ProgressBar.inc(id: :users)
       end)
-      # Wait a bit to give ProgressBar server a time to send last state update to LiveScreen
-      Process.sleep(1)
-      Owl.LiveScreen.flush()
+
+      Owl.LiveScreen.await_render()
 
   ## Multiple bars
 
@@ -41,7 +40,7 @@ defmodule Owl.ProgressBar do
       end)
       |> Task.await_many(:infinity)
 
-      Owl.LiveScreen.flush()
+      Owl.LiveScreen.await_render()
   """
   use GenServer, restart: :transient
 

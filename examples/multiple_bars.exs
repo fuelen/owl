@@ -24,4 +24,4 @@
 end)
 |> Task.await_many(:infinity)
 
-Owl.LiveScreen.flush()
+Owl.LiveScreen.await_render()

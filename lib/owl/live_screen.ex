@@ -111,6 +111,26 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
+  Awaits for next rendering.
+
+  This is useful when you want to ensure that last published state is rendered on the screen.
+
+  ## Example
+
+      Owl.LiveScreen.add_block(:status, "starting...")
+      Owl.LiveScreen.update(:status, "done!")
+      Owl.LiveScreen.await_render()
+  """
+  @spec await_render(GenServer.server()) :: :ok
+  def await_render(server \\ __MODULE__) do
+    GenServer.cast(server, {:notify_on_next_render, self()})
+
+    receive do
+      :rendered -> :ok
+    end
+  end
+
+  @doc """
   Renders data in buffer and detaches blocks.
   """
   @spec flush(GenServer.server()) :: :ok
@@ -150,6 +170,7 @@ defmodule Owl.LiveScreen do
   defp init_state(terminal_width, refresh_every) do
     %{
       timer_ref: nil,
+      notify_on_next_render: [],
       terminal_width: terminal_width,
       refresh_every: refresh_every,
       put_above_blocks: [],
@@ -190,6 +211,10 @@ defmodule Owl.LiveScreen do
          render_functions: Map.put(state.render_functions, block_id, render),
          timer_ref: timer_ref
      }}
+  end
+
+  def handle_cast({:notify_on_next_render, pid}, state) do
+    {:noreply, %{state | notify_on_next_render: [pid | state.notify_on_next_render]}}
   end
 
   def handle_cast({:update, block_id, block_state}, state) do
@@ -357,7 +382,11 @@ defmodule Owl.LiveScreen do
       io_reply.()
     end
 
-    %{state | block_states: %{}}
+    for pid <- state.notify_on_next_render do
+      send(pid, :rendered)
+    end
+
+    %{state | block_states: %{}, notify_on_next_render: []}
   end
 
   defp get_content(state, block_id, terminal_width) do

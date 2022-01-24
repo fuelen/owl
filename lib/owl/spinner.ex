@@ -319,6 +319,8 @@ defmodule Owl.Spinner do
       label: label
     })
 
+    Owl.LiveScreen.await_render(state.live_screen_server)
+
     {:stop, :normal, :ok, state}
   end
 

@@ -5,6 +5,4 @@ Enum.each(1..100, fn _ ->
   Owl.ProgressBar.inc(id: :users)
 end)
 
-# Wait a bit to give ProgressBar server a time to send last state update to LiveScreen
-Process.sleep(1)
-Owl.LiveScreen.flush()
+Owl.LiveScreen.await_render()

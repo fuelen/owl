@@ -43,30 +43,34 @@ defmodule Owl.ProgressBarTest do
   end
 
   @tick_period_ms 100
+  @disable_autorender 999_999
   test "with timer" do
     id = make_ref()
 
     frames =
-      capture_io_frames(fn live_screen_pid, render ->
-        {:ok, bar_pid} =
-          Owl.ProgressBar.start(
-            refresh_every: @tick_period_ms,
-            id: id,
-            label: "users",
-            total: 10,
-            timer: true,
-            bar_width_ratio: 0.3,
-            live_screen_server: live_screen_pid,
-            screen_width: @terminal_width
-          )
+      capture_io_frames(
+        fn live_screen_pid, render ->
+          {:ok, bar_pid} =
+            Owl.ProgressBar.start(
+              refresh_every: @tick_period_ms,
+              id: id,
+              label: "users",
+              total: 10,
+              timer: true,
+              bar_width_ratio: 0.3,
+              live_screen_server: live_screen_pid,
+              screen_width: @terminal_width
+            )
 
-        Process.sleep(@tick_period_ms + @sleep)
-        render.()
-        Owl.ProgressBar.inc(id: id, step: 10)
-        Process.sleep(@tick_period_ms + @sleep)
+          Process.sleep(@tick_period_ms + @sleep)
+          render.()
+          Owl.ProgressBar.inc(id: id, step: 10)
+          Process.sleep(@tick_period_ms + @sleep)
 
-        refute Process.alive?(bar_pid)
-      end)
+          refute Process.alive?(bar_pid)
+        end,
+        refresh_every: @disable_autorender
+      )
 
     assert frames == [
              "\e[2Kusers               00:00.1 [               ]   0%\n",
