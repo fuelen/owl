@@ -21,6 +21,7 @@ defmodule Owl.MixProject do
   defp docs do
     [
       main: "readme",
+      logo: "images/logo.png",
       source_url: @source_url,
       source_ref: "v#{@version}",
       extras: [{:"README.md", [title: "README"]}]
