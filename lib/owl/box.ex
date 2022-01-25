@@ -49,7 +49,7 @@ defmodule Owl.Box do
   * `:padding_left` - sets the padding area for left side. Overrides value set by `:padding_x` or `:padding`. Defaults to 0.
   * `:min_height` - sets the minimum height of the box, including paddings and size of the borders. Defaults to 0.
   * `:min_width` - sets the minimum width of the box, including paddings and size of the borders. Defaults to 0.
-  * `:max_width` - sets the maximum width of the box, including paddings and size of the borders. Defaults to width of the terminal, if avaiable, `:infinity` otherwise.
+  * `:max_width` - sets the maximum width of the box, including paddings and size of the borders. Defaults to width of the terminal, if available, `:infinity` otherwise.
   * `:horizontal_align` - sets the horizontal alignment of the content inside a box. Defaults to `:right`.
   * `:vertical_align` - sets the vertical alignment of the content inside a box. Defaults to `:top`.
   * `:border_style` - sets the border style. Defaults to `:solid`.
