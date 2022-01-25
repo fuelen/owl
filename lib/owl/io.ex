@@ -5,7 +5,7 @@ defmodule Owl.IO do
   @doc """
   Selects one item from the given nonempty list.
 
-  Returns value immediatelly if list contains only 1 element.
+  Returns value immediately if list contains only 1 element.
 
   ## Options
 
@@ -538,7 +538,7 @@ defmodule Owl.IO do
   Returns a width of a terminal.
 
   A wrapper around `:io.columns/0`, but returns `nil` if terminal is not found.
-  This is useful for convinient falling back to other value using `||/2` operator.
+  This is useful for convenient falling back to other value using `||/2` operator.
 
   ## Example
 
