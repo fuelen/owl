@@ -1,4 +1,5 @@
 # Owl
+[![CI Status](https://github.com/fuelen/owl/actions/workflows/ci.yml/badge.svg)](https://github.com/fuelen/owl/actions) [![Hex.pm](https://img.shields.io/hexpm/v/owl.svg)](https://hex.pm/packages/owl)
 ```
    ,_,
   {o,o}
