@@ -5,7 +5,7 @@ defmodule Owl.SystemTest do
   test inspect(&Owl.System.cmd/3) do
     assert capture_log(fn ->
              Owl.System.cmd("echo", [])
-           end) =~ "$ echo"
+           end) =~ "$ echo\n"
 
     assert capture_log(fn ->
              Owl.System.cmd("echo", ["http://example.com"])
@@ -22,5 +22,11 @@ defmodule Owl.SystemTest do
                "SELECT 1;"
              ])
            end) =~ "$ echo postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'\n"
+  end
+
+  test inspect(&Owl.System.shell/2) do
+    assert capture_log(fn ->
+             Owl.System.shell("echo hello world")
+           end) =~ "$ echo hello world\n"
   end
 end

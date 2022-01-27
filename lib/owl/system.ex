@@ -44,6 +44,36 @@ defmodule Owl.System do
     System.cmd(command, args, opts)
   end
 
+  @doc """
+  A wrapper around `System.shell/2` which additionally logs executed `command`.
+
+  Similarly to `cmd/3`, it automatically hides password in found URLs.
+
+  ## Examples
+
+      > Owl.System.shell("echo hello world")
+      # 22:36:01.440 [debug] $ echo hello world
+      {"hello world\\n", 0}
+
+      > Owl.System.shell("echo postgresql://postgres:postgres@127.0.0.1:5432")
+      # 22:36:51.797 [debug] $ echo postgresql://postgres:********@127.0.0.1:5432
+      {"postgresql://postgres:postgres@127.0.0.1:5432\\n", 0}
+  """
+  @spec shell(
+          binary(),
+          keyword()
+        ) :: {Collectable.t(), exit_status :: non_neg_integer()}
+  def shell(command, opts \\ []) when is_binary(command) do
+    log_shell_command(command)
+    System.shell(command, opts)
+  end
+
+  defp log_shell_command(command) do
+    command = sanitize_passwords_in_urls(command)
+
+    Logger.debug("$ #{command}")
+  end
+
   defp log_shell_command(command, args) do
     command =
       case args do
@@ -67,9 +97,7 @@ defmodule Owl.System do
           "#{command} #{args}"
       end
 
-    command = sanitize_passwords_in_urls(command)
-
-    Logger.debug("$ #{command}")
+    log_shell_command(command)
   end
 
   defp sanitize_passwords_in_urls(text) do
