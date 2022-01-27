@@ -4,10 +4,13 @@ defmodule Owl.System do
   """
   require Logger
 
+  @secret_placeholder "********"
+
   @doc """
   A wrapper around `System.cmd/3` which additionally logs executed `command` and `args`.
 
   If URL is found in logged message, then password in it is masked with asterisks.
+  Additionally, it is possible to explicitly mark a whole argument as secret.
 
   ## Examples
 
@@ -15,15 +18,29 @@ defmodule Owl.System do
       # 10:25:34.252 [debug] $ echo test
       {"test\\n", 0}
 
+      > Owl.System.cmd("echo", ["hello", secret: "world"])
+      # 10:25:40.516 [debug] $ echo hello ********
+      {"hello world\\n", 0}
+
       > Owl.System.cmd("psql", ["postgresql://postgres:postgres@127.0.0.1:5432", "-tAc", "SELECT 1;"])
-      # 10:25:50.947 [debug] $ psql postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'
+      # 10:25:50.947 [debug] $ psql postgresql://postgres:#{@secret_placeholder}@127.0.0.1:5432 -tAc 'SELECT 1;'
       {"1\\n", 0}
 
   """
-  @spec cmd(binary(), [binary()], keyword()) ::
+  @spec cmd(binary(), [binary() | {:secret, binary()}], keyword()) ::
           {Collectable.t(), exit_status :: non_neg_integer()}
-  def cmd(command, args, opts \\ []) do
+  def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     log_shell_command(command, args)
+
+    args =
+      Enum.map(
+        args,
+        fn
+          {:secret, arg} when is_binary(arg) -> arg
+          arg when is_binary(arg) -> arg
+        end
+      )
+
     System.cmd(command, args, opts)
   end
 
@@ -35,12 +52,16 @@ defmodule Owl.System do
 
         args ->
           args =
-            Enum.map_join(args, " ", fn arg ->
-              if String.contains?(arg, [" ", ";"]) do
-                "'" <> String.replace(arg, "'", "'\\''") <> "'"
-              else
-                arg
-              end
+            Enum.map_join(args, " ", fn
+              {:secret, _arg} ->
+                @secret_placeholder
+
+              arg ->
+                if String.contains?(arg, [" ", ";"]) do
+                  "'" <> String.replace(arg, "'", "'\\''") <> "'"
+                else
+                  arg
+                end
             end)
 
           "#{command} #{args}"
@@ -61,7 +82,7 @@ defmodule Owl.System do
 
         userinfo ->
           [username, _password] = String.split(userinfo, ":")
-          to_string(%{uri | userinfo: username <> ":********"})
+          to_string(%{uri | userinfo: "#{username}:#{@secret_placeholder}"})
       end
     end)
   end
