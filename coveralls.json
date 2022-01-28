@@ -1,0 +1,6 @@
+{
+    "skip_files": [
+        "lib/owl/palette.ex",
+        "test/support/capture_io_frames.ex"
+    ]
+}

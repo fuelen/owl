@@ -11,7 +11,7 @@ defmodule Owl.MixProject do
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
-      test_coverage: [ignore_modules: [Owl.Palette]],
+      test_coverage: [tool: ExCoveralls],
       package: package(),
       docs: docs(),
       name: "Owl"
@@ -48,6 +48,7 @@ defmodule Owl.MixProject do
   defp deps do
     [
       {:ex_doc, "~> 0.24", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.10", only: :test},
       {:dialyxir, "~> 1.0", only: :dev, runtime: false}
     ]
   end
