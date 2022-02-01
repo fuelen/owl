@@ -77,7 +77,7 @@ Stream.iterate(
       owl_color: owl_color
     })
 
-    Process.sleep(50)
+    Process.sleep(70)
 
     %{
       padding_left: padding_left,
