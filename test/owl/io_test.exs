@@ -34,15 +34,15 @@ defmodule Owl.IOTest do
   test inspect(&Owl.IO.input/1) do
     assert capture_io([input: "\n"], fn ->
              assert Owl.IO.input(optional: true, label: "optional input:") == nil
-           end) == "optional input:\n\e[34m> \e[39m\e[0m"
+           end) == "optional input:\n\e[34m> \e[39m\e[0m\n"
 
     assert capture_io([input: "hello world\n"], fn ->
              assert Owl.IO.input() == "hello world"
-           end) == "\e[34m> \e[39m\e[0m"
+           end) == "\e[34m> \e[39m\e[0m\n"
 
     assert capture_io([input: "33\n"], fn ->
              assert Owl.IO.input(cast: :integer) == 33
-           end) == "\e[34m> \e[39m\e[0m"
+           end) == "\e[34m> \e[39m\e[0m\n"
 
     assert capture_io([input: "3a\n3\n101\n18"], fn ->
              assert Owl.IO.input(cast: {:integer, min: 18, max: 100}) == 18
@@ -53,19 +53,18 @@ defmodule Owl.IOTest do
              \e[34m> \e[39m\e[0m\e[31mmust be less than or equal to 100\e[39m\e[0m
              \e[34m> \e[39m\e[0m
              """
-             |> String.trim_trailing()
 
     assert capture_io(:stderr, fn ->
              assert capture_io([input: "password\n"], fn ->
                       assert Owl.IO.input(secret: true) == "password"
-                    end) == "\e[34m> \e[39m\e[0m"
+                    end) == "\e[34m> \e[39m\e[0m\n"
            end) == "\e[2K\r"
 
     assert capture_io(:stderr, fn ->
              assert capture_io([input: "password\n"], fn ->
                       assert Owl.IO.input(secret: true, label: "Multi\n  line prompt:") ==
                                "password"
-                    end) == "Multi\n  line prompt:\n\e[34m> \e[39m\e[0m"
+                    end) == "Multi\n  line prompt:\n\e[34m> \e[39m\e[0m\n"
            end) == "\e[2K\r"
   end
 
@@ -80,11 +79,10 @@ defmodule Owl.IOTest do
 
              \e[34m> \e[39m\e[0m
              """
-             |> String.trim_trailing()
 
     assert capture_io(fn ->
              assert Owl.IO.select(["one"]) == "one"
-           end) == "Autoselect: one\n"
+           end) == "Autoselect: one\n\n"
 
     assert capture_io([input: "2\n"], fn ->
              assert ~D[2001-01-01]
@@ -101,12 +99,11 @@ defmodule Owl.IOTest do
              Please select a date
              \e[34m> \e[39m\e[0m
              """
-             |> String.trim_trailing()
 
     assert capture_io([input: "2\n"], fn ->
              assert Owl.IO.select(Enum.to_list(1..11), render_as: &to_string/1) == 2
            end) ==
-             String.trim_trailing("""
+             """
               \e[34m1\e[39m. 1
               \e[34m2\e[39m. 2
               \e[34m3\e[39m. 3
@@ -120,7 +117,7 @@ defmodule Owl.IOTest do
              \e[34m11\e[39m. 11\e[0m
 
              \e[34m> \e[39m\e[0m
-             """)
+             """
   end
 
   test inspect(&Owl.IO.multiselect/2) do
@@ -143,16 +140,15 @@ defmodule Owl.IOTest do
              Select 2 numbers:
              \e[34m> \e[39m\e[0m
              """
-             |> String.trim_trailing()
 
     assert capture_io([input: "\n"], fn ->
              assert Owl.IO.multiselect(["one"]) == []
-           end) == "\e[34m1\e[39m. one\e[0m\n\n\e[34m> \e[39m\e[0m"
+           end) == "\e[34m1\e[39m. one\e[0m\n\n\e[34m> \e[39m\e[0m\n"
 
     assert capture_io([input: "1 2 3\n"], fn ->
              assert Owl.IO.multiselect(Enum.to_list(1..11), render_as: &to_string/1) == [1, 2, 3]
            end) ==
-             String.trim_trailing("""
+             """
               \e[34m1\e[39m. 1
               \e[34m2\e[39m. 2
               \e[34m3\e[39m. 3
@@ -166,7 +162,7 @@ defmodule Owl.IOTest do
              \e[34m11\e[39m. 11\e[0m
 
              \e[34m> \e[39m\e[0m
-             """)
+             """
 
     assert_raise(ArgumentError, fn ->
       Owl.IO.multiselect(["one"], min: 2)

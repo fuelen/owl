@@ -64,7 +64,7 @@ defmodule Owl.IO do
     case list do
       [item] ->
         if label, do: puts(label)
-        puts("Autoselect: #{render_item.(item)}")
+        puts("Autoselect: #{render_item.(item)}\n")
         item
 
       list ->
@@ -410,6 +410,7 @@ defmodule Owl.IO do
     end)
     |> case do
       {:ok, value} ->
+        IO.puts([])
         value
 
       {:error, reason} ->
