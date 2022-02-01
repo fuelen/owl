@@ -214,7 +214,12 @@ defmodule Owl.LiveScreen do
   end
 
   def handle_cast({:notify_on_next_render, pid}, state) do
-    {:noreply, %{state | notify_on_next_render: [pid | state.notify_on_next_render]}}
+    if is_nil(state.timer_ref) and empty_blocks_list?(state) do
+      send(pid, :rendered)
+      {:noreply, state}
+    else
+      {:noreply, %{state | notify_on_next_render: [pid | state.notify_on_next_render]}}
+    end
   end
 
   def handle_cast({:update, block_id, block_state}, state) do
