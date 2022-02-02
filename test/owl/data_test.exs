@@ -336,5 +336,33 @@ defmodule Owl.DataTest do
     assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :reverse), "!"]) == [
              [[[[[[], "Hello "] | "\e[7m"], "world"] | "\e[27m"], "!"] | "\e[0m"
            ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :light_red), "!"]) == [
+             [[[[[[], "Hello "] | "\e[91m"], "world"] | "\e[39m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :light_red_background), "!"]) ==
+             [[[[[[[], "Hello "] | "\e[101m"], "world"] | "\e[49m"], "!"] | "\e[0m"]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :default_color), "!"]) == [
+             [[[[[[], "Hello "] | "\e[39m"], "world"] | "\e[39m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :default_background), "!"]) == [
+             [[[[[[], "Hello "] | "\e[49m"], "world"] | "\e[49m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]) == [
+             [[[[[[], "Hello "], "\e[38;5;161m"], "world"] | "\e[39m"], "!"] | "\e[0m"
+           ]
+
+    assert Owl.Data.to_ansidata([
+             "Hello ",
+             Owl.Data.tag("world", IO.ANSI.color_background(161)),
+             "!"
+           ]) == [[[[[[[], "Hello "], "\e[48;5;161m"], "world"] | "\e[49m"], "!"] | "\e[0m"]
+
+    assert Owl.Data.to_ansidata([Owl.Data.tag([Owl.Data.tag("Hello ", :red), " world"], :red)]) ==
+             [[[[[[[] | "\e[31m"] | "\e[31m"], "Hello "], " world"] | "\e[39m"] | "\e[0m"]
   end
 end
