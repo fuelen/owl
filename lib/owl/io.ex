@@ -517,19 +517,21 @@ defmodule Owl.IO do
   end
 
   @doc """
-  Wrapper around `IO.puts/2` that accepts `t:Owl.Data.t/0`
+  Wrapper around `IO.puts/2` that accepts `t:Owl.Data.t/0`.
 
-  ## Example
+  The other difference is that `device` argument is moved to second argument.
+
+  ## Examples
 
       Owl.IO.puts(["Hello ", Owl.Data.tag("world", :green)])
       #=> Hello world
 
       # specify Owl.LiveScreen as a device in order to print data above rendered live blocks
-      Owl.IO.puts(Owl.LiveScreen, ["Hello ", Owl.Data.tag("world", :green)])
+      Owl.IO.puts(["Hello ", Owl.Data.tag("world", :green)], Owl.LiveScreen)
       #=> Hello world
   """
-  @spec puts(Owl.Data.t()) :: :ok
-  def puts(device \\ :stdio, data) do
+  @spec puts(Owl.Data.t(), device :: IO.device()) :: :ok
+  def puts(data, device \\ :stdio) do
     data = Owl.Data.to_ansidata(data)
 
     IO.puts(device, data)

@@ -6,7 +6,7 @@ defmodule Owl.Data do
   @typedoc """
   A recursive data type that is similar to  `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
 
-  Can be written to stdout using `Owl.IO.puts/2`.
+  Can be printed using `Owl.IO.puts/2`.
   """
   # improper lists are not here, just because they were not tested
   @type t :: [binary() | non_neg_integer() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t()) | binary()
