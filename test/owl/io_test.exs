@@ -134,7 +134,7 @@ defmodule Owl.IOTest do
              \e[34m3\e[39m. THREE\e[0m
 
              Select 2 numbers:
-             \e[34m> \e[39m\e[0m\e[31munknown values: '\\v'\e[39m\e[0m
+             \e[34m> \e[39m\e[0m\e[31munknown values: [11]\e[39m\e[0m
              Select 2 numbers:
              \e[34m> \e[39m\e[0m\e[31mthe number of elements must be greater than or equal to 2\e[39m\e[0m
              Select 2 numbers:
@@ -145,8 +145,14 @@ defmodule Owl.IOTest do
              assert Owl.IO.multiselect(["one"]) == []
            end) == "\e[34m1\e[39m. one\e[0m\n\n\e[34m> \e[39m\e[0m\n"
 
-    assert capture_io([input: "1 2 3\n"], fn ->
-             assert Owl.IO.multiselect(Enum.to_list(1..11), render_as: &to_string/1) == [1, 2, 3]
+    assert capture_io([input: "1 2 3-5\n"], fn ->
+             assert Owl.IO.multiselect(Enum.to_list(1..11), render_as: &to_string/1) == [
+                      1,
+                      2,
+                      3,
+                      4,
+                      5
+                    ]
            end) ==
              """
               \e[34m1\e[39m. 1

@@ -20,6 +20,7 @@ defmodule Owl.IO do
       #=> 3. three
       #=>
       #=> > 1
+      #=>
       "one"
 
 
@@ -33,6 +34,7 @@ defmodule Owl.IO do
       #=>
       #=> Please select a date
       #=> > 2
+      #=>
       ~D[2001-01-02]
 
 
@@ -54,6 +56,7 @@ defmodule Owl.IO do
       #=>      fork of vim
       #=>
       #=> > 3
+      #=>
       %{description: "fork of vim", name: "neovim"}
   """
   @spec select(nonempty_list(item), [select_option()]) :: item when item: any()
@@ -89,6 +92,7 @@ defmodule Owl.IO do
   Select multiple values from the given nonempty list.
 
   Input item numbers must be separated by any non-digit character. Most likely you'd want to use spaces or commas.
+  It is possible to specify a range of numbers using hyphen.
 
   ## Options
 
@@ -97,7 +101,7 @@ defmodule Owl.IO do
   * `:min` - a minimum output list length. Defaults to `nil` (no lower bound).
   * `:max` - a maximum output list length. Defaults to `nil` (no upper bound).
 
-  ## Example
+  ## Examples
 
       Owl.IO.multiselect(["one", "two", "three"], min: 2, label: "Select 2 numbers:", render_as: &String.upcase/1)
       #=> 1. ONE
@@ -109,7 +113,19 @@ defmodule Owl.IO do
       #=> the number of elements must be greater than or equal to 2
       #=> Select 2 numbers:
       #=> > 1 3
+      #=>
       ["one", "three"]
+
+      Owl.IO.multiselect(Enum.to_list(1..5), render_as: &to_string/1)
+      #=> 1. 1
+      #=> 2. 2
+      #=> 3. 3
+      #=> 4. 4
+      #=> 5. 5
+      #=>
+      #=> > 1-3 5
+      #=>
+      [1, 2, 3, 5]
   """
   @spec multiselect(nonempty_list(item), [multiselect_option()]) :: [item] when item: any()
   def multiselect([_ | _] = list, opts \\ []) do
@@ -144,13 +160,13 @@ defmodule Owl.IO do
 
   defp cast_multiselect_input(value, bounds, min_elements, max_elements) do
     numbers =
-      ~r/\d+/
-      |> Regex.scan(to_string(value))
-      |> List.flatten()
-      |> Enum.map(fn string ->
-        {number, ""} = Integer.parse(string)
-        number
+      ~r/(\d+)\-?(\d+)?/
+      |> Regex.scan(to_string(value), capture: :all_but_first)
+      |> Enum.flat_map(fn
+        [string] -> [String.to_integer(string)]
+        [first, second] -> Enum.to_list(String.to_integer(first)..String.to_integer(second))
       end)
+      |> Enum.uniq()
 
     case Enum.reject(numbers, &(&1 in bounds)) do
       [] ->
@@ -164,7 +180,7 @@ defmodule Owl.IO do
         end
 
       invalid_numbers ->
-        {:error, "unknown values: #{Kernel.inspect(invalid_numbers)}"}
+        {:error, "unknown values: #{Kernel.inspect(invalid_numbers, charlists: :as_lists)}"}
     end
   end
 
