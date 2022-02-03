@@ -164,7 +164,7 @@ defmodule Owl.IO do
         end
 
       invalid_numbers ->
-        {:error, "unknown values: #{inspect(invalid_numbers)}"}
+        {:error, "unknown values: #{Kernel.inspect(invalid_numbers)}"}
     end
   end
 
@@ -255,7 +255,7 @@ defmodule Owl.IO do
 
   ## Options
 
-  * `:message` - typically a question about performing operation. Defaults to `#{inspect(@default_confirmation_message)}`.
+  * `:message` - typically a question about performing operation. Defaults to `#{Kernel.inspect(@default_confirmation_message)}`.
   * `:default` - a value that is used when user responds with a blank string. Defaults to `false`.
   * `:answers` - allows to specify alternative answers. Defaults to `[true: {"y", ["yes"]}, false: {"n", ["no"]}]`.
 
@@ -535,6 +535,56 @@ defmodule Owl.IO do
     data = Owl.Data.to_ansidata(data)
 
     IO.puts(device, data)
+  end
+
+  @doc """
+  Wrapper around `IO.inspect/3` with changed defaults.
+
+  As in `puts/2`, `device` argument is moved to the end.
+  Options are the same as for `IO.inspect/3` with small changes:
+  * `:pretty` is `true` by default.
+  * `:syntax_colors` uses color schema from `IEx` by default.
+  * `:label` is extended and accepts `t:Owl.Data.t/0`.
+
+  ## Examples
+
+      "Hello"
+      |> Owl.IO.inspect(label: "Greeting")
+      |> String.upcase()
+      |> Owl.IO.inspect(label: Owl.Data.tag("GREETING", :cyan))
+      #=> Greeting: "Hello"
+      #=> GREETING: "HELLO"
+
+      # inspect data above rendered live blocks
+      Owl.IO.inspect("Hello", [], Owl.LiveScreen)
+      #=> "Hello"
+
+  """
+  @spec inspect(item, keyword(), IO.device()) :: item when item: var
+  def inspect(item, opts \\ [], device \\ :stdio) do
+    IO.inspect(
+      device,
+      item,
+      [
+        pretty: true,
+        syntax_colors: [
+          atom: :cyan,
+          string: :green,
+          list: :default_color,
+          boolean: :magenta,
+          nil: :magenta,
+          tuple: :default_color,
+          binary: :default_color,
+          map: :default_color,
+          reset: :yellow
+        ]
+      ]
+      |> Keyword.merge(opts)
+      |> Keyword.update(:label, nil, fn
+        nil -> nil
+        value -> Owl.Data.to_ansidata(value)
+      end)
+    )
   end
 
   @doc """

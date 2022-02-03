@@ -182,4 +182,25 @@ defmodule Owl.IOTest do
   after
     System.delete_env("ELIXIR_EDITOR")
   end
+
+  test inspect(&Owl.IO.inspect/3) do
+    assert capture_io(fn ->
+             "Hi"
+             |> Owl.Data.tag(:red)
+             |> List.duplicate(4)
+             |> Owl.IO.inspect()
+           end) == """
+           \e[39m[\e[33m
+             #Owl.Tag\e[39m[\e[33m\e[36m:red\e[33m\e[39m]\e[33m<\e[32m\"Hi\"\e[33m>\e[39m,\e[33m
+             #Owl.Tag\e[39m[\e[33m\e[36m:red\e[33m\e[39m]\e[33m<\e[32m\"Hi\"\e[33m>\e[39m,\e[33m
+             #Owl.Tag\e[39m[\e[33m\e[36m:red\e[33m\e[39m]\e[33m<\e[32m\"Hi\"\e[33m>\e[39m,\e[33m
+             #Owl.Tag\e[39m[\e[33m\e[36m:red\e[33m\e[39m]\e[33m<\e[32m\"Hi\"\e[33m>
+           \e[39m]\e[33m
+           """
+
+    assert capture_io(fn -> Owl.IO.inspect("Hi", label: nil) end) == "\e[32m\"Hi\"\e[33m\n"
+
+    assert capture_io(fn -> Owl.IO.inspect("Hi", label: Owl.Data.tag("label", :red)) end) ==
+             "\e[31mlabel\e[39m\e[0m: \e[32m\"Hi\"\e[33m\n"
+  end
 end
