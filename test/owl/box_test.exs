@@ -124,5 +124,15 @@ defmodule Owl.BoxTest do
         Owl.Box.new("test", max_width: 5, title: "VeryLongLine")
       end
     end
+
+    test "borders style" do
+      assert "test" |> Owl.Box.new(border_style: :solid_rounded) |> to_string() ==
+               """
+               ╭────╮
+               │test│
+               ╰────╯
+               """
+               |> String.trim_trailing()
+    end
   end
 end

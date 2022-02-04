@@ -23,6 +23,16 @@ defmodule Owl.Box do
       bottom: "─",
       bottom_right: "┘"
     },
+    solid_rounded: %{
+      top_left: "╭",
+      top: "─",
+      top_right: "╮",
+      right: "│",
+      left: "│",
+      bottom_left: "╰",
+      bottom: "─",
+      bottom_right: "╯"
+    },
     double: %{
       top_left: "╔",
       top: "═",
@@ -153,7 +163,7 @@ defmodule Owl.Box do
           max_width: non_neg_integer() | :infinity,
           horizontal_align: :left | :center | :right,
           vertical_align: :top | :middle | :bottom,
-          border_style: :solid | :double | :none,
+          border_style: :solid | :solid_rounded | :double | :none,
           title: nil | Owl.Data.t()
         ) :: Owl.Data.t()
   def new(data, opts \\ []) do
