@@ -393,6 +393,35 @@ defmodule Owl.Data do
   defp default_value_by_sequence_type(:reverse), do: :reverse_off
 
   @doc """
+  Truncates data, so the length of returning data is <= `length`.
+
+  Puts ellipsis symbol at the end if data was truncated.
+
+  ## Examples
+      iex> Owl.Data.truncate([Owl.Data.tag("Hello", :red), Owl.Data.tag(" world!", :green)], 10)
+      [Owl.Data.tag(["Hello"], :red), Owl.Data.tag([" wor"], :green), "…"]
+
+      iex> Owl.Data.truncate("Hello", 10)
+      "Hello"
+
+      iex> Owl.Data.truncate("Hello", 4)
+      ["Hel", "…"]
+
+      iex> Owl.Data.truncate("Hello", 5)
+      "Hello"
+  """
+  @spec truncate(t(), pos_integer()) :: t()
+  def truncate(data, length) when length > 0 do
+    import Kernel, except: [length: 1]
+
+    if length(data) > length do
+      data |> slice(0, length - 1) |> List.wrap() |> Enum.concat(["…"])
+    else
+      data
+    end
+  end
+
+  @doc """
   Returns a data starting at the offset `start`, and of the given `length`.
 
   It is like `String.slice/3` but for `t:t/0`.
@@ -405,7 +434,7 @@ defmodule Owl.Data do
       iex> Owl.Data.slice(Owl.Data.tag("Hello world", :red), 20, 10)
       []
   """
-  @spec slice(t(), integer(), non_neg_integer()) :: t()
+  @spec slice(t(), integer(), pos_integer()) :: t()
   def slice(data, start, length) when is_integer(start) and is_integer(length) and length > 0 do
     result =
       chunk_by(data, {start, length}, fn value, {start, length} ->
