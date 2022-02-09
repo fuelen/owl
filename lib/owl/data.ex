@@ -338,14 +338,14 @@ defmodule Owl.Data do
   def split(data, pattern) do
     chunk_by(
       data,
-      pattern,
-      fn value, pattern ->
+      nil,
+      fn value, nil ->
         [head | tail] = String.split(value, pattern, parts: 2)
 
         head = if head == "", do: [], else: head
         resolution = if tail == [], do: :cont, else: :chunk
 
-        {resolution, pattern, head, tail}
+        {resolution, nil, head, tail}
       end
     )
   end
@@ -393,6 +393,44 @@ defmodule Owl.Data do
   defp default_value_by_sequence_type(:reverse), do: :reverse_off
 
   @doc """
+  Returns a data starting at the offset `start`, and of the given `length`.
+
+  It is like `String.slice/3` but for `t:t/0`.
+
+  ## Examples
+
+      iex> Owl.Data.slice([Owl.Data.tag("Hello world", :red), Owl.Data.tag("!", :green)], 6, 7)
+      [Owl.Data.tag(["world"], :red), Owl.Data.tag(["!"], :green)]
+
+      iex> Owl.Data.slice(Owl.Data.tag("Hello world", :red), 20, 10)
+      []
+  """
+  @spec slice(t(), integer(), non_neg_integer()) :: t()
+  def slice(data, start, length) when is_integer(start) and is_integer(length) and length > 0 do
+    result =
+      chunk_by(data, {start, length}, fn value, {start, length} ->
+        value_length = String.length(value)
+
+        if value_length <= start do
+          {:cont, {start - value_length, length}, [], []}
+        else
+          result = String.slice(value, start, length)
+
+          case length - String.length(result) do
+            0 -> {:halt, result}
+            new_length -> {:cont, {0, new_length}, result, []}
+          end
+        end
+      end)
+
+    case result do
+      [%Owl.Tag{data: []}] -> []
+      [word] -> word
+      result -> result
+    end
+  end
+
+  @doc """
   Returns list of `t()` containing `count` elements each.
 
   ## Example
@@ -412,8 +450,8 @@ defmodule Owl.Data do
   def chunk_every(data, count) when count > 0 do
     chunk_by(
       data,
-      {0, count},
-      fn value, {cut_left, count} ->
+      0,
+      fn value, cut_left ->
         split_at = if cut_left == 0, do: count, else: cut_left
 
         case String.split_at(value, split_at) do
@@ -421,10 +459,10 @@ defmodule Owl.Data do
             left = split_at - String.length(head)
             resolution = if left == 0, do: :chunk, else: :cont
 
-            {resolution, {left, count}, head, []}
+            {resolution, left, head, []}
 
           {head, rest} ->
-            {:chunk, {0, count}, head, [rest]}
+            {:chunk, 0, head, [rest]}
         end
       end
     )
@@ -434,13 +472,16 @@ defmodule Owl.Data do
   defp chunk_by([], _chunk_acc, _chunk_fun, _acc_sequences), do: []
 
   defp chunk_by(data, chunk_acc, chunk_fun, acc_sequences) do
-    {_, before_pattern, after_pattern, chunk_acc, next_acc_sequences} =
-      do_chunk_by(data, chunk_acc, chunk_fun, [], acc_sequences)
+    case do_chunk_by(data, chunk_acc, chunk_fun, [], acc_sequences) do
+      {:halt, head, next_acc_sequences} ->
+        reverse_and_tag(acc_sequences ++ next_acc_sequences, head)
 
-    [
-      reverse_and_tag(acc_sequences ++ next_acc_sequences, before_pattern)
-      | chunk_by(after_pattern, chunk_acc, chunk_fun, next_acc_sequences)
-    ]
+      {_, head, tail, chunk_acc, next_acc_sequences} ->
+        [
+          reverse_and_tag(acc_sequences ++ next_acc_sequences, head)
+          | chunk_by(tail, chunk_acc, chunk_fun, next_acc_sequences)
+        ]
+    end
   end
 
   defp do_chunk_by([head | tail], chunk_acc, chunk_fun, acc, acc_sequences) do
@@ -449,6 +490,15 @@ defmodule Owl.Data do
         new_tail
         |> put_nonempty_head(tail)
         |> do_chunk_by(chunk_acc, chunk_fun, new_head, new_acc_sequences)
+
+      {:halt, new_head, new_acc_sequences} ->
+        new_acc_sequences =
+          case new_head do
+            [%Owl.Tag{sequences: sequences} | _] -> new_acc_sequences -- sequences
+            _ -> new_acc_sequences
+          end
+
+        {:halt, new_head, new_acc_sequences}
 
       {:chunk, new_head, new_tail, chunk_acc, new_acc_sequences} ->
         new_tail = maybe_wrap_to_tag(new_acc_sequences -- acc_sequences, new_tail)
@@ -482,31 +532,42 @@ defmodule Owl.Data do
          acc,
          acc_sequences
        ) do
-    {resolution, before_pattern, after_pattern, chunk_acc, next_acc_sequences} =
-      do_chunk_by(data, chunk_acc, chunk_fun, [], acc_sequences ++ sequences)
+    case do_chunk_by(data, chunk_acc, chunk_fun, [], acc_sequences ++ sequences) do
+      {:halt, head, next_acc_sequences} ->
+        head = reverse_and_tag(sequences, head)
 
-    before_pattern = reverse_and_tag(sequences, before_pattern)
+        next_acc_sequences = next_acc_sequences -- sequences
 
-    next_acc_sequences =
-      case after_pattern do
-        [] -> next_acc_sequences -- sequences
-        [""] -> next_acc_sequences -- sequences
-        _ -> next_acc_sequences
-      end
+        {:halt, [head | acc], next_acc_sequences}
 
-    {resolution, [before_pattern | acc], after_pattern, chunk_acc, next_acc_sequences}
+      {resolution, head, tail, chunk_acc, next_acc_sequences} ->
+        head = reverse_and_tag(sequences, head)
+
+        next_acc_sequences =
+          case tail do
+            [] -> next_acc_sequences -- sequences
+            [""] -> next_acc_sequences -- sequences
+            _ -> next_acc_sequences
+          end
+
+        {resolution, [head | acc], tail, chunk_acc, next_acc_sequences}
+    end
   end
 
   defp do_chunk_by(value, chunk_acc, chunk_fun, acc, acc_sequences) when is_binary(value) do
-    {resolution, new_chunk_acc, head, rest} = chunk_fun.(value, chunk_acc)
+    case chunk_fun.(value, chunk_acc) do
+      {:halt, head} ->
+        {:halt, put_nonempty_head(head, acc), acc_sequences}
 
-    {
-      resolution,
-      put_nonempty_head(head, acc),
-      rest,
-      new_chunk_acc,
-      acc_sequences
-    }
+      {resolution, new_chunk_acc, head, rest} ->
+        {
+          resolution,
+          put_nonempty_head(head, acc),
+          rest,
+          new_chunk_acc,
+          acc_sequences
+        }
+    end
   end
 
   defp do_chunk_by(value, chunk_acc, chunk_fun, acc, acc_sequences) when is_integer(value) do

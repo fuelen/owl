@@ -365,4 +365,26 @@ defmodule Owl.DataTest do
     assert Owl.Data.to_ansidata([Owl.Data.tag([Owl.Data.tag("Hello ", :red), " world"], :red)]) ==
              [[[[[[[] | "\e[31m"] | "\e[31m"], "Hello "], " world"] | "\e[39m"] | "\e[0m"]
   end
+
+  test inspect(&Owl.Data.slice/3) do
+    assert Owl.Data.slice("hello world", 0, 5) == "hello"
+    assert Owl.Data.slice("hello world", 6, 5) == "world"
+    assert Owl.Data.slice("hello world", 6, 10) == "world"
+    assert Owl.Data.slice(["hello", " world"], 6, 5) == "world"
+    assert Owl.Data.slice(["hello", " world"], 3, 5) == ["lo", " wo"]
+    assert Owl.Data.slice(["", [], "hello world"], 0, 5) == "hello"
+
+    assert Owl.Data.slice([[], "", ["hel", ["lo", [" wo", ["rld"]]]]], 2, 7) == [
+             "l",
+             "lo",
+             " wo",
+             "r"
+           ]
+
+    assert Owl.Data.slice(Owl.Data.tag(["hello", Owl.Data.tag([" world"], :green)], :red), 3, 5) ==
+             Owl.Data.tag(["lo", Owl.Data.tag([" wo"], :green)], :red)
+
+    assert Owl.Data.slice(Owl.Data.tag(["hello", Owl.Data.tag([" world"], :green)], :red), 30, 5) ==
+             []
+  end
 end
