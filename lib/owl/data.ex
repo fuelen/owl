@@ -452,12 +452,20 @@ defmodule Owl.Data do
         end
       end)
 
-    case result do
-      [%Owl.Tag{data: []}] -> []
-      [word] -> word
-      result -> result
-    end
+    # cleanup output, so it just looks prettier
+    result
+    |> trim_leading_blank_tags()
+    |> maybe_unwrap_list()
   end
+
+  defp maybe_unwrap_list([item]), do: item
+  defp maybe_unwrap_list(items), do: items
+
+  defp trim_leading_blank_tags([%Owl.Tag{data: []} | tail]) do
+    trim_leading_blank_tags(tail)
+  end
+
+  defp trim_leading_blank_tags(result), do: result
 
   @doc """
   Returns list of `t()` containing `count` elements each.

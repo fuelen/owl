@@ -384,6 +384,20 @@ defmodule Owl.DataTest do
     assert Owl.Data.slice(Owl.Data.tag(["hello", Owl.Data.tag([" world"], :green)], :red), 3, 5) ==
              Owl.Data.tag(["lo", Owl.Data.tag([" wo"], :green)], :red)
 
+    assert Owl.Data.slice([Owl.Data.tag("??", :red), Owl.Data.tag("!!!", :green)], 2, 1) ==
+             Owl.Data.tag(["!"], :green)
+
+    assert Owl.Data.slice(
+             [
+               Owl.Data.tag([], :green),
+               Owl.Data.tag(Owl.Data.tag([], :blue), :cyan),
+               Owl.Data.tag("??", :red),
+               Owl.Data.tag("!!!", :green)
+             ],
+             2,
+             1
+           ) == Owl.Data.tag(["!"], :green)
+
     assert Owl.Data.slice(Owl.Data.tag(["hello", Owl.Data.tag([" world"], :green)], :red), 30, 5) ==
              []
   end
