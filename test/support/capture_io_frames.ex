@@ -19,6 +19,6 @@ defmodule CaptureIOFrames do
 
       Owl.LiveScreen.stop(live_screen_pid)
     end)
-    |> String.split(@render_separator)
+    |> String.split(@render_separator, trim: true)
   end
 end

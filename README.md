@@ -26,6 +26,8 @@ It provides a convenient interface for
 ## Demo
 [![asciicast](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2.svg)](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2)
 
+The code can be found  in [examples](https://github.com/fuelen/owl/tree/main/examples) directory.
+
 ## Installation
 
 The package can be installed by adding `owl` to your list of dependencies in `mix.exs`:
@@ -33,7 +35,7 @@ The package can be installed by adding `owl` to your list of dependencies in `mi
 ```elixir
 def deps do
   [
-    {:owl, "~> 0.2.0"}
+    {:owl, "~> 0.2"}
   ]
 end
 ```

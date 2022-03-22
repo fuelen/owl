@@ -2,9 +2,50 @@ defmodule Owl.System do
   @moduledoc """
   An alternative to some `System` functions.
   """
-  require Logger
 
-  @secret_placeholder "********"
+  @doc """
+  Runs `command` as a daemon, executes `operation` and kills the daemon aftewards.
+
+  Automatically puts messages from `stderr` and `stdout` to `device` prepending them with `prefix`.
+  Returns result of invoking `operation`.
+
+  ## Options
+
+  * `:prefix` - a prefix for `stderr` and `stdout` messages from daemon. Defaults to `command` followed by colon.
+  * `:device` - device to which messages from `stderr` and `stdout` are put. Defaults to `:stdio`.
+
+  ## Example
+
+      ex> Owl.System.daemon_cmd("ping", ["8.8.8.8"], fn ->
+      ..>   Process.sleep(3_000)
+      ..>   2 + 2
+      ..> end)
+      # 00:36:33.963 [debug] $ ping 8.8.8.8
+      #
+      # 00:36:33.964 [debug] Started daemon ping with OS pid 576077
+      # ping:  PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.
+      # ping:  64 bytes from 8.8.8.8: icmp_seq=1 ttl=118 time=28.3 ms
+      # ping:  64 bytes from 8.8.8.8: icmp_seq=2 ttl=118 time=26.9 ms
+      # ping:  64 bytes from 8.8.8.8: icmp_seq=3 ttl=118 time=28.6 ms
+
+      # 00:36:36.965 [debug] $ kill 576077
+      4
+  """
+  @spec daemon_cmd(binary(), [binary() | {:secret, binary()}], (() -> result),
+          prefix: Owl.Data.t(),
+          device: IO.device()
+        ) :: result
+        when result: any()
+  def daemon_cmd(command, args, operation, options \\ []) when is_function(operation, 0) do
+    {:ok, pid} = Owl.Daemon.start([command: command, args: args] ++ options)
+    Process.link(pid)
+
+    try do
+      operation.()
+    after
+      Owl.Daemon.stop(pid)
+    end
+  end
 
   @doc """
   A wrapper around `System.cmd/3` which additionally logs executed `command` and `args`.
@@ -23,14 +64,14 @@ defmodule Owl.System do
       {"hello world\\n", 0}
 
       > Owl.System.cmd("psql", ["postgresql://postgres:postgres@127.0.0.1:5432", "-tAc", "SELECT 1;"])
-      # 10:25:50.947 [debug] $ psql postgresql://postgres:#{@secret_placeholder}@127.0.0.1:5432 -tAc 'SELECT 1;'
+      # 10:25:50.947 [debug] $ psql postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'
       {"1\\n", 0}
 
   """
   @spec cmd(binary(), [binary() | {:secret, binary()}], keyword()) ::
           {Collectable.t(), exit_status :: non_neg_integer()}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
-    log_shell_command(command, args)
+    Owl.System.Helpers.log_shell_command(command, args)
 
     args =
       Enum.map(
@@ -64,54 +105,7 @@ defmodule Owl.System do
           keyword()
         ) :: {Collectable.t(), exit_status :: non_neg_integer()}
   def shell(command, opts \\ []) when is_binary(command) do
-    log_shell_command(command)
+    Owl.System.Helpers.log_shell_command(command)
     System.shell(command, opts)
-  end
-
-  defp log_shell_command(command) do
-    command = sanitize_passwords_in_urls(command)
-
-    Logger.debug("$ #{command}")
-  end
-
-  defp log_shell_command(command, args) do
-    command =
-      case args do
-        [] ->
-          command
-
-        args ->
-          args =
-            Enum.map_join(args, " ", fn
-              {:secret, _arg} ->
-                @secret_placeholder
-
-              arg ->
-                if String.contains?(arg, [" ", ";"]) do
-                  "'" <> String.replace(arg, "'", "'\\''") <> "'"
-                else
-                  arg
-                end
-            end)
-
-          "#{command} #{args}"
-      end
-
-    log_shell_command(command)
-  end
-
-  defp sanitize_passwords_in_urls(text) do
-    Regex.replace(~r/\w+:\/\/[^ ]+/, text, fn value ->
-      uri = URI.parse(value)
-
-      case uri.userinfo do
-        nil ->
-          value
-
-        userinfo ->
-          [username, _password] = String.split(userinfo, ":")
-          to_string(%{uri | userinfo: "#{username}:#{@secret_placeholder}"})
-      end
-    end)
   end
 end

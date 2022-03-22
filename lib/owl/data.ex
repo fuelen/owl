@@ -256,7 +256,7 @@ defmodule Owl.Data do
   """
   @spec to_ansidata(t()) :: IO.ANSI.ansidata()
   def to_ansidata(data) do
-    # split by \n and then intersperse is needed in order to break background and do not spread to the end of the line
+    # combination of lines + unlines is needed in order to break background and do not spread it to the end of the line
     data
     |> lines()
     |> unlines()

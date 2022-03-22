@@ -6,7 +6,9 @@ defmodule Owl.Application do
     children = [
       {Registry, keys: :unique, name: Owl.WidgetsRegistry},
       {Owl.LiveScreen, name: Owl.LiveScreen},
-      {DynamicSupervisor, strategy: :one_for_one, name: Owl.WidgetsSupervisor}
+      {DynamicSupervisor, strategy: :one_for_one, name: Owl.WidgetsSupervisor},
+      {DynamicSupervisor, strategy: :one_for_one, name: Owl.DaemonsSupervisor},
+      {Task.Supervisor, strategy: :one_for_one, name: Owl.TaskSupervisor}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)
