@@ -214,7 +214,10 @@ defmodule Owl.LiveScreen do
   end
 
   def handle_cast({:notify_on_next_render, pid}, state) do
-    if is_nil(state.timer_ref) and empty_blocks_list?(state) do
+    empty_buffer? =
+      state.put_above_blocks == [] and is_nil(state.timer_ref) and empty_blocks_list?(state)
+
+    if empty_buffer? do
       send(pid, :rendered)
       {:noreply, state}
     else
@@ -250,7 +253,7 @@ defmodule Owl.LiveScreen do
     state = render(state)
 
     timer_ref =
-      unless is_nil(state.timer_ref) do
+      if not is_nil(state.timer_ref) and not empty_blocks_list?(state) do
         Process.send_after(self(), :render, state.refresh_every)
       end
 
