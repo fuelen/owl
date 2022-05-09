@@ -1,6 +1,6 @@
 defmodule Owl.Data do
   @moduledoc """
-  A set of functions for `t:iodata/0` with tags.
+  A set of functions for `t:iodata/0` with [tags](`Owl.Tag`).
   """
 
   @typedoc """

@@ -7,7 +7,7 @@ defmodule Owl.Tag do
   Tag is a container for data and ANSI sequences associated with it.
   It allows having local binding for styles in console, similar to tags in HTML.
 
-  Let's say you have a string that should written to stdout in red color.
+  Let's say you have a string that should be written to stdout in red color.
   This can be easily done by using a naive approach:
 
       substring = "world"
