@@ -84,6 +84,10 @@ defmodule Owl.IOTest do
              assert Owl.IO.select(["one"]) == "one"
            end) == "Autoselect: one\n\n"
 
+    assert capture_io(fn ->
+             assert Owl.IO.select(["one"], render_as: &Owl.Data.tag(&1, :red)) == "one"
+           end) == "Autoselect: \e[31mone\e[39m\n\e[0m\n"
+
     assert capture_io([input: "2\n"], fn ->
              assert ~D[2001-01-01]
                     |> Date.range(~D[2001-01-03])
