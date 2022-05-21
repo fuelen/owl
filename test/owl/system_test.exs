@@ -27,6 +27,39 @@ defmodule Owl.SystemTest do
       assert count_active_children.() == children_number
     end
 
+    test "successful run with :ready_check option" do
+      sh_script = """
+      sleep 1
+      echo READY
+      sleep 5
+      echo "the script must be killed before printing this text"
+      """
+
+      daemon_script_path = Path.join(System.tmp_dir!(), "owl-#{:erlang.unique_integer()}")
+      File.write!(daemon_script_path, sh_script)
+      on_exit(fn -> File.rm!(daemon_script_path) end)
+
+      frames =
+        capture_io_frames(fn live_screen_pid, _render ->
+          log =
+            capture_log(fn ->
+              assert Owl.System.daemon_cmd(
+                       "sh",
+                       [daemon_script_path],
+                       fn -> 2 + 2 end,
+                       device: live_screen_pid,
+                       ready_check: fn "READY\n" -> true end
+                     ) == 4
+            end)
+
+          assert log =~ "$ sh #{daemon_script_path}"
+          assert log =~ "Started daemon sh with OS pid"
+          assert log =~ "$ kill"
+        end)
+
+      assert frames == ["\e[36msh: \e[39m READY\e[0m\n\n"]
+    end
+
     test "premature exit of the daemon" do
       Process.flag(:trap_exit, true)
 

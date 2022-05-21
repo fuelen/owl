@@ -22,6 +22,12 @@ defmodule Owl.Daemon do
     executable = System.find_executable(command)
     Owl.System.Helpers.log_shell_command(command, command_args)
 
+    {handle_data_state, handle_data_callback} =
+      case Keyword.get(args, :handle_data) do
+        nil -> {nil, &noop_handle_data_callback/2}
+        {initial_state, callback} -> {initial_state, callback}
+      end
+
     Process.flag(:trap_exit, true)
 
     port =
@@ -40,8 +46,17 @@ defmodule Owl.Daemon do
     port_info = Port.info(port)
     Logger.debug("Started daemon #{command} with OS pid #{port_info[:os_pid]}")
 
-    {:ok, %{device: Keyword.get(args, :device, :stdio), port: port, prefix: prefix}}
+    {:ok,
+     %{
+       device: Keyword.get(args, :device, :stdio),
+       port: port,
+       prefix: prefix,
+       handle_data_callback: handle_data_callback,
+       handle_data_state: handle_data_state
+     }}
   end
+
+  defp noop_handle_data_callback(_data, state), do: state
 
   @impl true
   def terminate({:premature_port_exit, _status}, _state) do
@@ -56,12 +71,14 @@ defmodule Owl.Daemon do
 
   @impl true
   def handle_info({port, {:data, text_lines}}, %{port: port} = state) do
+    handle_data_state = state.handle_data_callback.(text_lines, state.handle_data_state)
+
     text_lines
     |> String.trim_trailing("\n")
     |> Owl.Data.add_prefix([state.prefix, " "])
     |> Owl.IO.puts(state.device)
 
-    {:noreply, state}
+    {:noreply, %{state | handle_data_state: handle_data_state}}
   end
 
   def handle_info({port, {:exit_status, status}}, %{port: port} = state) do

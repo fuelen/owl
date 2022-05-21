@@ -13,6 +13,9 @@ defmodule Owl.System do
 
   * `:prefix` - a prefix for `stderr` and `stdout` messages from daemon. Defaults to `command` followed by colon.
   * `:device` - device to which messages from `stderr` and `stdout` are put. Defaults to `:stdio`.
+  * `:ready_check` - a function which checks the content of the messages produced by `command` before writing to `device`.
+    If the function is set, then the execution of the `operation` will be blocked until `ready_check` returns `true`.
+    By default this check is absent and `operation` is invoked immediately without awaiting any message.
 
   ## Example
 
@@ -30,18 +33,68 @@ defmodule Owl.System do
 
       # 00:36:36.965 [debug] $ kill 576077
       4
+
+      ex> Owl.System.daemon_cmd(
+      ..>   "kubectl",
+      ..>   [
+      ..>     "port-forward",
+      ..>     "--namespace=my-app",
+      ..>     "--kubeconfig",
+      ..>     "~/.kube/myapp",
+      ..>     "my-pod",
+      ..>     "5432:5432"
+      ..>   ],
+      ..>   &dump_database/0,
+      ..>   prefix: "kubectl(my-pod): ",
+      ..>   ready_check: &String.contains?(&1, "Forwarding from")
+      ..> )
+      # Forwarding from 127.0.0.1:5432 -> 5432
+      # Forwarding from [::1]:5432 -> 5432
+      :ok
   """
   @spec daemon_cmd(binary(), [binary() | {:secret, binary()}], (() -> result),
           prefix: Owl.Data.t(),
-          device: IO.device()
+          device: IO.device(),
+          ready_check: (String.t() -> boolean())
         ) :: result
         when result: any()
   def daemon_cmd(command, args, operation, options \\ []) when is_function(operation, 0) do
-    {:ok, pid} = Owl.Daemon.start([command: command, args: args] ++ options)
+    handle_data_opts =
+      case Keyword.get(options, :ready_check) do
+        nil ->
+          send(self(), :run_operation)
+          []
+
+        ready_check when is_function(ready_check, 1) ->
+          caller_pid = self()
+
+          [
+            handle_data:
+              {false,
+               fn data, ready? when is_boolean(ready?) ->
+                 ready? = ready? || ready_check.(data)
+
+                 if ready?, do: send(caller_pid, :run_operation)
+
+                 ready?
+               end}
+          ]
+      end
+
+    {:ok, pid} =
+      Owl.Daemon.start(
+        [
+          command: command,
+          args: args
+        ] ++ handle_data_opts ++ Keyword.take(options, [:prefix, :device])
+      )
+
     Process.link(pid)
 
     try do
-      operation.()
+      receive do
+        :run_operation -> operation.()
+      end
     after
       Owl.Daemon.stop(pid)
     end
