@@ -342,7 +342,7 @@ defmodule Owl.IO do
   Reads a line from the `stdio` and casts a value to the given type.
 
   After reading a line from `stdio` it will be automatically trimmed with `String.trim/2`.
-  The end value will be returned when user types a valid value. 
+  The end value will be returned when user types a valid value.
 
   ## Options
 
@@ -370,7 +370,7 @@ defmodule Owl.IO do
       "password"
 
       Owl.IO.input(optional: true)
-      #=> > 
+      #=> >
       nil
 
       Owl.IO.input(label: "Your age", cast: {:integer, min: 18, max: 100})
@@ -378,7 +378,7 @@ defmodule Owl.IO do
       #=> > 12
       #=> must be greater than or equal to 18
       #=> Your age
-      #=> > 102 
+      #=> > 102
       #=> must be less than or equal to 100
       #=> Your age
       #=> > 18
@@ -498,6 +498,8 @@ defmodule Owl.IO do
       {:ok, value}
     end
   end
+
+  defp cast_input(:integer, nil, _opts), do: {:ok, nil}
 
   defp cast_input(:integer, binary, opts) do
     case Integer.parse(binary) do

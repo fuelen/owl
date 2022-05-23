@@ -54,6 +54,14 @@ defmodule Owl.IOTest do
              \e[34m> \e[39m\e[0m
              """
 
+    assert capture_io([input: "\n"], fn ->
+             assert Owl.IO.input(
+                      cast: {:integer, min: 18, max: 100},
+                      optional: true,
+                      label: "optional input with cast:"
+                    ) == nil
+           end) == "optional input with cast:\n\e[34m> \e[39m\e[0m\n"
+
     assert capture_io(:stderr, fn ->
              assert capture_io([input: "password\n"], fn ->
                       assert Owl.IO.input(secret: true) == "password"
