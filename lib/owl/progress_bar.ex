@@ -71,7 +71,8 @@ defmodule Owl.ProgressBar do
   * `:total` - a total value. Required.
   * `:current` - a current value. Defaults to `0`.
   * `:bar_width_ratio` - a bar width ratio. Defaults to 0.7.
-  * `:timer` - set to `true` to launch a timer. Defaults to `false`.
+  * `:timer` - set to `true` to launch a timer and display it before the bar in format `MM:SS`. Defaults to `false`.
+  * `:absolute_values` - set to `true` to show absolute values before the bar in format `current/total`. Defaults to `false`.
   * `:start_symbol` - a symbol that is rendered at the beginning of the progress bar. Defaults to `"["`.
   * `:end_symbol` - a symbol that rendered at the end of the progress bar. Defaults to `"]"`.
   * `:filled_symbol` - a symbol that use used when `current` value is big enough to fill the cell. Defaults to `"≡"`
@@ -85,6 +86,7 @@ defmodule Owl.ProgressBar do
           id: id(),
           total: pos_integer(),
           timer: boolean(),
+          absolute_values: boolean(),
           current: non_neg_integer(),
           bar_width_ratio: nil | float(),
           start_symbol: Owl.Data.t(),
@@ -126,6 +128,7 @@ defmodule Owl.ProgressBar do
     total = Keyword.fetch!(opts, :total)
     label = Keyword.fetch!(opts, :label)
     timer = Keyword.get(opts, :timer, false)
+    absolute_values = Keyword.get(opts, :absolute_values, false)
     filled_symbol = opts[:filled_symbol] || "≡"
     partial_symbols = opts[:partial_symbols] || ["-", "="]
     empty_symbol = opts[:empty_symbol] || " "
@@ -157,7 +160,8 @@ defmodule Owl.ProgressBar do
       end_symbol: end_symbol,
       empty_symbol: empty_symbol,
       filled_symbol: filled_symbol,
-      partial_symbols: partial_symbols
+      partial_symbols: partial_symbols,
+      absolute_values: absolute_values
     }
 
     Owl.LiveScreen.add_block(live_screen_server, live_screen_ref,
@@ -231,8 +235,9 @@ defmodule Owl.ProgressBar do
       ...>   label: "Demo",
       ...>   total: 200,
       ...>   current: 8,
-      ...>   bar_width_ratio: 0.4,
+      ...>   bar_width_ratio: 0.2,
       ...>   start_symbol: "|",
+      ...>   absolute_values: true,
       ...>   end_symbol: "|",
       ...>   filled_symbol: "█",
       ...>   partial_symbols: ["▏", "▎", "▍", "▌", "▋", "▊", "▉"],
@@ -241,7 +246,7 @@ defmodule Owl.ProgressBar do
       ...>   start_time: -576460748012758993,
       ...>   current_time: -576460748012729828
       ...> }) |> to_string()
-      "Demo     00:29.2 |▋               |   4%"
+      "Demo       8/200 00:29.2 |▍       |   4%"
 
       iex> Owl.ProgressBar.render(%{
       ...>   label: "Demo",
@@ -262,6 +267,7 @@ defmodule Owl.ProgressBar do
           optional(:current_time) => nil | integer(),
           optional(:start_time) => nil | integer(),
           optional(:screen_width) => nil | pos_integer(),
+          optional(:absolute_values) => nil | boolean(),
           bar_width_ratio: float(),
           label: String.t(),
           total: pos_integer(),
@@ -290,23 +296,39 @@ defmodule Owl.ProgressBar do
     start_end_symbols_width = 2
     percentage = String.pad_leading("#{trunc(current / total * 100)}%", percentage_width)
 
-    elapsed_time =
+    {elapsed_time_formatted, elapsed_time_formatted_width} =
       case params[:start_time] do
         nil ->
-          nil
+          {[], 0}
 
         start_time ->
           current_time = params[:current_time] || System.monotonic_time(:millisecond)
-          current_time - start_time
+          elapsed_time = current_time - start_time
+          # format_time width + 1 space = 8
+          {[format_time(elapsed_time), " "], 8}
       end
 
-    # format_time width + 1 space = 8
-    elapsed_time_width = if elapsed_time, do: 8, else: 0
+    {absolute_values_formatted, absolute_values_formatted_width} =
+      if params[:absolute_values] do
+        total_string = to_string(total)
+        total_width = String.length(total_string)
+
+        {
+          [String.pad_leading(to_string(current), total_width), "/", total_string, " "],
+          # 2 = String.length("/" + " ")
+          total_width * 2 + 2
+        }
+      else
+        {[], 0}
+      end
+
+    infix = [absolute_values_formatted, elapsed_time_formatted]
+    infix_width = elapsed_time_formatted_width + absolute_values_formatted_width
 
     bar_width = trunc(screen_width * bar_width_ratio)
 
     label_width =
-      screen_width - bar_width - percentage_width - start_end_symbols_width - elapsed_time_width
+      screen_width - bar_width - percentage_width - start_end_symbols_width - infix_width
 
     # Float.ceil(x, 2) is needed to handle numbers like 56.99999999999999
     progress = min(Float.ceil(current / (total / bar_width), 2), bar_width * 1.0)
@@ -328,10 +350,7 @@ defmodule Owl.ProgressBar do
 
     [
       String.pad_trailing(label, label_width),
-      case elapsed_time do
-        nil -> []
-        elapsed_time -> [format_time(elapsed_time), " "]
-      end,
+      infix,
       start_symbol,
       List.duplicate(filled_symbol, filled_blocks_integer),
       case next_block do
