@@ -60,4 +60,45 @@ defmodule Owl.LiveScreenTest do
              "new line\n\n\e[1A\e[2Knew line\n\n"
            ]
   end
+
+  test "capture_stdio" do
+    frames =
+      capture_io_frames(
+        fn live_screen_pid, render ->
+          Owl.ProgressBar.start(
+            id: :users,
+            label: "Progress",
+            total: 5,
+            screen_width: @terminal_width,
+            bar_width_ratio: 0.2,
+            live_screen_server: live_screen_pid
+          )
+
+          render.()
+
+          Owl.ProgressBar.inc(id: :users)
+
+          # we can't use render.() inside capture_stdio, as render.() writes separators to stdio,
+          # which are sent to LiveScreen and we have not desired output
+          Owl.LiveScreen.capture_stdio(live_screen_pid, fn ->
+            IO.puts("hello")
+          end)
+
+          # sleep is needed in order to give time data to be delivered to LiveScreen server
+          Process.sleep(5)
+          render.()
+          Owl.ProgressBar.inc(id: :users)
+          # sleep is needed in order to give time data to be delivered to LiveScreen server
+          Process.sleep(5)
+          render.()
+        end,
+        terminal_width: @terminal_width
+      )
+
+    assert frames == [
+             "\e[2KProgress [    ]   0%\n",
+             "\e[1A\e[2Khello\n\n\e[2KProgress [=   ]  20%\n",
+             "\e[1A\e[2KProgress [≡=  ]  40%\n"
+           ]
+  end
 end

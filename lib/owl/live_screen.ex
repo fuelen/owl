@@ -71,6 +71,44 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
+  Redirects output from `:stdio` to `#{inspect(__MODULE__)}`.
+
+  ## Example
+
+      Owl.ProgressBar.start(id: :users, label: "Creating users", total: 100)
+
+      Owl.LiveScreen.capture_stdio(fn ->
+        Enum.each(1..100, fn i ->
+          Process.sleep(10)
+          Owl.ProgressBar.inc(id: :users)
+          # Output from next call will be printed above progress bar
+          IO.inspect([:test, i])
+        end)
+      end)
+
+      Owl.LiveScreen.await_render()
+
+  """
+  @spec capture_stdio(GenServer.server(), (() -> result)) :: result when result: any
+  def capture_stdio(server \\ __MODULE__, callback) when is_function(callback, 0) do
+    original_gl = Process.group_leader()
+
+    live_screen_server_pid =
+      case GenServer.whereis(server) do
+        pid when is_pid(pid) -> pid
+      end
+
+    Process.group_leader(self(), live_screen_server_pid)
+
+    try do
+      Process.group_leader(self(), live_screen_server_pid)
+      callback.()
+    after
+      Process.group_leader(self(), original_gl)
+    end
+  end
+
+  @doc """
   Adds a sticky block to the bottom of the screen that can be updated using `update/3`.
 
   ## Options
