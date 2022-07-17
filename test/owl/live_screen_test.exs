@@ -76,13 +76,13 @@ defmodule Owl.LiveScreenTest do
 
           render.()
 
-          Owl.ProgressBar.inc(id: :users)
-
           # we can't use render.() inside capture_stdio, as render.() writes separators to stdio,
           # which are sent to LiveScreen and we have not desired output
           Owl.LiveScreen.capture_stdio(live_screen_pid, fn ->
             IO.puts("hello")
           end)
+
+          Owl.ProgressBar.inc(id: :users)
 
           # sleep is needed in order to give time data to be delivered to LiveScreen server
           Process.sleep(5)
@@ -97,7 +97,7 @@ defmodule Owl.LiveScreenTest do
 
     assert frames == [
              "\e[2KProgress [    ]   0%\n",
-             "\e[1A\e[2Khello\n\n\e[2KProgress [=   ]  20%\n",
+             "\e[1A\e[2Khello\n\n\e[2KProgress [    ]   0%\n\e[1A\e[2KProgress [=   ]  20%\n",
              "\e[1A\e[2KProgress [≡=  ]  40%\n"
            ]
   end

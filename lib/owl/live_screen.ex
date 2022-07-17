@@ -292,6 +292,14 @@ defmodule Owl.LiveScreen do
 
     timer_ref =
       if not is_nil(state.timer_ref) and not empty_blocks_list?(state) do
+        case Process.read_timer(state.timer_ref) do
+          false ->
+            :noop
+
+          _ms ->
+            Process.cancel_timer(state.timer_ref)
+        end
+
         Process.send_after(self(), :render, state.refresh_every)
       end
 
@@ -382,18 +390,12 @@ defmodule Owl.LiveScreen do
   end
 
   defp put_chars(from, reply_as, chars, state) do
-    timer_ref =
-      if is_nil(state.timer_ref) do
-        Process.send_after(self(), :render, state.refresh_every)
-      else
-        state.timer_ref
-      end
+    send(self(), :render)
 
     %{
       state
       | put_above_blocks: [chars | state.put_above_blocks],
-        put_above_blocks_sources: [{from, reply_as} | state.put_above_blocks_sources],
-        timer_ref: timer_ref
+        put_above_blocks_sources: [{from, reply_as} | state.put_above_blocks_sources]
     }
   end
 
