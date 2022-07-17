@@ -593,8 +593,7 @@ defmodule Owl.IO do
           nil: :magenta,
           tuple: :default_color,
           binary: :default_color,
-          map: :default_color,
-          reset: :yellow
+          map: :default_color
         ]
       ]
       |> Keyword.merge(opts)
