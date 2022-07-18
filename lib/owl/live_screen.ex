@@ -47,6 +47,7 @@ defmodule Owl.LiveScreen do
           {:name, GenServer.name()}
           | {:refresh_every, pos_integer()}
           | {:terminal_width, pos_integer() | :auto}
+          | {:device, IO.device()}
 
   @refresh_every_default 60
 
@@ -60,7 +61,8 @@ defmodule Owl.LiveScreen do
   * `:name` - used for name registration as described in the "Name
   registration" section in the documentation for `GenServer`. Defaults to `Owl.LiveScreen`
   * `:refresh_every` - a period of refreshing a screen in milliseconds. Defaults to #{@refresh_every_default}.
-  * `:terminal_width` - a width of terminal in symbols. Defaults to `:auto`, which gets value from `Owl.IO.columns/0`.
+  * `:terminal_width` - a width of terminal in symbols. Defaults to `:auto`, which gets value from `Owl.IO.columns/1`.
+  * `:device` - an I/O device. Defaults to `:stdio`.
   If terminal is now a available, then the server won't be started.
   """
   @spec start_link([start_option()]) :: GenServer.on_start()
@@ -195,18 +197,20 @@ defmodule Owl.LiveScreen do
     refresh_every = opts[:refresh_every] || @refresh_every_default
 
     terminal_width = opts[:terminal_width] || :auto
+    device = opts[:device] || :stdio
 
-    terminal_device? = not is_nil(get_terminal_width(terminal_width))
+    terminal_device? = not is_nil(get_terminal_width(terminal_width, device))
 
     if terminal_device? do
-      {:ok, init_state(terminal_width, refresh_every)}
+      {:ok, init_state(terminal_width, refresh_every, device)}
     else
       :ignore
     end
   end
 
-  defp init_state(terminal_width, refresh_every) do
+  defp init_state(terminal_width, refresh_every, device) do
     %{
+      device: device,
       timer_ref: nil,
       notify_on_next_render: [],
       terminal_width: terminal_width,
@@ -275,7 +279,7 @@ defmodule Owl.LiveScreen do
   def handle_call(:flush, _, state) do
     state = render(state)
 
-    state = init_state(state.terminal_width, state.refresh_every)
+    state = init_state(state.terminal_width, state.refresh_every, state.device)
 
     {:reply, :ok, state}
   end
@@ -403,11 +407,11 @@ defmodule Owl.LiveScreen do
     send(from, {:io_reply, reply_as, reply})
   end
 
-  defp get_terminal_width(:auto), do: Owl.IO.columns()
-  defp get_terminal_width(number) when is_integer(number), do: number
+  defp get_terminal_width(:auto, device), do: Owl.IO.columns(device)
+  defp get_terminal_width(number, _device) when is_integer(number), do: number
 
   defp render(state) do
-    terminal_width = get_terminal_width(state.terminal_width)
+    terminal_width = get_terminal_width(state.terminal_width, state.device)
 
     {state, render_above_data, io_reply} = render_above(state)
 
@@ -426,7 +430,7 @@ defmodule Owl.LiveScreen do
       |> Owl.Data.unlines()
 
     if data != [] do
-      Owl.IO.puts(data)
+      Owl.IO.puts(data, state.device)
       io_reply.()
     end
 

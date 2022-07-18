@@ -614,9 +614,15 @@ defmodule Owl.IO do
 
       Owl.IO.columns() || 80
   """
-  @spec columns() :: pos_integer() | nil
-  def columns do
-    case :io.columns() do
+  @spec columns(IO.device()) :: pos_integer() | nil
+  def columns(device \\ :stdio) do
+    device =
+      case device do
+        :stdio -> :standard_io
+        device -> device
+      end
+
+    case :io.columns(device) do
       {:ok, value} -> value
       _ -> nil
     end

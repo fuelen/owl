@@ -1,7 +1,7 @@
 defmodule Owl.SystemTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureLog
-  import CaptureIOFrames
+  import VirtualLiveScreen
 
   describe inspect(&Owl.System.daemon_cmd/4) do
     test "successful run" do
@@ -39,49 +39,50 @@ defmodule Owl.SystemTest do
       File.write!(daemon_script_path, sh_script)
       on_exit(fn -> File.rm!(daemon_script_path) end)
 
-      frames =
-        capture_io_frames(fn live_screen_pid, _render ->
-          log =
-            capture_log(fn ->
-              assert Owl.System.daemon_cmd(
-                       "sh",
-                       [daemon_script_path],
-                       fn -> 2 + 2 end,
-                       device: live_screen_pid,
-                       ready_check: fn "READY\n" -> true end
-                     ) == 4
-            end)
+      capture_frames(fn live_screen_pid, _render ->
+        log =
+          capture_log(fn ->
+            assert Owl.System.daemon_cmd(
+                     "sh",
+                     [daemon_script_path],
+                     fn -> 2 + 2 end,
+                     device: live_screen_pid,
+                     ready_check: fn "READY\n" -> true end
+                   ) == 4
+          end)
 
-          assert log =~ "$ sh #{daemon_script_path}"
-          assert log =~ "Started daemon sh with OS pid"
-          assert log =~ "$ kill"
-        end)
+        assert_received {:live_screen_frame, "\e[36msh: \e[39m READY\e[0m\n\n"}
 
-      assert frames == ["\e[36msh: \e[39m READY\e[0m\n\n"]
+        assert log =~ "$ sh #{daemon_script_path}"
+        assert log =~ "Started daemon sh with OS pid"
+        assert log =~ "$ kill"
+      end)
+
+      refute_received {:live_screen_frame, _}
     end
 
     test "premature exit of the daemon" do
       Process.flag(:trap_exit, true)
 
-      frames =
-        capture_io_frames(fn live_screen_pid, _render ->
-          child_pid =
-            spawn_link(fn ->
-              capture_log(fn ->
-                Owl.System.daemon_cmd(
-                  "echo",
-                  ["sorry, port is busy"],
-                  fn -> Process.sleep(100_000) end,
-                  device: live_screen_pid
-                )
-              end)
+      capture_frames(fn live_screen_pid, _render ->
+        child_pid =
+          spawn_link(fn ->
+            capture_log(fn ->
+              Owl.System.daemon_cmd(
+                "echo",
+                ["sorry, port is busy"],
+                fn -> Process.sleep(100_000) end,
+                device: live_screen_pid
+              )
             end)
+          end)
 
-          # sometimes echo command is not fast enough, so we have to increase default timeout,
-          assert_receive {:EXIT, ^child_pid, {:premature_port_exit, 0}}, 500
-        end)
+        # sometimes echo command is not fast enough, so we have to increase default timeout,
+        assert_receive {:EXIT, ^child_pid, {:premature_port_exit, 0}}, 500
+        assert_received {:live_screen_frame, "\e[36mecho: \e[39m sorry, port is busy\e[0m\n\n"}
+      end)
 
-      assert frames == ["\e[36mecho: \e[39m sorry, port is busy\e[0m\n\n"]
+      refute_received {:live_screen_frame, _}
     end
 
     test "death of the caller" do
@@ -89,45 +90,44 @@ defmodule Owl.SystemTest do
 
       parent_pid = self()
 
-      frames =
-        capture_io_frames(fn live_screen_pid, _render ->
-          log =
-            capture_log(fn ->
-              child_pid =
-                spawn_link(fn ->
-                  Owl.System.daemon_cmd(
-                    "sleep",
-                    ["5"],
-                    fn ->
-                      {:links, [^parent_pid, daemon_pid]} = Process.info(self(), :links)
-                      send(parent_pid, {:daemon_pid, daemon_pid})
+      capture_frames(fn live_screen_pid, _render ->
+        log =
+          capture_log(fn ->
+            child_pid =
+              spawn_link(fn ->
+                Owl.System.daemon_cmd(
+                  "sleep",
+                  ["5"],
+                  fn ->
+                    {:links, [^parent_pid, daemon_pid]} = Process.info(self(), :links)
+                    send(parent_pid, {:daemon_pid, daemon_pid})
 
-                      Process.sleep(100_000)
-                    end,
-                    device: live_screen_pid
-                  )
-                end)
+                    Process.sleep(100_000)
+                  end,
+                  device: live_screen_pid
+                )
+              end)
 
-              # sleep in order to give time to send daemon_pid to parent_pid
-              Process.sleep(50)
-              Process.exit(child_pid, :kill)
+            # sleep in order to give time to send daemon_pid to parent_pid
+            Process.sleep(50)
+            Process.exit(child_pid, :kill)
 
-              # sleep in order to give time to daemon to execute terminate callback and log kill message
-              Process.sleep(50)
+            # sleep in order to give time to daemon to execute terminate callback and log kill message
+            Process.sleep(50)
 
-              assert_receive {:EXIT, ^child_pid, :killed}
-            end)
+            assert_receive {:EXIT, ^child_pid, :killed}
+          end)
 
-          assert log =~ "$ sleep 5"
-          assert log =~ "Started daemon sleep with OS pid"
-          assert log =~ "$ kill"
-        end)
+        assert log =~ "$ sleep 5"
+        assert log =~ "Started daemon sleep with OS pid"
+        assert log =~ "$ kill"
+      end)
 
       assert_received {:daemon_pid, daemon_pid}
       monitor_ref = Process.monitor(daemon_pid)
       assert_receive {:DOWN, ^monitor_ref, :process, ^daemon_pid, _}
 
-      assert frames == []
+      refute_received {:live_screen_frame, _}
     end
   end
 
