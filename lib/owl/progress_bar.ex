@@ -290,7 +290,8 @@ defmodule Owl.ProgressBar do
           partial_symbols: partial_symbols,
           empty_symbol: empty_symbol
         } = params
-      ) do
+      )
+      when current >= 0 do
     screen_width = params[:screen_width] || Owl.IO.columns() || 80
     percentage_width = 5
     start_end_symbols_width = 2
