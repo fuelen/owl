@@ -221,4 +221,29 @@ defmodule Owl.IOTest do
     assert capture_io(fn -> Owl.IO.inspect("Hi", label: Owl.Data.tag("label", :red)) end) ==
              "\e[31mlabel\e[39m\e[0m: \e[32m\"Hi\"\e[0m\n"
   end
+
+  describe "geometry" do
+    setup do
+      terminal_device = start_supervised!({VirtualLiveScreen.Device, pid: self()})
+      {:ok, non_terminal_device} = StringIO.open("test")
+
+      [terminal_device: terminal_device, non_terminal_device: non_terminal_device]
+    end
+
+    test inspect(&Owl.IO.rows/1), %{
+      terminal_device: terminal_device,
+      non_terminal_device: non_terminal_device
+    } do
+      assert is_integer(Owl.IO.rows(terminal_device))
+      assert is_nil(Owl.IO.rows(non_terminal_device))
+    end
+
+    test inspect(&Owl.IO.columns/1), %{
+      terminal_device: terminal_device,
+      non_terminal_device: non_terminal_device
+    } do
+      assert is_integer(Owl.IO.columns(terminal_device))
+      assert is_nil(Owl.IO.columns(non_terminal_device))
+    end
+  end
 end

@@ -378,11 +378,11 @@ defmodule Owl.LiveScreen do
   end
 
   defp io_request({:get_geometry, :columns}, state) do
-    {{:error, :enotsup}, state}
+    {Owl.IO.columns(state.device) || {:error, :enotsup}, state}
   end
 
   defp io_request({:get_geometry, :rows}, state) do
-    {{:error, :enotsup}, state}
+    {Owl.IO.rows(state.device) || {:error, :enotsup}, state}
   end
 
   defp io_request({:requests, _reqs}, state) do

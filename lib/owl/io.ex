@@ -607,7 +607,7 @@ defmodule Owl.IO do
   @doc """
   Returns a width of a terminal.
 
-  A wrapper around `:io.columns/0`, but returns `nil` if terminal is not found.
+  A wrapper around `:io.columns/1`, but returns `nil` if terminal is not found.
   This is useful for convenient falling back to other value using `||/2` operator.
 
   ## Example
@@ -616,15 +616,30 @@ defmodule Owl.IO do
   """
   @spec columns(IO.device()) :: pos_integer() | nil
   def columns(device \\ :stdio) do
-    device =
-      case device do
-        :stdio -> :standard_io
-        device -> device
-      end
-
-    case :io.columns(device) do
+    case :io.columns(normalize_device(device)) do
       {:ok, value} -> value
       _ -> nil
     end
   end
+
+  @doc """
+  Returns a height of a terminal.
+
+  A wrapper around `:io.rows/1`, but returns `nil` if terminal is not found.
+  This is useful for convenient falling back to other value using `||/2` operator.
+
+  ## Example
+
+      Owl.IO.rows() || 20
+  """
+  @spec rows(IO.device()) :: pos_integer() | nil
+  def rows(device \\ :stdio) do
+    case :io.rows(normalize_device(device)) do
+      {:ok, value} -> value
+      _ -> nil
+    end
+  end
+
+  defp normalize_device(:stdio), do: :standard_io
+  defp normalize_device(device), do: device
 end

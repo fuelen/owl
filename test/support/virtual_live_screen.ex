@@ -80,11 +80,11 @@ defmodule VirtualLiveScreen do
     end
 
     defp io_request({:get_geometry, :columns}, state) do
-      {{:error, :enotsup}, state}
+      {80, state}
     end
 
     defp io_request({:get_geometry, :rows}, state) do
-      {{:error, :enotsup}, state}
+      {20, state}
     end
 
     defp io_request({:requests, reqs}, state) do
