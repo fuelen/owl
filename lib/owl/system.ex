@@ -72,11 +72,15 @@ defmodule Owl.System do
             handle_data:
               {false,
                fn data, ready? when is_boolean(ready?) ->
-                 ready? = ready? || ready_check.(data)
+                 if ready? do
+                   ready?
+                 else
+                   ready? = ready_check.(data)
 
-                 if ready?, do: send(caller_pid, :run_operation)
+                   if ready?, do: send(caller_pid, :run_operation)
 
-                 ready?
+                   ready?
+                 end
                end}
           ]
       end
