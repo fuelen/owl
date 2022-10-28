@@ -87,6 +87,7 @@ defmodule Owl.Spinner do
     * `:error` - label that is rendered when spinner is stopped with `:error` resolution. A function with arity 1
     can be passed in order to format a label based on result of `process_function`.
     Defaults to `nil`.
+  * `:live_screen_server` - a reference to `Owl.LiveScreen` server. Defaults to `Owl.LiveScreen`.
 
   ## Examples
 
@@ -126,7 +127,8 @@ defmodule Owl.Spinner do
             ok: label() | (nil | value -> label() | nil) | nil,
             error: label() | (nil | reason -> label()) | nil,
             processing: label() | nil
-          ]
+          ],
+          live_screen_server: GenServer.server()
         ) :: :ok | :error | {:ok, value} | {:error, reason}
         when value: any, reason: any
   def run(process_function, opts \\ []) do
@@ -200,6 +202,7 @@ defmodule Owl.Spinner do
     Defaults to `nil`.
     * `:error` - label that is rendered when spinner is stopped with `:error` resolution.
     Defaults to `nil`.
+  * `:live_screen_server` - a reference to `Owl.LiveScreen` server. Defaults to `Owl.LiveScreen`.
 
   ## Example
 
@@ -211,7 +214,8 @@ defmodule Owl.Spinner do
           id: id(),
           frames: [ok: frame(), error: frame(), processing: [frame()]],
           labels: [ok: label() | nil, error: label() | nil, processing: label() | nil],
-          refresh_every: non_neg_integer()
+          refresh_every: non_neg_integer(),
+          live_screen_server: GenServer.server()
         ) :: DynamicSupervisor.on_start_child()
   def start(opts) do
     DynamicSupervisor.start_child(Owl.WidgetsSupervisor, {__MODULE__, opts})

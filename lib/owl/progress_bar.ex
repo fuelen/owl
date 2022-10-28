@@ -80,6 +80,7 @@ defmodule Owl.ProgressBar do
   `filled_symbol`. Defaults to `["-", "="]`.
   * `:empty_symbol` - an empty symbol. Defaults to `" "`.
   * `:screen_width` - a width of output data. Defaults to width of the terminal or 80 symbols, if a terminal is not available.
+  * `:live_screen_server` - a reference to `Owl.LiveScreen` server. Defaults to `Owl.LiveScreen`.
   """
   @spec start(
           label: String.t(),
@@ -94,7 +95,8 @@ defmodule Owl.ProgressBar do
           filled_symbol: Owl.Data.t(),
           partial_symbols: [Owl.Data.t()],
           empty_symbol: Owl.Data.t(),
-          screen_width: pos_integer()
+          screen_width: pos_integer(),
+          live_screen_server: GenServer.server()
         ) :: DynamicSupervisor.on_start_child()
   def start(opts) do
     DynamicSupervisor.start_child(Owl.WidgetsSupervisor, {__MODULE__, opts})
