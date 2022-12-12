@@ -2,48 +2,7 @@ defmodule Owl.Box do
   @moduledoc """
   Allows wrapping data to boxes.
   """
-  @border_styles %{
-    none: %{
-      top_left: "",
-      top: "",
-      top_right: "",
-      right: "",
-      left: "",
-      bottom_left: "",
-      bottom: "",
-      bottom_right: ""
-    },
-    solid: %{
-      top_left: "┌",
-      top: "─",
-      top_right: "┐",
-      right: "│",
-      left: "│",
-      bottom_left: "└",
-      bottom: "─",
-      bottom_right: "┘"
-    },
-    solid_rounded: %{
-      top_left: "╭",
-      top: "─",
-      top_right: "╮",
-      right: "│",
-      left: "│",
-      bottom_left: "╰",
-      bottom: "─",
-      bottom_right: "╯"
-    },
-    double: %{
-      top_left: "╔",
-      top: "═",
-      top_right: "╗",
-      right: "║",
-      left: "║",
-      bottom_left: "╚",
-      bottom: "═",
-      bottom_right: "╝"
-    }
-  }
+
   @title_padding_left 1
   @title_padding_right 4
   @doc """
@@ -179,7 +138,7 @@ defmodule Owl.Box do
     horizontal_align = Keyword.get(opts, :horizontal_align, :left)
     vertical_align = Keyword.get(opts, :vertical_align, :top)
     border_style = Keyword.get(opts, :border_style, :solid)
-    border_symbols = Map.fetch!(@border_styles, border_style)
+    border_symbols = if border_style != :none, do: Owl.BorderStyle.fetch!(border_style)
     title = Keyword.get(opts, :title)
 
     max_width = opts[:max_width] || Owl.IO.columns() || :infinity
@@ -260,17 +219,20 @@ defmodule Owl.Box do
           [
             border_symbols.top_left,
             if is_nil(title) do
-              String.duplicate(border_symbols.top, inner_width + padding_left + padding_right)
+              String.duplicate(
+                border_symbols.horizontal,
+                inner_width + padding_left + padding_right
+              )
             else
               [
-                String.duplicate(border_symbols.top, @title_padding_left),
+                String.duplicate(border_symbols.horizontal, @title_padding_left),
                 title,
                 String.duplicate(
-                  border_symbols.top,
+                  border_symbols.horizontal,
                   inner_width - (min_width_required_by_title - borders_size(border_style)) +
                     padding_left + padding_right
                 ),
-                String.duplicate(border_symbols.top, @title_padding_right)
+                String.duplicate(border_symbols.horizontal, @title_padding_right)
               ]
             end,
             border_symbols.top_right,
@@ -287,7 +249,10 @@ defmodule Owl.Box do
           [
             if(inner_height > 0, do: "\n", else: []),
             border_symbols.bottom_left,
-            String.duplicate(border_symbols.bottom, inner_width + padding_left + padding_right),
+            String.duplicate(
+              border_symbols.horizontal,
+              inner_width + padding_left + padding_right
+            ),
             border_symbols.bottom_right
           ]
       end
@@ -310,11 +275,11 @@ defmodule Owl.Box do
           end
 
         [
-          border_symbols.left,
+          if(border_style == :none, do: [], else: border_symbols.vertical),
           String.duplicate(" ", padding_before),
           line,
           String.duplicate(" ", padding_after),
-          border_symbols.right
+          if(border_style == :none, do: [], else: border_symbols.vertical)
         ]
       end)
       |> Owl.Data.unlines(),
