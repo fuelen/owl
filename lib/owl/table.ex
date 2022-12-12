@@ -12,7 +12,7 @@ defmodule Owl.Table do
   ## Options
 
   * `:border_style` - sets the border style. Defaults to `:solid`.
-  * `:divide_body_rows` - specifies whether to show divider between rows in body. It is better to use it if cells have multiline values. Defaults to `false`.
+  * `:divide_body_rows` - specifies whether to show divider between rows in body. It is better to use it if cells have multiline values. Ignored, if `:border_style` is set to `:none`. Defaults to `false`.
   * `:filter_columns` - sets a function which filters column (second argument for `Enum.filter/2`). No filter function by default.
   * `:padding_x`- sets horizontal padding. Defaults to `0`.
   * `:render_cell` - sets how to render header and body cells. Accepts either a function or a keyword list. Defaults to `&Function.identity/1`.
