@@ -21,6 +21,41 @@ defmodule Owl.TableTest do
       )
     end
 
+    test "max_column_widths: pos_integer" do
+      assert_tables_equal(
+        [
+          %{"a" => "123456"},
+          %{"b" => "qwerty"}
+        ],
+        [
+          max_column_widths: fn
+            "a" -> 5
+            "b" -> 3
+          end
+        ],
+        """
+        ┌─────┬───┐
+        │a    │b  │
+        ├─────┼───┤
+        │12345│   │
+        │6    │   │
+        │     │qwe│
+        │     │rty│
+        └─────┴───┘
+        """
+      )
+    end
+
+    test "max_column_widths: less than or equal to :padding_x" do
+      assert_raise(RuntimeError, fn ->
+        Owl.Table.new([%{"a" => "qwerty"}], padding_x: 2, max_column_widths: fn _ -> 2 end)
+      end)
+
+      assert_raise(RuntimeError, fn ->
+        Owl.Table.new([%{"a" => "qwerty"}], padding_x: 2, max_column_widths: fn _ -> 1 end)
+      end)
+    end
+
     test "border_style: :none" do
       assert_tables_equal(
         [

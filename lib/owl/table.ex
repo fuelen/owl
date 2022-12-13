@@ -20,6 +20,7 @@ defmodule Owl.Table do
     * `:header` - sets a function to render header cell. Defaults to `&Function.identity/1`.
     * `:body` - sets a function to render body cell. Defaults to `&Function.identity/1`.
   * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. No sorter by default.
+  * `:max_column_widths` - sets max width for columns. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
 
   ## Examples
 
@@ -69,6 +70,7 @@ defmodule Owl.Table do
           divide_body_rows: boolean(),
           filter_columns: (column -> as_boolean(term)),
           padding_x: non_neg_integer(),
+          max_column_widths: (column -> pos_integer() | :infinity),
           render_cell:
             [
               header: (column -> Owl.Data.t()),
@@ -114,7 +116,31 @@ defmodule Owl.Table do
           {opts[:body] || (&Function.identity/1), opts[:header] || (&Function.identity/1)}
       end
 
-    rows = normalize_rows(rows, columns, render_body_cell, render_header_cell)
+    max_content_widths =
+      case Keyword.get(opts, :max_column_widths) do
+        nil ->
+          Map.new(columns, &{&1, :infinity})
+
+        get_max_column_width ->
+          Map.new(columns, fn column ->
+            max_content_width =
+              case get_max_column_width.(column) do
+                :infinity ->
+                  :infinity
+
+                width when is_integer(width) and width > 0 ->
+                  if width <= padding_x do
+                    raise "max column width must be bigger than `:padding_x`"
+                  else
+                    width - padding_x
+                  end
+              end
+
+            {column, max_content_width}
+          end)
+      end
+
+    rows = normalize_rows(rows, columns, render_body_cell, render_header_cell, max_content_widths)
 
     column_widths =
       rows
@@ -242,16 +268,27 @@ defmodule Owl.Table do
     |> Enum.uniq()
   end
 
-  defp normalize_rows(rows, columns, render_body_cell, render_header_cell) do
+  defp to_lines(content, max_content_width) do
+    lines = Owl.Data.lines(content)
+
+    lines =
+      case max_content_width do
+        :infinity -> lines
+        max_width -> Enum.flat_map(lines, fn line -> Owl.Data.chunk_every(line, max_width) end)
+      end
+
+    Enum.map(lines, fn line ->
+      %{value: line, length: Owl.Data.length(line)}
+    end)
+  end
+
+  defp normalize_rows(rows, columns, render_body_cell, render_header_cell, max_content_widths) do
     [
       Enum.map(columns, fn column ->
         lines =
           column
           |> render_header_cell.()
-          |> Owl.Data.lines()
-          |> Enum.map(fn line ->
-            %{value: line, length: Owl.Data.length(line)}
-          end)
+          |> to_lines(max_content_widths[column])
 
         %{
           column: column,
@@ -261,8 +298,8 @@ defmodule Owl.Table do
         }
       end)
       | Enum.flat_map(rows, fn row ->
-          {row, max_width} =
-            Enum.map_reduce(columns, 0, fn column, max_width ->
+          {row, max_width_in_row} =
+            Enum.map_reduce(columns, 0, fn column, max_width_in_row ->
               value =
                 case Map.fetch(row, column) do
                   :error ->
@@ -275,12 +312,7 @@ defmodule Owl.Table do
                     end
                 end
 
-              lines =
-                value
-                |> Owl.Data.lines()
-                |> Enum.map(fn line ->
-                  %{value: line, length: Owl.Data.length(line)}
-                end)
+              lines = to_lines(value, max_content_widths[column])
 
               width = lines |> Enum.reduce(0, &max(&1.length, &2))
 
@@ -289,10 +321,10 @@ defmodule Owl.Table do
                  lines: lines,
                  height: length(lines),
                  width: width
-               }, max(width, max_width)}
+               }, max(width, max_width_in_row)}
             end)
 
-          if max_width == 0 do
+          if max_width_in_row == 0 do
             []
           else
             [row]
