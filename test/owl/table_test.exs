@@ -36,6 +36,21 @@ defmodule Owl.TableTest do
       )
     end
 
+    test "border_style: :none + padding_x: n" do
+      assert_tables_equal(
+        [
+          %{"a" => "1"},
+          %{"b" => "2"}
+        ],
+        [border_style: :none, padding_x: 2],
+        """
+          a    b  
+          1       
+               2  
+        """
+      )
+    end
+
     test "border_style: :double" do
       assert_tables_equal(
         [
@@ -184,7 +199,7 @@ defmodule Owl.TableTest do
 
   defp assert_tables_equal(rows, opts, expected_result) do
     table = Owl.Table.new(rows, opts)
-    expected_result = String.trim_trailing(expected_result)
+    expected_result = String.trim_trailing(expected_result, "\n")
 
     assert table |> Owl.Data.to_ansidata() |> to_string() == expected_result,
            to_string(

@@ -203,18 +203,25 @@ defmodule Owl.Table do
     |> Enum.chunk_every(row_height)
     |> Enum.zip_with(
       if is_nil(border_symbols) do
-        &Function.identity/1
+        fn elements ->
+          Enum.intersperse(elements, [padding_x_symbols, padding_x_symbols])
+        end
       else
         fn elements ->
-          elements
-          |> Enum.intersperse([padding_x_symbols, border_symbols.vertical, padding_x_symbols])
+          Enum.intersperse(elements, [
+            padding_x_symbols,
+            border_symbols.vertical,
+            padding_x_symbols
+          ])
         end
       end
     )
     |> Enum.map_intersperse(
       "\n",
       if is_nil(border_symbols) do
-        &Function.identity/1
+        fn row ->
+          [padding_x_symbols, row, padding_x_symbols]
+        end
       else
         fn row ->
           [
