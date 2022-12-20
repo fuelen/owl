@@ -129,8 +129,8 @@ defmodule Owl.Table do
                   :infinity
 
                 width when is_integer(width) and width > 0 ->
-                  if width <= padding_x do
-                    raise "max column width must be bigger than `:padding_x`"
+                  if width <= padding_x * 2 do
+                    raise "max column width must be bigger than `:padding_x` * 2"
                   else
                     width - padding_x
                   end
