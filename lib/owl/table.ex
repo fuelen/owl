@@ -21,6 +21,7 @@ defmodule Owl.Table do
     * `:body` - sets a function to render body cell. Defaults to `&Function.identity/1`.
   * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. No sorter by default.
   * `:max_column_widths` - sets max width for columns. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
+  * `:show_empty_rows` - specifies whether to show empty rows. Defaults to `true`.
 
   ## Examples
 
@@ -69,6 +70,7 @@ defmodule Owl.Table do
           border_style: :solid | :solid_rounded | :none | :double,
           divide_body_rows: boolean(),
           filter_columns: (column -> as_boolean(term)),
+          show_empty_rows: boolean(),
           padding_x: non_neg_integer(),
           max_column_widths: (column -> pos_integer() | :infinity),
           render_cell:
@@ -90,6 +92,7 @@ defmodule Owl.Table do
     border_symbols = if border_style != :none, do: Owl.BorderStyle.fetch!(border_style)
 
     divide_body_rows = Keyword.get(opts, :divide_body_rows, false)
+    show_empty_rows = Keyword.get(opts, :show_empty_rows, true)
 
     columns = columns(rows)
 
@@ -140,7 +143,15 @@ defmodule Owl.Table do
           end)
       end
 
-    rows = normalize_rows(rows, columns, render_body_cell, render_header_cell, max_content_widths)
+    rows =
+      normalize_rows(
+        rows,
+        columns,
+        render_body_cell,
+        render_header_cell,
+        max_content_widths,
+        show_empty_rows
+      )
 
     column_widths =
       rows
@@ -268,7 +279,7 @@ defmodule Owl.Table do
     |> Enum.uniq()
   end
 
-  defp to_lines(content, max_content_width) do
+  defp to_lines(content, max_content_width, show_empty_rows) do
     lines = Owl.Data.lines(content)
 
     lines =
@@ -277,18 +288,32 @@ defmodule Owl.Table do
         max_width -> Enum.flat_map(lines, fn line -> Owl.Data.chunk_every(line, max_width) end)
       end
 
-    Enum.map(lines, fn line ->
-      %{value: line, length: Owl.Data.length(line)}
-    end)
+    lines =
+      Enum.map(lines, fn line ->
+        %{value: line, length: Owl.Data.length(line)}
+      end)
+
+    if show_empty_rows and lines == [] do
+      [%{value: [], length: 0}]
+    else
+      lines
+    end
   end
 
-  defp normalize_rows(rows, columns, render_body_cell, render_header_cell, max_content_widths) do
+  defp normalize_rows(
+         rows,
+         columns,
+         render_body_cell,
+         render_header_cell,
+         max_content_widths,
+         show_empty_rows
+       ) do
     [
       Enum.map(columns, fn column ->
         lines =
           column
           |> render_header_cell.()
-          |> to_lines(max_content_widths[column])
+          |> to_lines(max_content_widths[column], show_empty_rows)
 
         %{
           column: column,
@@ -298,8 +323,8 @@ defmodule Owl.Table do
         }
       end)
       | Enum.flat_map(rows, fn row ->
-          {row, max_width_in_row} =
-            Enum.map_reduce(columns, 0, fn column, max_width_in_row ->
+          {row, empty_row?} =
+            Enum.map_reduce(columns, true, fn column, empty_row? ->
               value =
                 case Map.fetch(row, column) do
                   :error ->
@@ -312,7 +337,7 @@ defmodule Owl.Table do
                     end
                 end
 
-              lines = to_lines(value, max_content_widths[column])
+              lines = to_lines(value, max_content_widths[column], show_empty_rows)
 
               width = lines |> Enum.reduce(0, &max(&1.length, &2))
 
@@ -321,10 +346,10 @@ defmodule Owl.Table do
                  lines: lines,
                  height: length(lines),
                  width: width
-               }, max(width, max_width_in_row)}
+               }, empty_row? and width == 0}
             end)
 
-          if max_width_in_row == 0 do
+          if not show_empty_rows and empty_row? do
             []
           else
             [row]

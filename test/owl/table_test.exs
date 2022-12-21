@@ -142,7 +142,7 @@ defmodule Owl.TableTest do
       )
     end
 
-    test ":filter_columns" do
+    test ":filter_columns, show_empty_rows: true (default)" do
       assert_tables_equal(
         [
           %{"a" => "1"},
@@ -150,6 +150,26 @@ defmodule Owl.TableTest do
           %{"c" => "3"}
         ],
         [filter_columns: &(&1 in ["a", "c"])],
+        """
+        ┌─┬─┐
+        │a│c│
+        ├─┼─┤
+        │1│ │
+        │ │ │
+        │ │3│
+        └─┴─┘
+        """
+      )
+    end
+
+    test ":filter_columns, show_empty_rows: false" do
+      assert_tables_equal(
+        [
+          %{"a" => "1"},
+          %{"b" => "2"},
+          %{"c" => "3"}
+        ],
+        [filter_columns: &(&1 in ["a", "c"]), show_empty_rows: false],
         """
         ┌─┬─┐
         │a│c│
