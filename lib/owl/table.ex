@@ -21,7 +21,6 @@ defmodule Owl.Table do
     * `:body` - sets a function to render body cell. Defaults to `&Function.identity/1`.
   * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. No sorter by default.
   * `:max_column_widths` - sets max width for columns. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
-  * `:show_empty_rows` - specifies whether to show empty rows. Defaults to `true`.
   * `:truncate_lines` - specifies whether to truncate lines when they reach width specified by `:max_content_width`. Defaults to `false`.
 
   ## Examples
@@ -72,7 +71,6 @@ defmodule Owl.Table do
           divide_body_rows: boolean(),
           truncate_lines: boolean(),
           filter_columns: (column -> as_boolean(term)),
-          show_empty_rows: boolean(),
           padding_x: non_neg_integer(),
           max_column_widths: (column -> pos_integer() | :infinity),
           render_cell:
@@ -94,7 +92,6 @@ defmodule Owl.Table do
     border_symbols = if border_style != :none, do: Owl.BorderStyle.fetch!(border_style)
 
     divide_body_rows = Keyword.get(opts, :divide_body_rows, false)
-    show_empty_rows = Keyword.get(opts, :show_empty_rows, true)
     truncate_lines = Keyword.get(opts, :truncate_lines, false)
 
     columns = columns(rows)
@@ -153,7 +150,6 @@ defmodule Owl.Table do
         render_body_cell,
         render_header_cell,
         max_content_widths,
-        show_empty_rows,
         truncate_lines
       )
 
@@ -283,7 +279,7 @@ defmodule Owl.Table do
     |> Enum.uniq()
   end
 
-  defp to_lines(content, max_content_width, show_empty_rows, truncate_lines) do
+  defp to_lines(content, max_content_width, truncate_lines) do
     lines = Owl.Data.lines(content)
 
     lines =
@@ -304,7 +300,7 @@ defmodule Owl.Table do
         %{value: line, length: Owl.Data.length(line)}
       end)
 
-    if show_empty_rows and lines == [] do
+    if lines == [] do
       [%{value: [], length: 0}]
     else
       lines
@@ -317,7 +313,6 @@ defmodule Owl.Table do
          render_body_cell,
          render_header_cell,
          max_content_widths,
-         show_empty_rows,
          truncate_lines
        ) do
     [
@@ -325,7 +320,7 @@ defmodule Owl.Table do
         lines =
           column
           |> render_header_cell.()
-          |> to_lines(max_content_widths[column], show_empty_rows, truncate_lines)
+          |> to_lines(max_content_widths[column], truncate_lines)
 
         %{
           column: column,
@@ -334,38 +329,31 @@ defmodule Owl.Table do
           width: lines |> Enum.reduce(0, &max(&1.length, &2))
         }
       end)
-      | Enum.flat_map(rows, fn row ->
-          {row, empty_row?} =
-            Enum.map_reduce(columns, true, fn column, empty_row? ->
-              value =
-                case Map.fetch(row, column) do
-                  :error ->
-                    []
+      | Enum.map(rows, fn row ->
+          Enum.map(columns, fn column ->
+            value =
+              case Map.fetch(row, column) do
+                :error ->
+                  []
 
-                  {:ok, value} ->
-                    case render_body_cell do
-                      render when is_function(render, 1) -> render.(value)
-                      render when is_function(render, 2) -> render.(column, value)
-                    end
-                end
+                {:ok, value} ->
+                  case render_body_cell do
+                    render when is_function(render, 1) -> render.(value)
+                    render when is_function(render, 2) -> render.(column, value)
+                  end
+              end
 
-              lines = to_lines(value, max_content_widths[column], show_empty_rows, truncate_lines)
+            lines = to_lines(value, max_content_widths[column], truncate_lines)
 
-              width = lines |> Enum.reduce(0, &max(&1.length, &2))
+            width = lines |> Enum.reduce(0, &max(&1.length, &2))
 
-              {%{
-                 column: column,
-                 lines: lines,
-                 height: length(lines),
-                 width: width
-               }, empty_row? and width == 0}
-            end)
-
-          if not show_empty_rows and empty_row? do
-            []
-          else
-            [row]
-          end
+            %{
+              column: column,
+              lines: lines,
+              height: length(lines),
+              width: width
+            }
+          end)
         end)
     ]
   end
