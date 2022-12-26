@@ -21,7 +21,31 @@ defmodule Owl.TableTest do
       )
     end
 
-    test "max_column_widths: pos_integer" do
+    test "max_column_widths: pos_integer, truncate_lines: true" do
+      assert_tables_equal(
+        [
+          %{"a" => "123456"},
+          %{"b" => "qwerty"}
+        ],
+        [
+          max_column_widths: fn
+            "a" -> 5
+            "b" -> 3
+          end,
+          truncate_lines: true
+        ],
+        """
+        ┌─────┬───┐
+        │a    │b  │
+        ├─────┼───┤
+        │1234…│   │
+        │     │qw…│
+        └─────┴───┘
+        """
+      )
+    end
+
+    test "max_column_widths: pos_integer, truncate_lines: false (default)" do
       assert_tables_equal(
         [
           %{"a" => "123456"},
