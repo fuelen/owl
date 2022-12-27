@@ -353,7 +353,7 @@ defmodule Owl.Table do
              columns_data: columns_data,
              width_left: width_left
            } ->
-          max_content_width = max_content_widths[column]
+          max_content_width = Map.fetch!(max_content_widths, column)
 
           width_left =
             case width_left do
