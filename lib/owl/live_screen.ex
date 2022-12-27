@@ -233,9 +233,9 @@ defmodule Owl.LiveScreen do
   end
 
   @impl true
-  def handle_cast({:add_block, block_id, params}, state) do
-    block_state = params[:state]
-    render = params[:render] || (&Function.identity/1)
+  def handle_cast({:add_block, block_id, opts}, state) do
+    block_state = opts[:state]
+    render = opts[:render] || (&Function.identity/1)
 
     # initiate rendering when adding first block
     timer_ref =
