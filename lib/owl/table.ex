@@ -20,7 +20,8 @@ defmodule Owl.Table do
     * `:header` - sets a function to render header cell. Defaults to `&Function.identity/1`.
     * `:body` - sets a function to render body cell. Defaults to `&Function.identity/1`.
   * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. No sorter by default.
-  * `:max_column_widths` - sets max width for columns. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
+  * `:max_column_widths` - sets max width for columns in symbols. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
+  * `:max_width` - sets a maximum width of of the table in symbols including borders. Defaults to width of the terminal or `:infinity`, if a terminal is not available.
   * `:truncate_lines` - specifies whether to truncate lines when they reach width specified by `:max_content_width`. Defaults to `false`.
 
   ## Examples
@@ -73,6 +74,7 @@ defmodule Owl.Table do
           filter_columns: (column -> as_boolean(term)),
           padding_x: non_neg_integer(),
           max_column_widths: (column -> pos_integer() | :infinity),
+          max_width: pos_integer() | :infinity,
           render_cell:
             [
               header: (column -> Owl.Data.t()),
@@ -109,14 +111,19 @@ defmodule Owl.Table do
       end
 
     padding_x = opts[:padding_x] || 0
+    max_width = opts[:max_width] || Owl.IO.columns() || :infinity
 
-    {render_body_cell, render_header_cell} =
+    if is_integer(max_width) and max_width < 2 do
+      raise ":max_width is too small, got: #{max_width}"
+    end
+
+    render_functions =
       case Keyword.get(opts, :render_cell) || (&Function.identity/1) do
         render when is_function(render, 1) ->
           {render, render}
 
         opts when is_list(opts) ->
-          {opts[:body] || (&Function.identity/1), opts[:header] || (&Function.identity/1)}
+          {opts[:header] || (&Function.identity/1), opts[:body] || (&Function.identity/1)}
       end
 
     max_content_widths =
@@ -143,45 +150,36 @@ defmodule Owl.Table do
           end)
       end
 
-    rows =
-      normalize_rows(
-        rows,
+    border_size = if is_nil(border_symbols), do: 0, else: 1
+
+    {rows, columns_data} =
+      rows
+      |> apply_render_function_to_cells(columns, render_functions)
+      |> apply_width_limits(
         columns,
-        render_body_cell,
-        render_header_cell,
         max_content_widths,
-        truncate_lines
+        truncate_lines,
+        max_width,
+        padding_x,
+        border_size
       )
 
-    column_widths =
-      rows
-      |> Enum.map(fn row ->
-        Map.new(row, fn cell ->
-          {cell.column, cell.width}
-        end)
-      end)
-      |> Enum.reduce(&Map.merge(&1, &2, fn _key, v1, v2 -> max(v1, v2) end))
-
-    render(rows, columns, column_widths, divide_body_rows, border_symbols, padding_x)
+    render_table(rows, divide_body_rows, border_symbols, columns_data)
   end
 
-  defp render(rows, _columns, column_widths, _divide_body_rows, nil = border_symbols, padding_x) do
-    padding_x_symbols = List.duplicate(" ", padding_x)
-
-    Enum.map_intersperse(
-      rows,
-      "\n",
-      fn row -> render_row(row, column_widths, border_symbols, padding_x_symbols) end
-    )
+  defp render_table(rows, _divide_body_rows, nil = border_symbols, columns_data) do
+    Enum.map_intersperse(rows, "\n", fn row -> render_row(row, border_symbols, columns_data) end)
   end
 
-  defp render(rows, columns, column_widths, divide_body_rows, border_symbols, padding_x) do
-    padding_x_symbols = List.duplicate(" ", padding_x)
-
+  defp render_table([header | body], divide_body_rows, border_symbols, columns_data) do
     horizontal_border =
-      columns
-      |> Enum.map(fn column ->
-        List.duplicate(border_symbols.horizontal, column_widths[column] + padding_x * 2)
+      Enum.map(header, fn %{column_width: column_width, column: column} ->
+        column_data = columns_data[column]
+
+        List.duplicate(
+          border_symbols.horizontal,
+          column_width + column_data.padding_left + column_data.padding_right
+        )
       end)
 
     top_border = [
@@ -206,69 +204,56 @@ defmodule Owl.Table do
       "\n"
     ]
 
-    [header | body] = rows
+    body_rows_divider =
+      if divide_body_rows do
+        internal_horizontal_border
+      else
+        "\n"
+      end
 
     [
       top_border,
-      render_row(header, column_widths, border_symbols, padding_x_symbols),
+      render_row(header, border_symbols, columns_data),
       internal_horizontal_border,
-      Enum.map_intersperse(
-        body,
-        if divide_body_rows do
-          internal_horizontal_border
-        else
-          "\n"
-        end,
-        fn row -> render_row(row, column_widths, border_symbols, padding_x_symbols) end
-      ),
+      Enum.map_intersperse(body, body_rows_divider, fn row ->
+        render_row(row, border_symbols, columns_data)
+      end),
       bottom_border
     ]
   end
 
   @empty_line %{length: 0, value: []}
-  defp render_row(row, column_widths, border_symbols, padding_x_symbols) do
+  defp render_row(row, border_symbols, columns_data) do
     row_height = row |> Enum.reduce(0, &max(&1.height, &2))
 
     row
     |> Enum.flat_map(fn cell ->
       lines = cell.lines ++ List.duplicate(@empty_line, row_height - cell.height)
+      column_data = columns_data[cell.column]
 
       Enum.map(lines, fn line ->
-        [line.value, List.duplicate(" ", column_widths[cell.column] - line.length)]
+        [
+          column_data.padding_left_symbols,
+          line.value,
+          List.duplicate(" ", column_data.width - line.length),
+          column_data.padding_right_symbols
+        ]
       end)
     end)
     |> Enum.chunk_every(row_height)
     |> Enum.zip_with(
       if is_nil(border_symbols) do
-        fn elements ->
-          Enum.intersperse(elements, [padding_x_symbols, padding_x_symbols])
-        end
+        &Function.identity/1
       else
-        fn elements ->
-          Enum.intersperse(elements, [
-            padding_x_symbols,
-            border_symbols.vertical,
-            padding_x_symbols
-          ])
-        end
+        fn elements -> Enum.intersperse(elements, border_symbols.vertical) end
       end
     )
     |> Enum.map_intersperse(
       "\n",
       if is_nil(border_symbols) do
-        fn row ->
-          [padding_x_symbols, row, padding_x_symbols]
-        end
+        &Function.identity/1
       else
-        fn row ->
-          [
-            border_symbols.vertical,
-            padding_x_symbols,
-            row,
-            padding_x_symbols,
-            border_symbols.vertical
-          ]
-        end
+        fn row -> [border_symbols.vertical, row, border_symbols.vertical] end
       end
     )
   end
@@ -286,6 +271,9 @@ defmodule Owl.Table do
       case max_content_width do
         :infinity ->
           lines
+
+        0 ->
+          []
 
         max_width ->
           if truncate_lines do
@@ -307,54 +295,136 @@ defmodule Owl.Table do
     end
   end
 
-  defp normalize_rows(
-         rows,
-         columns,
-         render_body_cell,
-         render_header_cell,
-         max_content_widths,
-         truncate_lines
-       ) do
+  defp transpose(matrix) do
+    Enum.zip_with(matrix, &Function.identity/1)
+  end
+
+  defp apply_render_function_to_cells(rows, columns, {render_header_cell, render_body_cell}) do
     [
       Enum.map(columns, fn column ->
-        lines =
-          column
-          |> render_header_cell.()
-          |> to_lines(max_content_widths[column], truncate_lines)
-
-        %{
-          column: column,
-          lines: lines,
-          height: length(lines),
-          width: lines |> Enum.reduce(0, &max(&1.length, &2))
-        }
+        render_header_cell.(column)
       end)
       | Enum.map(rows, fn row ->
           Enum.map(columns, fn column ->
-            value =
-              case Map.fetch(row, column) do
-                :error ->
-                  []
+            case Map.fetch(row, column) do
+              :error ->
+                []
 
-                {:ok, value} ->
-                  case render_body_cell do
-                    render when is_function(render, 1) -> render.(value)
-                    render when is_function(render, 2) -> render.(column, value)
-                  end
-              end
-
-            lines = to_lines(value, max_content_widths[column], truncate_lines)
-
-            width = lines |> Enum.reduce(0, &max(&1.length, &2))
-
-            %{
-              column: column,
-              lines: lines,
-              height: length(lines),
-              width: width
-            }
+              {:ok, value} ->
+                case render_body_cell do
+                  render when is_function(render, 1) -> render.(value)
+                  render when is_function(render, 2) -> render.(column, value)
+                end
+            end
           end)
         end)
     ]
+  end
+
+  defp apply_width_limits(
+         rows,
+         columns,
+         max_content_widths,
+         truncate_lines,
+         max_width,
+         padding_x,
+         border_size
+       ) do
+    %{data: data, columns_data: columns_data} =
+      [columns | rows]
+      |> Enum.zip_with(fn [column | column_values] -> {column, column_values} end)
+      |> Enum.reduce_while(
+        %{
+          data: [],
+          columns_data: %{},
+          width_left:
+            case max_width do
+              :infinity ->
+                :infinity
+
+              max_width ->
+                start_table_border_size = border_size
+                max_width - start_table_border_size
+            end
+        },
+        fn {column, column_values},
+           %{
+             data: data,
+             columns_data: columns_data,
+             width_left: width_left
+           } ->
+          max_content_width = max_content_widths[column]
+
+          width_left =
+            case width_left do
+              :infinity -> :infinity
+              width_left -> width_left - border_size
+            end
+
+          {width_left, padding_left, padding_right} =
+            case width_left do
+              :infinity ->
+                {:infinity, padding_x, padding_x}
+
+              width_left ->
+                padding_left = min(width_left, padding_x)
+                width_left = width_left - padding_left
+                padding_right = min(width_left, padding_x)
+                width_left = width_left - padding_right
+                {width_left, padding_left, padding_right}
+            end
+
+          max_content_width =
+            case width_left do
+              :infinity -> max_content_width
+              width_left -> min(width_left, max_content_width)
+            end
+
+          {cells, column_width} =
+            column_values
+            |> Enum.map_reduce(0, fn value, max_column_width_so_far ->
+              lines = to_lines(value, max_content_width, truncate_lines)
+              width = lines |> Enum.reduce(0, &max(&1.length, &2))
+
+              {
+                %{
+                  lines: lines,
+                  height: length(lines),
+                  column: column
+                },
+                max(width, max_column_width_so_far)
+              }
+            end)
+
+          cells = Enum.map(cells, &Map.put(&1, :column_width, column_width))
+
+          width_left =
+            case width_left do
+              :infinity -> :infinity
+              width_left -> width_left - column_width
+            end
+
+          column_data = %{
+            width: column_width,
+            padding_left: padding_left,
+            padding_left_symbols: List.duplicate(" ", padding_left),
+            padding_right: padding_right,
+            padding_right_symbols: List.duplicate(" ", padding_right)
+          }
+
+          {
+            if(width_left == 0, do: :halt, else: :cont),
+            %{
+              width_left: width_left,
+              data: [cells | data],
+              columns_data: Map.put(columns_data, column, column_data)
+            }
+          }
+        end
+      )
+
+    {data
+     |> Enum.reverse()
+     |> transpose(), columns_data}
   end
 end

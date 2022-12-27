@@ -409,15 +409,18 @@ defmodule Owl.Data do
 
       iex> Owl.Data.truncate("Hello", 5)
       "Hello"
+
+      iex> Owl.Data.truncate("Hello", 1)
+      "…"
   """
   @spec truncate(t(), pos_integer()) :: t()
   def truncate(data, length) when length > 0 do
     import Kernel, except: [length: 1]
 
-    if length(data) > length do
-      data |> slice(0, length - 1) |> List.wrap() |> Enum.concat(["…"])
-    else
-      data
+    cond do
+      length == 1 -> "…"
+      length(data) > length -> data |> slice(0, length - 1) |> List.wrap() |> Enum.concat(["…"])
+      true -> data
     end
   end
 
