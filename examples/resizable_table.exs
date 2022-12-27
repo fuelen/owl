@@ -1,14 +1,26 @@
+colors = [:red, :yellow, :cyan, :blue, :green]
+
+colorize = fn term ->
+  color = Enum.at(colors, :erlang.phash2(term, length(colors)))
+  Owl.Data.tag(term, color)
+end
+
 data =
   for row_index <- 1..7 do
     for header_index <- 1..7, into: Map.new() do
-      {"h#{header_index}", "r#{header_index}#{row_index}"}
+      {colorize.("h#{header_index}"), colorize.("r#{header_index}#{row_index}")}
     end
   end
 
 Owl.LiveScreen.add_block(:table,
   render: fn
-    nil -> ""
-    max_width -> Owl.Table.new(data, max_width: max_width, truncate_lines: true, padding_x: 1)
+    nil ->
+      ""
+
+    max_width ->
+      data
+      |> Owl.Table.new(max_width: max_width, truncate_lines: true, padding_x: 1)
+      |> Owl.Data.tag(:light_black)
   end
 )
 
