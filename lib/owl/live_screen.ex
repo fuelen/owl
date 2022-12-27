@@ -129,8 +129,8 @@ defmodule Owl.LiveScreen do
       end)
   """
   @spec add_block(GenServer.server(), block_id(), [add_block_option()]) :: :ok
-  def add_block(server \\ __MODULE__, block_id, params) do
-    GenServer.cast(server, {:add_block, block_id, params})
+  def add_block(server \\ __MODULE__, block_id, opts) when is_list(opts) do
+    GenServer.cast(server, {:add_block, block_id, opts})
   end
 
   @doc """
