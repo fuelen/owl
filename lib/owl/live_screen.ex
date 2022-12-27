@@ -157,7 +157,7 @@ defmodule Owl.LiveScreen do
 
   ## Example
 
-      Owl.LiveScreen.add_block(:status, "starting...")
+      Owl.LiveScreen.add_block(:status, state: "starting...")
       Owl.LiveScreen.update(:status, "done!")
       Owl.LiveScreen.await_render()
   """
