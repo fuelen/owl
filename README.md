@@ -15,6 +15,7 @@ It provides a convenient interface for
 * colorizing text using tags
 * input control with validations and casting to various data types
 * select/multiselect controls, inspired by AUR package managers
+* tables
 * editing text in `ELIXIR_EDITOR`
 * wrapping multiline colorized data into ASCII boxes
 * printing palette colors
