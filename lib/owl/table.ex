@@ -67,7 +67,7 @@ defmodule Owl.Table do
       ╰──────────┴──────────╯\e[0m
       \""" |> String.trim_trailing()
   """
-  @spec new(rows :: [row :: %{column => value}],
+  @spec new(rows :: nonempty_list(row :: %{column => value}),
           border_style: :solid | :solid_rounded | :none | :double,
           divide_body_rows: boolean(),
           truncate_lines: boolean(),
@@ -89,7 +89,7 @@ defmodule Owl.Table do
             | {:asc | :desc, module()}
         ) :: Owl.Data.t()
         when column: any(), value: any()
-  def new(rows, opts \\ []) do
+  def new([_ | _] = rows, opts \\ []) do
     border_style = Keyword.get(opts, :border_style, :solid)
     border_symbols = if border_style != :none, do: Owl.BorderStyle.fetch!(border_style)
 
