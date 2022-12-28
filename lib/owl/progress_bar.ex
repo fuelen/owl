@@ -45,7 +45,6 @@ defmodule Owl.ProgressBar do
   use GenServer, restart: :transient
 
   @type id :: any()
-  @type label :: String.t()
 
   @tick_interval_ms 100
 
@@ -83,7 +82,7 @@ defmodule Owl.ProgressBar do
   * `:live_screen_server` - a reference to `Owl.LiveScreen` server. Defaults to `Owl.LiveScreen`.
   """
   @spec start(
-          label: String.t(),
+          label: Owl.Data.t(),
           id: id(),
           total: pos_integer(),
           timer: boolean(),
@@ -231,7 +230,7 @@ defmodule Owl.ProgressBar do
       ...>   empty_symbol: ".",
       ...>   screen_width: 40
       ...> }) |> to_string()
-      "Demo [########....................]  30%"
+      "Demo      [######.................]  30%"
 
       iex> Owl.ProgressBar.render(%{
       ...>   label: "Demo",
@@ -248,7 +247,7 @@ defmodule Owl.ProgressBar do
       ...>   start_time: -576460748012758993,
       ...>   current_time: -576460748012729828
       ...> }) |> to_string()
-      "Demo       8/200 00:29.2 |▍       |   4%"
+      "Demo         8/200 00:29.2 |▎     |   4%"
 
       iex> Owl.ProgressBar.render(%{
       ...>   label: "Demo",
@@ -262,7 +261,35 @@ defmodule Owl.ProgressBar do
       ...>   empty_symbol: " ",
       ...>   screen_width: 40
       ...> })|> Owl.Data.to_ansidata() |> to_string
-      "Demo [\e[36m≡\e[39m\e[32m-\e[39m                          ]   4%\e[0m"
+      "Demo      [\e[34m=\e[39m                      ]   4%\e[0m"
+
+      iex> Owl.ProgressBar.render(%{
+      ...>   label: "Demo",
+      ...>   total: 200,
+      ...>   current: 60,
+      ...>   bar_width_ratio: 0.95,
+      ...>   start_symbol: "[",
+      ...>   end_symbol: "]",
+      ...>   filled_symbol: "#",
+      ...>   partial_symbols: [],
+      ...>   empty_symbol: ".",
+      ...>   screen_width: 40
+      ...> }) |> to_string()
+      "D…[#########......................]  30%"
+
+      iex> Owl.ProgressBar.render(%{
+      ...>   label: "Demo",
+      ...>   total: 200,
+      ...>   current: 60,
+      ...>   bar_width_ratio: 1,
+      ...>   start_symbol: "[",
+      ...>   end_symbol: "]",
+      ...>   filled_symbol: "#",
+      ...>   partial_symbols: [],
+      ...>   empty_symbol: ".",
+      ...>   screen_width: 40
+      ...> }) |> to_string()
+      "[#########........................]  30%"
 
   """
   @spec render(%{
@@ -271,7 +298,7 @@ defmodule Owl.ProgressBar do
           optional(:screen_width) => nil | pos_integer(),
           optional(:absolute_values) => nil | boolean(),
           bar_width_ratio: float(),
-          label: String.t(),
+          label: Owl.Data.t(),
           total: pos_integer(),
           current: non_neg_integer(),
           start_symbol: Owl.Data.t(),
@@ -328,10 +355,12 @@ defmodule Owl.ProgressBar do
     infix = [absolute_values_formatted, elapsed_time_formatted]
     infix_width = elapsed_time_formatted_width + absolute_values_formatted_width
 
-    bar_width = trunc(screen_width * bar_width_ratio)
+    # dynamic space = space for label, infix and bar.
+    dynamic_space_width = screen_width - start_end_symbols_width - percentage_width
 
-    label_width =
-      screen_width - bar_width - percentage_width - start_end_symbols_width - infix_width
+    bar_width = trunc(dynamic_space_width * bar_width_ratio)
+
+    label_width = dynamic_space_width - bar_width - infix_width
 
     # Float.ceil(x, 2) is needed to handle numbers like 56.99999999999999
     progress = min(Float.ceil(current / (total / bar_width), 2), bar_width * 1.0)
@@ -352,7 +381,7 @@ defmodule Owl.ProgressBar do
       end
 
     [
-      String.pad_trailing(label, label_width),
+      pad_trailing_or_truncate(label, label_width),
       infix,
       start_symbol,
       List.duplicate(filled_symbol, filled_blocks_integer),
@@ -366,5 +395,23 @@ defmodule Owl.ProgressBar do
       end_symbol,
       percentage
     ]
+  end
+
+  defp pad_trailing_or_truncate(_data, 0), do: []
+  defp pad_trailing_or_truncate(_data, 1), do: "…"
+
+  defp pad_trailing_or_truncate(data, length) when length > 0 do
+    data_length = Owl.Data.length(data)
+
+    cond do
+      data_length == length ->
+        data
+
+      data_length > length ->
+        data |> Owl.Data.slice(0, length - 1) |> List.wrap() |> Enum.concat(["…"])
+
+      true ->
+        [data, List.duplicate(" ", length - data_length)]
+    end
   end
 end

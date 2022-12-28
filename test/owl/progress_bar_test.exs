@@ -23,14 +23,14 @@ defmodule Owl.ProgressBarTest do
         render.()
 
         assert_received {:live_screen_frame,
-                         "\e[2Kusers   [                                   ]   0%\n"}
+                         "\e[2Kusers        [                              ]   0%\n"}
 
         Owl.ProgressBar.inc(id: id)
         Process.sleep(@sleep)
         render.()
 
         assert_received {:live_screen_frame,
-                         "\e[1A\e[2Kusers   [≡≡≡-                               ]  10%\n"}
+                         "\e[1A\e[2Kusers        [≡≡≡                           ]  10%\n"}
 
         Owl.ProgressBar.inc(id: id)
         Owl.ProgressBar.inc(id: id)
@@ -42,7 +42,7 @@ defmodule Owl.ProgressBarTest do
         render.()
 
         assert_received {:live_screen_frame,
-                         "\e[1A\e[2Kusers   [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡] 100%\n"}
+                         "\e[1A\e[2Kusers        [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡] 100%\n"}
       end,
       terminal_width: @terminal_width
     )
@@ -73,7 +73,7 @@ defmodule Owl.ProgressBarTest do
         render.()
 
         assert_received {:live_screen_frame,
-                         "\e[2Kusers               00:00.1 [               ]   0%\n"}
+                         "\e[2Kusers                  00:00.1 [            ]   0%\n"}
 
         Owl.ProgressBar.inc(id: id, step: 10)
         Process.sleep(@tick_period_ms + @sleep)
@@ -83,7 +83,7 @@ defmodule Owl.ProgressBarTest do
         render.()
 
         assert_received {:live_screen_frame,
-                         "\e[1A\e[2Kusers               00:00.2 [≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡] 100%\n"}
+                         "\e[1A\e[2Kusers                  00:00.2 [≡≡≡≡≡≡≡≡≡≡≡≡] 100%\n"}
       end,
       refresh_every: @disable_autorender
     )

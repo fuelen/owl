@@ -74,13 +74,13 @@ defmodule Owl.LiveScreenTest do
         )
 
         render.()
-        assert_receive {:live_screen_frame, "\e[2KProgress [    ]   0%\n"}
+        assert_receive {:live_screen_frame, "\e[2KProgress   [  ]   0%\n"}
 
         Owl.LiveScreen.capture_stdio(live_screen_pid, fn ->
           IO.puts("hello")
         end)
 
-        assert_receive {:live_screen_frame, "\e[1A\e[2Khello\n\n\e[2KProgress [    ]   0%\n"}
+        assert_receive {:live_screen_frame, "\e[1A\e[2Khello\n\n\e[2KProgress   [  ]   0%\n"}
         # refute_receive {:live_screen_frame, _}
 
         Owl.ProgressBar.inc(id: :users)
@@ -88,7 +88,7 @@ defmodule Owl.LiveScreenTest do
         # sleep is needed in order to give time data to be delivered from ProgressBar to LiveScreen server
         Process.sleep(5)
         render.()
-        assert_receive {:live_screen_frame, "\e[1A\e[2KProgress [=   ]  20%\n"}
+        assert_receive {:live_screen_frame, "\e[1A\e[2KProgress   [- ]  20%\n"}
         refute_receive {:live_screen_frame, _}
       end,
       terminal_width: @terminal_width
