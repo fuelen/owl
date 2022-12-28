@@ -7,9 +7,7 @@ end
 
 data =
   for row_index <- 1..7 do
-    for header_index <- 1..7, into: Map.new() do
-      {colorize.("h#{header_index}"), colorize.("r#{header_index}#{row_index}")}
-    end
+    Map.new(1..7, fn header_index -> {"h#{header_index}", "r#{row_index}#{header_index}"} end)
   end
 
 Owl.LiveScreen.add_block(:table,
@@ -19,7 +17,12 @@ Owl.LiveScreen.add_block(:table,
 
     max_width ->
       data
-      |> Owl.Table.new(max_width: max_width, truncate_lines: true, padding_x: 1)
+      |> Owl.Table.new(
+        max_width: max_width,
+        truncate_lines: true,
+        padding_x: 1,
+        render_cell: colorize
+      )
       |> Owl.Data.tag(:light_black)
   end
 )
