@@ -3,7 +3,7 @@
   Task.async(fn ->
     range = 1..Enum.random(100..300)
 
-    label = "Demo Progress ##{index}"
+    label = ["Demo Progress ", Owl.Data.tag("##{index}", :cyan)]
 
     Owl.ProgressBar.start(
       id: {:demo, index},
