@@ -224,7 +224,9 @@ defmodule Owl.IOTest do
 
   describe "geometry" do
     setup do
-      terminal_device = start_supervised!({VirtualLiveScreen.Device, pid: self()})
+      terminal_device =
+        start_supervised!({VirtualLiveScreen.Device, pid: self(), columns: 80, rows: 20})
+
       {:ok, non_terminal_device} = StringIO.open("test")
 
       [terminal_device: terminal_device, non_terminal_device: non_terminal_device]
@@ -234,7 +236,7 @@ defmodule Owl.IOTest do
       terminal_device: terminal_device,
       non_terminal_device: non_terminal_device
     } do
-      assert is_integer(Owl.IO.rows(terminal_device))
+      assert Owl.IO.rows(terminal_device) == 20
       assert is_nil(Owl.IO.rows(non_terminal_device))
     end
 
@@ -242,7 +244,7 @@ defmodule Owl.IOTest do
       terminal_device: terminal_device,
       non_terminal_device: non_terminal_device
     } do
-      assert is_integer(Owl.IO.columns(terminal_device))
+      assert Owl.IO.columns(terminal_device) == 80
       assert is_nil(Owl.IO.columns(non_terminal_device))
     end
   end

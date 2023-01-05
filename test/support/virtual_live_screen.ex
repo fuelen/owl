@@ -7,8 +7,8 @@ defmodule VirtualLiveScreen do
     end
 
     @impl true
-    def init(pid: pid) do
-      {:ok, %{pid: pid}}
+    def init(pid: pid, columns: columns, rows: rows) do
+      {:ok, %{pid: pid, columns: columns, rows: rows}}
     end
 
     @impl true
@@ -80,11 +80,11 @@ defmodule VirtualLiveScreen do
     end
 
     defp io_request({:get_geometry, :columns}, state) do
-      {80, state}
+      {state.columns, state}
     end
 
     defp io_request({:get_geometry, :rows}, state) do
-      {20, state}
+      {state.rows, state}
     end
 
     defp io_request({:requests, reqs}, state) do
@@ -119,11 +119,20 @@ defmodule VirtualLiveScreen do
   end
 
   def capture_frames(callback, opts \\ []) when is_function(callback, 2) do
-    device = ExUnit.Callbacks.start_supervised!({__MODULE__.Device, pid: self()})
+    default_terminal_width = 50
+
+    device =
+      ExUnit.Callbacks.start_supervised!(
+        {__MODULE__.Device,
+         pid: self(),
+         columns: opts[:terminal_width] || default_terminal_width,
+         rows: opts[:terminal_height] || 20}
+      )
 
     live_screen_pid =
       ExUnit.Callbacks.start_supervised!(
-        {Owl.LiveScreen, Keyword.merge([terminal_width: 50, device: device], opts)}
+        {Owl.LiveScreen,
+         Keyword.merge([terminal_width: default_terminal_width, device: device], opts)}
       )
 
     callback.(live_screen_pid, fn -> GenServer.call(live_screen_pid, :render) end)

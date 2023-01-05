@@ -6,6 +6,22 @@ defmodule Owl.ProgressBarTest do
   @terminal_width 50
   @sleep 10
 
+  test "render" do
+    assert Owl.ProgressBar.render(%{
+             label: "Demo",
+             total: 200,
+             current: 60,
+             bar_width_ratio: 0.98,
+             start_symbol: "[",
+             end_symbol: "]",
+             filled_symbol: "#",
+             partial_symbols: [],
+             empty_symbol: ".",
+             screen_width: 40
+           })
+           |> to_string() == "…[#########.......................]  30%"
+  end
+
   test "without timer" do
     id = make_ref()
 

@@ -77,7 +77,12 @@ defmodule Owl.LiveScreenTest do
         assert_receive {:live_screen_frame, "\e[2KProgress   [  ]   0%\n"}
 
         Owl.LiveScreen.capture_stdio(live_screen_pid, fn ->
-          IO.puts("hello")
+          assert IO.puts("hello") == :ok
+          assert IO.gets([]) == {:error, :enotsup}
+          assert IO.getn([], 3) == {:error, :enotsup}
+          assert :io.get_password() == {:error, :enotsup}
+          assert :io.columns() == {:ok, @terminal_width}
+          assert :io.rows() == {:ok, 5}
         end)
 
         assert_receive {:live_screen_frame, "\e[1A\e[2Khello\n\n\e[2KProgress   [  ]   0%\n"}
@@ -91,7 +96,8 @@ defmodule Owl.LiveScreenTest do
         assert_receive {:live_screen_frame, "\e[1A\e[2KProgress   [- ]  20%\n"}
         refute_receive {:live_screen_frame, _}
       end,
-      terminal_width: @terminal_width
+      terminal_width: @terminal_width,
+      terminal_height: 5
     )
   end
 end

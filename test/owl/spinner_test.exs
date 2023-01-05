@@ -5,6 +5,44 @@ defmodule Owl.SpinnerTest do
   @sleep 5
   @tick_period_ms 30
 
+  test "run with static labels" do
+    successful_with_ok_label = "\e[2K\e[32m✔\e[39m OK\e[0m\n"
+    failed = "\e[2K\e[31m✖\e[39m\e[0m\n"
+    failed_with_error_label = "\e[2K\e[31m✖\e[39m ERROR\e[0m\n"
+
+    capture_frames(fn live_screen_pid, render ->
+      opts = [
+        refresh_every: @tick_period_ms,
+        live_screen_server: live_screen_pid,
+        labels: [
+          ok: "OK",
+          error: "ERROR"
+        ]
+      ]
+
+      assert Owl.Spinner.run(fn -> :ok end, opts) == :ok
+      render.()
+      assert_received {:live_screen_frame, ^successful_with_ok_label}
+      assert Owl.Spinner.run(fn -> {:ok, true} end, opts) == {:ok, true}
+      render.()
+      assert_received {:live_screen_frame, ^successful_with_ok_label}
+      assert Owl.Spinner.run(fn -> :error end, opts) == :error
+      render.()
+      assert_received {:live_screen_frame, ^failed_with_error_label}
+      assert Owl.Spinner.run(fn -> {:error, :oops} end, opts) == {:error, :oops}
+      render.()
+      assert_received {:live_screen_frame, ^failed_with_error_label}
+
+      assert_raise(RuntimeError, fn ->
+        Owl.Spinner.run(fn -> raise "Boom" end, opts)
+      end)
+
+      assert_received {:live_screen_frame, ^failed}
+    end)
+
+    refute_received {:live_screen_frame, _}
+  end
+
   test "run" do
     successful = "\e[2K\e[32m✔\e[39m\e[0m\n"
     successful_with_label = fn label -> "\e[2K\e[32m✔\e[39m #{label}\e[0m\n" end

@@ -21,7 +21,7 @@ defmodule Owl.TableTest do
       )
     end
 
-    test "max_column_widths: pos_integer, truncate_lines: true" do
+    test "max_column_widths: pos_integer | :infinity, truncate_lines: true" do
       assert_tables_equal(
         [
           %{"a" => "123456"},
@@ -29,18 +29,18 @@ defmodule Owl.TableTest do
         ],
         [
           max_column_widths: fn
-            "a" -> 5
+            "a" -> :infinity
             "b" -> 3
           end,
           truncate_lines: true
         ],
         """
-        ┌─────┬───┐
-        │a    │b  │
-        ├─────┼───┤
-        │1234…│   │
-        │     │qw…│
-        └─────┴───┘
+        ┌──────┬───┐
+        │a     │b  │
+        ├──────┼───┤
+        │123456│   │
+        │      │qw…│
+        └──────┴───┘
         """
       )
     end
@@ -225,6 +225,30 @@ defmodule Owl.TableTest do
         └────────┴────────┘\e[0m
         """
       )
+
+      assert_tables_equal(
+        [
+          %{a: :qwertyuiop, b: :asdfghjkl},
+          %{a: :zxcvbnm, b: :dcb}
+        ],
+        [
+          render_cell: [
+            header: &(&1 |> inspect()),
+            body: fn
+              :a, value -> inspect(value)
+              :b, value -> value |> to_string() |> String.upcase()
+            end
+          ]
+        ],
+        """
+        ┌───────────┬─────────┐
+        │:a         │:b       │
+        ├───────────┼─────────┤
+        │:qwertyuiop│ASDFGHJKL│
+        │:zxcvbnm   │DCB      │
+        └───────────┴─────────┘
+        """
+      )
     end
 
     test "multiline cells and divide_body_rows" do
@@ -254,6 +278,35 @@ defmodule Owl.TableTest do
         └─┴─┘
         """
       )
+    end
+
+    test "max_width: :infinity" do
+      assert_tables_equal(
+        [
+          %{
+            "a" =>
+              "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        [max_width: :infinity],
+        """
+        ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+        │a                                                                                               │
+        ├────────────────────────────────────────────────────────────────────────────────────────────────┤
+        │bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb│
+        └────────────────────────────────────────────────────────────────────────────────────────────────┘
+        """
+      )
+    end
+
+    test "max_width < 2" do
+      assert_raise(RuntimeError, fn ->
+        Owl.Table.new([%{"a" => "qwerty"}], max_width: 1)
+      end)
+
+      assert_raise(RuntimeError, fn ->
+        Owl.Table.new([%{"a" => "qwerty"}], max_width: 0)
+      end)
     end
 
     test "max_width >= 2" do

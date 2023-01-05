@@ -31,6 +31,8 @@ defmodule Owl.SystemTest do
       sh_script = """
       sleep 1
       echo READY
+      sleep 0.2
+      echo OTHER_DEBUG_MESSAGE
       sleep 5
       echo "the script must be killed before printing this text"
       """
@@ -45,13 +47,19 @@ defmodule Owl.SystemTest do
             assert Owl.System.daemon_cmd(
                      "sh",
                      [daemon_script_path],
-                     fn -> 2 + 2 end,
+                     fn ->
+                       Process.sleep(300)
+                       2 + 2
+                     end,
                      device: live_screen_pid,
                      ready_check: fn "READY\n" -> true end
                    ) == 4
           end)
 
         assert_received {:live_screen_frame, "\e[36msh: \e[39m READY\e[0m\n\n"}
+
+        assert_received {:live_screen_frame,
+                         "\e[1A\e[2K\e[36msh: \e[39m OTHER_DEBUG_MESSAGE\e[0m\n\n"}
 
         assert log =~ "$ sh #{daemon_script_path}"
         assert log =~ "Started daemon sh with OS pid"

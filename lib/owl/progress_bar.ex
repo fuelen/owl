@@ -404,9 +404,6 @@ defmodule Owl.ProgressBar do
     data_length = Owl.Data.length(data)
 
     cond do
-      data_length == length ->
-        data
-
       data_length > length ->
         data |> Owl.Data.slice(0, length - 1) |> List.wrap() |> Enum.concat(["…"])
 
