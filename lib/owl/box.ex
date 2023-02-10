@@ -160,8 +160,14 @@ defmodule Owl.Box do
 
     lines =
       case max_inner_width do
-        :infinity -> lines
-        max_width -> Enum.flat_map(lines, fn line -> Owl.Data.chunk_every(line, max_width) end)
+        :infinity ->
+          lines
+
+        max_width ->
+          Enum.flat_map(lines, fn
+            [] -> [[]]
+            line -> Owl.Data.chunk_every(line, max_width)
+          end)
       end
 
     data_height = length(lines)

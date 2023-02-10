@@ -279,7 +279,10 @@ defmodule Owl.Table do
           if truncate_lines do
             Enum.map(lines, fn line -> Owl.Data.truncate(line, max_width) end)
           else
-            Enum.flat_map(lines, fn line -> Owl.Data.chunk_every(line, max_width) end)
+            Enum.flat_map(lines, fn
+              [] -> [[]]
+              line -> Owl.Data.chunk_every(line, max_width)
+            end)
           end
       end
 

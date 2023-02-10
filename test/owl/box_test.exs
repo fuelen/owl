@@ -119,6 +119,18 @@ defmodule Owl.BoxTest do
                |> String.trim_trailing()
     end
 
+    test "correctly renders empty lines" do
+      assert "foo\n\nbar" |> Owl.Box.new() |> to_string() ==
+               """
+               ┌───┐
+               │foo│
+               │   │
+               │bar│
+               └───┘
+               """
+               |> String.trim_trailing()
+    end
+
     test "title is too big" do
       assert_raise ArgumentError, fn ->
         Owl.Box.new("test", max_width: 5, title: "VeryLongLine")

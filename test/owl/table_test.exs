@@ -278,6 +278,34 @@ defmodule Owl.TableTest do
         └─┴─┘
         """
       )
+
+      assert_tables_equal(
+        [
+          %{
+            "a\nb" => "n\n\nm",
+            "c\nd" => "k\n\nl"
+          },
+          %{
+            "a\nb" => "r\n\ns",
+            "c\nd" => "o"
+          }
+        ],
+        [divide_body_rows: true],
+        """
+        ┌─┬─┐
+        │a│c│
+        │b│d│
+        ├─┼─┤
+        │n│k│
+        │ │ │
+        │m│l│
+        ├─┼─┤
+        │r│o│
+        │ │ │
+        │s│ │
+        └─┴─┘
+        """
+      )
     end
 
     test "max_width: :infinity" do
