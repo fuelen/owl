@@ -22,6 +22,7 @@ defmodule Owl.Box do
   * `:horizontal_align` - sets the horizontal alignment of the content inside a box. Defaults to `:right`.
   * `:vertical_align` - sets the vertical alignment of the content inside a box. Defaults to `:top`.
   * `:border_style` - sets the border style. Defaults to `:solid`.
+  * `:border_tag` - sets the tag for border characters. See `t:Owl.Data.sequence/0` for a valid sequences Defaults to `[]`.
   * `:title` - sets a title that is displayed in a top border. Ignored if `:border_style` is `:none`. Defaults to `nil`.
 
   ## Examples
@@ -108,6 +109,51 @@ defmodule Owl.Box do
       \e[36m│\e[32mGreen!\e[36m   │\e[39m
       \e[36m└─────────┘\e[39m\e[0m
       \""" |> String.trim_trailing()
+
+      iex> "Green!"
+      ...> |> Owl.Data.tag(:green)
+      ...> |> Owl.Box.new(title: Owl.Data.tag("Red!", :red))
+      ...> |> Owl.Data.tag(:cyan)
+      ...> |> Owl.Data.to_ansidata()
+      ...> |> to_string()
+      \"""
+      \e[36m┌─\e[31mRed!\e[36m────┐\e[39m
+      \e[36m│\e[32mGreen!\e[36m   │\e[39m
+      \e[36m└─────────┘\e[39m\e[0m
+      \""" |> String.trim_trailing()
+
+      iex> "Hello\\nworld!"
+      ...> |> Owl.Box.new(
+      ...>   min_width: 20,
+      ...>   horizontal_align: :center,
+      ...>   border_style: :double,
+      ...>   border_tag: :cyan
+      ...> )
+      ...> |> Owl.Data.to_ansidata()
+      ...> |> to_string()
+      \"""
+      \e[36m╔\e[39m\e[36m══════════════════\e[39m\e[36m╗\e[39m
+      \e[36m║\e[39m      Hello       \e[36m║\e[39m
+      \e[36m║\e[39m      world!      \e[36m║\e[39m
+      \e[36m╚\e[39m\e[36m══════════════════\e[39m\e[36m╝\e[39m\e[0m
+      \""" |> String.trim_trailing()
+
+      iex> "Hello\\nworld!"
+      ...> |> Owl.Box.new(
+      ...>   title: "Greeting!",
+      ...>   min_width: 20,
+      ...>   horizontal_align: :center,
+      ...>   border_style: :double,
+      ...>   border_tag: :cyan
+      ...> )
+      ...> |> Owl.Data.to_ansidata()
+      ...> |> to_string()
+      \"""
+      \e[36m╔\e[39m\e[36m═\e[39mGreeting!\e[36m════════\e[39m\e[36m╗\e[39m
+      \e[36m║\e[39m      Hello       \e[36m║\e[39m
+      \e[36m║\e[39m      world!      \e[36m║\e[39m
+      \e[36m╚\e[39m\e[36m══════════════════\e[39m\e[36m╝\e[39m\e[0m
+      \""" |> String.trim_trailing()
   """
   @spec new(Owl.Data.t(),
           padding: non_neg_integer(),
@@ -123,6 +169,7 @@ defmodule Owl.Box do
           horizontal_align: :left | :center | :right,
           vertical_align: :top | :middle | :bottom,
           border_style: :solid | :solid_rounded | :double | :none,
+          border_tag: Owl.Data.sequence() | [Owl.Data.sequence()],
           title: nil | Owl.Data.t()
         ) :: Owl.Data.t()
   def new(data, opts \\ []) do
@@ -137,9 +184,18 @@ defmodule Owl.Box do
     min_height = Keyword.get(opts, :min_height, 0)
     horizontal_align = Keyword.get(opts, :horizontal_align, :left)
     vertical_align = Keyword.get(opts, :vertical_align, :top)
-    border_style = Keyword.get(opts, :border_style, :solid)
-    border_symbols = if border_style != :none, do: Owl.BorderStyle.fetch!(border_style)
     title = Keyword.get(opts, :title)
+    border_style = Keyword.get(opts, :border_style, :solid)
+
+    border =
+      if border_style != :none do
+        %{
+          symbols: Owl.BorderStyle.fetch!(border_style),
+          sequences: Keyword.get(opts, :border_tag, [])
+        }
+      else
+        %{}
+      end
 
     max_width = opts[:max_width] || Owl.IO.columns() || :infinity
 
@@ -223,25 +279,22 @@ defmodule Owl.Box do
 
         _ ->
           [
-            border_symbols.top_left,
+            border_tag(border, :top_left),
             if is_nil(title) do
-              String.duplicate(
-                border_symbols.horizontal,
-                inner_width + padding_left + padding_right
-              )
+              border_tag(border, :horizontal, inner_width + padding_left + padding_right)
             else
               [
-                String.duplicate(border_symbols.horizontal, @title_padding_left),
+                border_tag(border, :horizontal, @title_padding_left),
                 title,
-                String.duplicate(
-                  border_symbols.horizontal,
+                border_tag(
+                  border,
+                  :horizontal,
                   inner_width - (min_width_required_by_title - borders_size(border_style)) +
-                    padding_left + padding_right
-                ),
-                String.duplicate(border_symbols.horizontal, @title_padding_right)
+                    padding_left + padding_right + @title_padding_right
+                )
               ]
             end,
-            border_symbols.top_right,
+            border_tag(border, :top_right),
             "\n"
           ]
       end
@@ -254,12 +307,9 @@ defmodule Owl.Box do
         _ ->
           [
             if(inner_height > 0, do: "\n", else: []),
-            border_symbols.bottom_left,
-            String.duplicate(
-              border_symbols.horizontal,
-              inner_width + padding_left + padding_right
-            ),
-            border_symbols.bottom_right
+            border_tag(border, :bottom_left),
+            border_tag(border, :horizontal, inner_width + padding_left + padding_right),
+            border_tag(border, :bottom_right)
           ]
       end
 
@@ -281,11 +331,11 @@ defmodule Owl.Box do
           end
 
         [
-          if(border_style == :none, do: [], else: border_symbols.vertical),
+          if(border_style == :none, do: [], else: border_tag(border, :vertical)),
           String.duplicate(" ", padding_before),
           line,
           String.duplicate(" ", padding_after),
-          if(border_style == :none, do: [], else: border_symbols.vertical)
+          if(border_style == :none, do: [], else: border_tag(border, :vertical))
         ]
       end)
       |> Owl.Data.unlines(),
@@ -295,4 +345,19 @@ defmodule Owl.Box do
 
   defp borders_size(:none = _border_style), do: 0
   defp borders_size(_border_style), do: 2
+
+  defp border_tag(border, symbol, repeat \\ 1)
+
+  defp border_tag(%{symbols: symbols, sequences: []}, symbol, repeat) do
+    symbols
+    |> Map.fetch!(symbol)
+    |> String.duplicate(repeat)
+  end
+
+  defp border_tag(%{symbols: symbols, sequences: sequences}, symbol, repeat) do
+    symbols
+    |> Map.fetch!(symbol)
+    |> String.duplicate(repeat)
+    |> Owl.Data.tag(sequences)
+  end
 end
