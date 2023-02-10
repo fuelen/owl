@@ -120,7 +120,7 @@ defmodule Owl.BoxTest do
     end
 
     test "correctly renders empty lines" do
-      assert "foo\n\nbar" |> Owl.Box.new() |> to_string() ==
+      assert "foo\n\nbar" |> Owl.Box.new(max_width: 10) |> to_string() ==
                """
                ┌───┐
                │foo│
