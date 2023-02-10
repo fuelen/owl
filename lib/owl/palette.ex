@@ -9,7 +9,7 @@ defmodule Owl.Palette do
 
       Owl.Palette.named() |> Owl.IO.puts()
 
-  Selected color can be used as follows
+  Selected color can be used as follows:
 
       # print "test" using cyan foreground color
       "test" |> Owl.Data.tag(:cyan) |> Owl.IO.puts
@@ -20,6 +20,10 @@ defmodule Owl.Palette do
       # print "test" using light_green background color
       "test" |> Owl.Data.tag(:light_green_background) |> Owl.IO.puts
 
+      # print "test" using a faint cyan foreground color
+      "test" |> Owl.Data.tag([:faint, :cyan]) |> Owl.IO.puts
+
+  Note that `:faint` is not supported in all terminals.
   """
   @spec named :: Owl.Data.t()
   def named do
@@ -28,13 +32,21 @@ defmodule Owl.Palette do
       light_color = :"light_#{color}"
 
       [
-        Owl.Data.tag(@demo_block, color),
-        " #{String.pad_trailing(to_string(color), 13)}",
-        Owl.Data.tag(@demo_block, light_color),
-        " #{String.pad_trailing(to_string(light_color), 13)}    "
+        named_block(to_string(color), color, 10),
+        named_block("faint + " <> to_string(color), [color, :faint], 18),
+        named_block(to_string(light_color), light_color, 16),
+        named_block("faint + " <> to_string(light_color), [light_color, :faint], 22)
       ]
     end)
     |> Owl.Data.unlines()
+  end
+
+  defp named_block(name, tags, padding) do
+    [
+      Owl.Data.tag(@demo_block, tags),
+      " ",
+      String.pad_trailing(name, padding)
+    ]
   end
 
   @doc """
