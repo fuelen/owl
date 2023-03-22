@@ -366,6 +366,30 @@ defmodule Owl.DataTest do
              [[[[[[[] | "\e[31m"] | "\e[31m"], "Hello "], " world"] | "\e[39m"] | "\e[0m"]
   end
 
+  describe inspect(&Owl.Data.from_ansidata/1) do
+    test "1" do
+      assert to_from_ansidata(Owl.Data.tag("Hello", :red)) ==
+               Owl.Data.tag("Hello", :red)
+
+      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", :underline), "!"]) ==
+               [["Hello ", Owl.Data.tag("world", :underline)], "!"]
+
+      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", [:red, :underline]), "!"]) ==
+               [["Hello ", Owl.Data.tag("world", [:red, :underline])], "!"]
+
+      assert to_from_ansidata(
+               Owl.Data.tag(["Hello, ", Owl.Data.tag("world", :underline), "!"], :red)
+             ) == [
+               [Owl.Data.tag("Hello, ", :red), Owl.Data.tag("world", [:red, :underline])],
+               Owl.Data.tag("!", :red)
+             ]
+    end
+
+    defp to_from_ansidata(tagged) do
+      tagged |> Owl.Data.to_ansidata() |> Owl.Data.from_ansidata()
+    end
+  end
+
   test inspect(&Owl.Data.slice/3) do
     assert Owl.Data.slice("hello world", 0, 5) == "hello"
     assert Owl.Data.slice("hello world", 6, 5) == "world"
