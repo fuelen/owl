@@ -367,7 +367,7 @@ defmodule Owl.DataTest do
   end
 
   describe inspect(&Owl.Data.from_ansidata/1) do
-    test "1" do
+    test "converting to ansidata and back" do
       assert to_from_ansidata(Owl.Data.tag("Hello", :red)) ==
                Owl.Data.tag("Hello", :red)
 
@@ -382,6 +382,77 @@ defmodule Owl.DataTest do
              ) == [
                [Owl.Data.tag("Hello, ", :red), Owl.Data.tag("world", [:red, :underline])],
                Owl.Data.tag("!", :red)
+             ]
+
+      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]) ==
+               [["Hello ", Owl.Data.tag("world", "\e[38;5;161m")], "!"]
+
+      assert to_from_ansidata([
+               "Hello ",
+               Owl.Data.tag("world", IO.ANSI.color_background(161)),
+               "!"
+             ]) == [["Hello ", Owl.Data.tag("world", "\e[48;5;161m")], "!"]
+
+      assert to_from_ansidata([
+               Owl.Data.tag(
+                 [
+                   Owl.Data.tag("prefix: ", [:red_background, :yellow]),
+                   "Hello",
+                   Owl.Data.tag(" inner ", :yellow),
+                   " world"
+                 ],
+                 :red
+               ),
+               Owl.Data.tag("!!!", :blue),
+               "!!"
+             ]) == [
+               [
+                 [
+                   [
+                     [
+                       Owl.Data.tag("prefix: ", [:red_background, :yellow]),
+                       Owl.Data.tag("Hello", :red)
+                     ],
+                     Owl.Data.tag(" inner ", :yellow)
+                   ],
+                   Owl.Data.tag(" world", :red)
+                 ],
+                 Owl.Data.tag("!!!", :blue)
+               ],
+               "!!"
+             ]
+    end
+
+    test "converts ansidata highlighted using Inspect.Algebra" do
+      ansidata =
+        %{foo: 1, bar: "two"}
+        |> Inspect.Algebra.to_doc(Inspect.Opts.new(syntax_colors: IO.ANSI.syntax_colors()))
+        |> Inspect.Algebra.format(:infinity)
+
+      assert Owl.Data.from_ansidata(ansidata) == [
+               "%{",
+               [
+                 "",
+                 [
+                   Owl.Data.tag("bar:", :cyan),
+                   [
+                     " ",
+                     [
+                       Owl.Data.tag(~S("two"), :green),
+                       [
+                         ",",
+                         [
+                           " ",
+                           [
+                             Owl.Data.tag("foo:", :cyan),
+                             [" ", [Owl.Data.tag("1", :yellow), ["", "}"]]]
+                           ]
+                         ]
+                       ]
+                     ]
+                   ]
+                 ]
+               ]
              ]
     end
 
