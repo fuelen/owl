@@ -208,12 +208,8 @@ defmodule Owl.IOTest do
              |> List.duplicate(4)
              |> Owl.IO.inspect()
            end) == """
-           \e[39m[\e[0m
-             #Owl.Tag\e[39m[\e[0m\e[36m:red\e[0m\e[39m]\e[0m<\e[32m\"Hi\"\e[0m>\e[39m,\e[0m
-             #Owl.Tag\e[39m[\e[0m\e[36m:red\e[0m\e[39m]\e[0m<\e[32m\"Hi\"\e[0m>\e[39m,\e[0m
-             #Owl.Tag\e[39m[\e[0m\e[36m:red\e[0m\e[39m]\e[0m<\e[32m\"Hi\"\e[0m>\e[39m,\e[0m
-             #Owl.Tag\e[39m[\e[0m\e[36m:red\e[0m\e[39m]\e[0m<\e[32m\"Hi\"\e[0m>
-           \e[39m]\e[0m
+           \e[39m[\e[0mOwl.Data.tag(\e[32m\"Hi\"\e[0m, \e[36m:red\e[0m)\e[39m,\e[0m Owl.Data.tag(\e[32m\"Hi\"\e[0m, \e[36m:red\e[0m)\e[39m,\e[0m Owl.Data.tag(\e[32m\"Hi\"\e[0m, \e[36m:red\e[0m)\e[39m,\e[0m
+            Owl.Data.tag(\e[32m\"Hi\"\e[0m, \e[36m:red\e[0m)\e[39m]\e[0m
            """
 
     assert capture_io(fn -> Owl.IO.inspect("Hi", label: nil) end) == "\e[32m\"Hi\"\e[0m\n"

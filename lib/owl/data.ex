@@ -61,11 +61,11 @@ defmodule Owl.Data do
 
   ## Examples
 
-      iex> Owl.Data.tag(["hello ", Owl.Data.tag("world", :green), "!!!"], :red) |> inspect()
-      ~s|#Owl.Tag[:red]<["hello ", #Owl.Tag[:green]<"world">, "!!!"]>|
+      iex> Owl.Data.tag(["hello ", Owl.Data.tag("world", :green), "!!!"], :red)
+      Owl.Data.tag(["hello ", Owl.Data.tag("world", :green), "!!!"], :red)
 
-      iex> Owl.Data.tag("hello world", [:green, :red_background]) |> inspect()
-      ~s|#Owl.Tag[:green, :red_background]<"hello world">|
+      iex> Owl.Data.tag("hello world", [:green, :red_background])
+      Owl.Data.tag("hello world", [:green, :red_background])
   """
   @spec tag(data, sequence() | [sequence()]) :: Owl.Tag.t(data) when data: t()
   def tag(data, sequence_or_sequences) do
