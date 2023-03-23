@@ -456,6 +456,22 @@ defmodule Owl.DataTest do
              ]
     end
 
+    test "converts ansidata fragments" do
+      assert [:red, "Hello"] |> IO.ANSI.format_fragment() |> Owl.Data.from_ansidata() ==
+               Owl.Data.tag("Hello", :red)
+
+      assert [:red, "Hello ", [:yellow, "world"]]
+             |> IO.ANSI.format_fragment()
+             |> Owl.Data.from_ansidata() == [
+               Owl.Data.tag("Hello ", :red),
+               Owl.Data.tag("world", :yellow)
+             ]
+    end
+
+    test "does not convert data concatenated with escape sequences" do
+      assert Owl.Data.from_ansidata(["\e[31mHello\e[0m"]) == "\e[31mHello\e[0m"
+    end
+
     defp to_from_ansidata(tagged) do
       tagged |> Owl.Data.to_ansidata() |> Owl.Data.from_ansidata()
     end

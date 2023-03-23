@@ -303,11 +303,25 @@ defmodule Owl.Data do
 
   This makes it possible to use data formatted outside of Owl with other Owl modules, like `Owl.Box`.
 
+  The `ansidata` passed to this function must contain escape sequences as separate binaries, not concatenated with other data.
+  For instance, the following will work:
+
+      iex> Owl.Data.from_ansidata(["\e[31m", "hello"])
+      Owl.Data.tag("hello", :red)
+
+  Whereas this will not:
+
+      iex> Owl.Data.from_ansidata("\e[31mhello")
+      "\e[31mhello"
+
   ## Examples
 
       iex> [[[[[[[] | "\e[46m"] | "\e[31m"], "hello"] | "\e[39m"] | "\e[49m"] | "\e[0m"]
       ...> |> Owl.Data.from_ansidata()
       Owl.Data.tag("hello", [:cyan_background, :red])
+
+      iex> [:red, "hello"] |> IO.ANSI.format() |> Owl.Data.from_ansidata()
+      Owl.Data.tag("hello", :red)
 
   """
   @spec from_ansidata(IO.ANSI.ansidata()) :: t()
