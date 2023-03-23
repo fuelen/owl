@@ -26,7 +26,11 @@ defmodule Owl.Data.Sequence do
   Get the sequence name of an escape sequence or `nil` if not a sequence.
   """
   def ansi_to_name(binary) when is_binary(binary) do
-    name_by_sequence(binary)
+    case binary do
+      "\e[38;5;" <> _ -> binary
+      "\e[48;5;" <> _ -> binary
+      _ -> name_by_sequence(binary)
+    end
   end
 
   @doc """
@@ -41,9 +45,9 @@ defmodule Owl.Data.Sequence do
   @doc """
   Get the sequence type of a sequence name.
   """
-  def type!(name) do
-    type_by_name(name)
-  end
+  def type!(sequence) when is_atom(sequence), do: type_by_name(sequence)
+  def type!("\e[38;5;" <> _), do: :foreground
+  def type!("\e[48;5;" <> _), do: :background
 
   @doc """
   Get the default value of a sequence type.
@@ -90,13 +94,5 @@ defmodule Owl.Data.Sequence do
   defsequence_type(:overlined, :overlined)
   defsequence_type(:not_overlined, :overlined)
 
-  # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L73
-  # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L87
-
-  defp type_by_name("\e[38;5;" <> _), do: :foreground
-  defp type_by_name("\e[48;5;" <> _), do: :background
-
-  defp name_by_sequence("\e[38;5;" <> rest), do: "\e[38;5;" <> rest
-  defp name_by_sequence("\e[48;5;" <> rest), do: "\e[48;5;" <> rest
   defp name_by_sequence(_), do: nil
 end
