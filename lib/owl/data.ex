@@ -334,7 +334,12 @@ defmodule Owl.Data do
   defp do_from_ansidata([head | tail], open_tags) do
     {head, open_tags} = do_from_ansidata(head, open_tags)
     {tail, open_tags} = do_from_ansidata(tail, open_tags)
-    {combine_data(head, tail), open_tags}
+
+    case {head, tail} do
+      {[], _} -> {tail, open_tags}
+      {_, []} -> {head, open_tags}
+      _ -> {[head, tail], open_tags}
+    end
   end
 
   defp tag_all(data, open_tags) do
@@ -351,10 +356,6 @@ defmodule Owl.Data do
       Map.put(open_tags, type, name)
     end
   end
-
-  defp combine_data([], right), do: right
-  defp combine_data(left, []), do: left
-  defp combine_data(left, right), do: [left, right]
 
   @doc """
   Divides data into parts based on a pattern saving sequences for tagged data in new tags.
