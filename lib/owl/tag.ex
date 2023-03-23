@@ -49,7 +49,10 @@ defmodule Owl.Tag do
     import Inspect.Algebra
 
     def inspect(%Owl.Tag{data: data, sequences: sequences}, opts) do
-      concat(["#Owl.Tag", to_doc(sequences, opts), "<", to_doc(data, opts), ">"])
+      concat(["Owl.Data.tag(", to_doc(data, opts), ", ", inspect_sequences(sequences, opts), ")"])
     end
+
+    defp inspect_sequences([sequence], opts), do: to_doc(sequence, opts)
+    defp inspect_sequences(sequences, opts), do: to_doc(sequences, opts)
   end
 end
