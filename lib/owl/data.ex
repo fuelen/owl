@@ -299,8 +299,18 @@ defmodule Owl.Data do
   defp do_to_ansidata(term, _open_tags), do: term
 
   @doc """
-  WIP: Transforms data from `t:IO.ANSI.ansidata/0` to `t:Owl.Data.t/0`.
+  Transforms data from `t:IO.ANSI.ansidata/0`, replacing raw escape sequences with tags (see `tag/2`).
+
+  This makes it possible to use data formatted outside of Owl with other Owl modules, like `Owl.Box`.
+
+  ## Examples
+
+      iex> [[[[[[[] | "\e[46m"] | "\e[31m"], "hello"] | "\e[39m"] | "\e[49m"] | "\e[0m"]
+      ...> |> Owl.Data.from_ansidata()
+      Owl.Data.tag("hello", [:cyan_background, :red])
+
   """
+  @spec from_ansidata(IO.ANSI.ansidata()) :: t()
   def from_ansidata(ansidata) do
     {data, _open_tags} = do_from_ansidata(ansidata, %{})
     data
