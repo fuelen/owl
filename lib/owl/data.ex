@@ -6,7 +6,7 @@ defmodule Owl.Data do
   alias Owl.Data.Sequence
 
   @typedoc """
-  A recursive data type that is similar to  `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
+  A recursive data type that is similar to `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
 
   Can be printed using `Owl.IO.puts/2`.
   """
@@ -360,9 +360,18 @@ defmodule Owl.Data do
     {tail, open_tags} = do_from_ansidata(tail, open_tags)
 
     case {head, tail} do
-      {[], _} -> {tail, open_tags}
-      {_, []} -> {head, open_tags}
-      _ -> {[head, tail], open_tags}
+      {[], _} ->
+        {tail, open_tags}
+
+      {_, []} ->
+        {head, open_tags}
+
+      {%Owl.Tag{data: head, sequences: s}, %Owl.Tag{data: tail, sequences: s}} ->
+        data = if is_list(tail), do: [head | tail], else: [head, tail]
+        {tag(data, s), open_tags}
+
+      _ ->
+        {[head, tail], open_tags}
     end
   end
 
