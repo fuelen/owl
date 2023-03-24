@@ -52,7 +52,29 @@ defmodule Owl.Tag do
       concat(["Owl.Data.tag(", to_doc(data, opts), ", ", inspect_sequences(sequences, opts), ")"])
     end
 
-    defp inspect_sequences([sequence], opts), do: to_doc(sequence, opts)
-    defp inspect_sequences(sequences, opts), do: to_doc(sequences, opts)
+    defp inspect_sequences([sequence], opts), do: inspect_sequence(sequence, opts)
+
+    defp inspect_sequences(sequences, opts) when is_list(sequences) do
+      open = color("[", :list, opts)
+      sep = color(",", :list, opts)
+      close = color("]", :list, opts)
+      container_doc(open, sequences, close, opts, &inspect_sequences/2, separator: sep)
+    end
+
+    defp inspect_sequences(sequence, opts), do: inspect_sequence(sequence, opts)
+
+    defp inspect_sequence("\e[38;5;" <> rest, opts) do
+      {number, "m"} = Integer.parse(rest)
+      concat(["IO.ANSI.color(", to_doc(number, opts), ")"])
+    end
+
+    defp inspect_sequence("\e[48;5;" <> rest, opts) do
+      {number, "m"} = Integer.parse(rest)
+      concat(["IO.ANSI.color_background(", to_doc(number, opts), ")"])
+    end
+
+    defp inspect_sequence(sequence, opts) do
+      to_doc(sequence, opts)
+    end
   end
 end
