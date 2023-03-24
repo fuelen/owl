@@ -36,7 +36,7 @@ The package can be installed by adding `owl` to your list of dependencies in `mi
 ```elixir
 def deps do
   [
-    {:owl, "~> 0.6"}
+    {:owl, "~> 0.7"}
   ]
 end
 ```
