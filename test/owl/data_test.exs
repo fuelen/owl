@@ -371,6 +371,12 @@ defmodule Owl.DataTest do
       assert to_from_ansidata(Owl.Data.tag("Hello", :red)) ==
                Owl.Data.tag("Hello", :red)
 
+      assert to_from_ansidata(Owl.Data.tag(["Hello", ?!], :red)) ==
+               Owl.Data.tag(["Hello", "!"], :red)
+
+      assert to_from_ansidata([Owl.Data.tag("Hello", :red), ?!]) ==
+               [Owl.Data.tag("Hello", :red), "!"]
+
       assert to_from_ansidata(["Hello ", Owl.Data.tag("world", :underline), "!"]) ==
                [["Hello ", Owl.Data.tag("world", :underline)], "!"]
 
@@ -466,6 +472,10 @@ defmodule Owl.DataTest do
                Owl.Data.tag("Hello ", :red),
                Owl.Data.tag("world", :yellow)
              ]
+    end
+
+    test "converts from charlists" do
+      assert Owl.Data.from_ansidata(["\e[31m", 'Hello']) == Owl.Data.tag('Hello', :red)
     end
 
     test "does not convert data concatenated with escape sequences" do
