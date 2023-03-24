@@ -3,6 +3,8 @@ defmodule Owl.Data do
   A set of functions for `t:iodata/0` with [tags](`Owl.Tag`).
   """
 
+  alias Owl.Data.Sequence
+
   @typedoc """
   A recursive data type that is similar to  `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
 
@@ -274,7 +276,7 @@ defmodule Owl.Data do
       Enum.reduce(new_open_tags, [], fn {sequence_type, sequence}, acc ->
         case Map.get(open_tags, sequence_type) do
           nil ->
-            return_to = default_value_by_sequence_type(sequence_type)
+            return_to = Sequence.default_value_by_type!(sequence_type)
 
             [return_to | acc]
 
@@ -296,31 +298,87 @@ defmodule Owl.Data do
 
   defp do_to_ansidata(term, _open_tags), do: term
 
-  defp maybe_wrap_to_tag([], [element]), do: element
-  defp maybe_wrap_to_tag([], data), do: data
+  @doc """
+  Transforms data from `t:IO.ANSI.ansidata/0`, replacing raw escape sequences with tags (see `tag/2`).
 
-  defp maybe_wrap_to_tag(sequences1, [%Owl.Tag{sequences: sequences2, data: data}]) do
-    tag(data, collapse_sequences(sequences1 ++ sequences2))
+  This makes it possible to use data formatted outside of Owl with other Owl modules, like `Owl.Box`.
+
+  The `ansidata` passed to this function must contain escape sequences as separate binaries, not concatenated with other data.
+  For instance, the following will work:
+
+      iex> Owl.Data.from_ansidata(["\e[31m", "hello"])
+      Owl.Data.tag("hello", :red)
+
+  Whereas this will not:
+
+      iex> Owl.Data.from_ansidata("\e[31mhello")
+      "\e[31mhello"
+
+  ## Examples
+
+      iex> [[[[[[[] | "\e[46m"] | "\e[31m"], "hello"] | "\e[39m"] | "\e[49m"] | "\e[0m"]
+      ...> |> Owl.Data.from_ansidata()
+      Owl.Data.tag("hello", [:cyan_background, :red])
+
+      iex> [:red, "hello"] |> IO.ANSI.format() |> Owl.Data.from_ansidata()
+      Owl.Data.tag("hello", :red)
+
+  """
+  @spec from_ansidata(IO.ANSI.ansidata()) :: t()
+  def from_ansidata(ansidata) do
+    {data, _open_tags} = do_from_ansidata(ansidata, %{})
+    data
   end
 
-  defp maybe_wrap_to_tag(sequences, data) do
-    tag(data, collapse_sequences(sequences))
+  defp do_from_ansidata(binary, open_tags) when is_binary(binary) do
+    case Sequence.ansi_to_type(binary) do
+      :reset ->
+        {[], %{}}
+
+      nil ->
+        {tag_all(binary, open_tags), open_tags}
+
+      type ->
+        {[], update_open_tags(open_tags, type, Sequence.ansi_to_name(binary))}
+    end
   end
 
-  defp reverse_and_tag(sequences, [%Owl.Tag{sequences: last_sequences} | _] = data) do
-    maybe_wrap_to_tag(sequences -- last_sequences, Enum.reverse(data))
+  defp do_from_ansidata(integer, open_tags) when is_integer(integer) do
+    {tag_all(integer, open_tags), open_tags}
   end
 
-  defp reverse_and_tag(sequences, data) do
-    maybe_wrap_to_tag(sequences, Enum.reverse(data))
+  defp do_from_ansidata([], open_tags) do
+    {[], open_tags}
   end
 
-  # last write wins
-  defp collapse_sequences(sequences) do
-    %{foreground: nil, background: nil}
-    |> sequences_to_state(sequences)
-    |> Map.values()
-    |> Enum.reject(&is_nil/1)
+  defp do_from_ansidata([inner], open_tags) do
+    do_from_ansidata(inner, open_tags)
+  end
+
+  defp do_from_ansidata([head | tail], open_tags) do
+    {head, open_tags} = do_from_ansidata(head, open_tags)
+    {tail, open_tags} = do_from_ansidata(tail, open_tags)
+
+    case {head, tail} do
+      {[], _} -> {tail, open_tags}
+      {_, []} -> {head, open_tags}
+      _ -> {[head, tail], open_tags}
+    end
+  end
+
+  defp tag_all(data, open_tags) do
+    case Map.values(open_tags) do
+      [] -> data
+      tags -> tag(data, tags)
+    end
+  end
+
+  defp update_open_tags(open_tags, type, name) do
+    if name == Sequence.default_value_by_type!(type) do
+      Map.delete(open_tags, type)
+    else
+      Map.put(open_tags, type, name)
+    end
   end
 
   @doc """
@@ -349,48 +407,6 @@ defmodule Owl.Data do
       end
     )
   end
-
-  defp sequences_to_state(init, sequences) do
-    Enum.reduce(sequences, init, fn sequence, acc ->
-      Map.put(acc, sequence_type(sequence), sequence)
-    end)
-  end
-
-  for color <- [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white] do
-    defp sequence_type(unquote(color)), do: :foreground
-    defp sequence_type(unquote(:"light_#{color}")), do: :foreground
-    defp sequence_type(unquote(:"#{color}_background")), do: :background
-    defp sequence_type(unquote(:"light_#{color}_background")), do: :background
-  end
-
-  defp sequence_type(:default_color), do: :foreground
-  defp sequence_type(:default_background), do: :background
-
-  defp sequence_type(:blink_slow), do: :blink
-  defp sequence_type(:blink_rapid), do: :blink
-  defp sequence_type(:faint), do: :intensity
-  defp sequence_type(:bright), do: :intensity
-  defp sequence_type(:inverse), do: :inverse
-  defp sequence_type(:underline), do: :underline
-  defp sequence_type(:italic), do: :italic
-  defp sequence_type(:overlined), do: :overlined
-  defp sequence_type(:reverse), do: :reverse
-
-  # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L73
-  defp sequence_type("\e[38;5;" <> _), do: :foreground
-
-  # https://github.com/elixir-lang/elixir/blob/74bfab8ee271e53d24cb0012b5db1e2a931e0470/lib/elixir/lib/io/ansi.ex#L87
-  defp sequence_type("\e[48;5;" <> _), do: :background
-
-  defp default_value_by_sequence_type(:foreground), do: :default_color
-  defp default_value_by_sequence_type(:background), do: :default_background
-  defp default_value_by_sequence_type(:blink), do: :blink_off
-  defp default_value_by_sequence_type(:intensity), do: :normal
-  defp default_value_by_sequence_type(:inverse), do: :inverse_off
-  defp default_value_by_sequence_type(:underline), do: :no_underline
-  defp default_value_by_sequence_type(:italic), do: :not_italic
-  defp default_value_by_sequence_type(:overlined), do: :not_overlined
-  defp default_value_by_sequence_type(:reverse), do: :reverse_off
 
   @doc """
   Truncates data, so the length of returning data is <= `length`.
@@ -612,6 +628,39 @@ defmodule Owl.Data do
 
   defp do_chunk_by(value, chunk_acc, chunk_fun, acc, acc_sequences) when is_integer(value) do
     do_chunk_by(<<value::utf8>>, chunk_acc, chunk_fun, acc, acc_sequences)
+  end
+
+  defp maybe_wrap_to_tag([], [element]), do: element
+  defp maybe_wrap_to_tag([], data), do: data
+
+  defp maybe_wrap_to_tag(sequences1, [%Owl.Tag{sequences: sequences2, data: data}]) do
+    tag(data, collapse_sequences(sequences1 ++ sequences2))
+  end
+
+  defp maybe_wrap_to_tag(sequences, data) do
+    tag(data, collapse_sequences(sequences))
+  end
+
+  defp reverse_and_tag(sequences, [%Owl.Tag{sequences: last_sequences} | _] = data) do
+    maybe_wrap_to_tag(sequences -- last_sequences, Enum.reverse(data))
+  end
+
+  defp reverse_and_tag(sequences, data) do
+    maybe_wrap_to_tag(sequences, Enum.reverse(data))
+  end
+
+  # last write wins
+  defp collapse_sequences(sequences) do
+    %{foreground: nil, background: nil}
+    |> sequences_to_state(sequences)
+    |> Map.values()
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp sequences_to_state(init, sequences) do
+    Enum.reduce(sequences, init, fn sequence, acc ->
+      Map.put(acc, Sequence.type!(sequence), sequence)
+    end)
   end
 
   defp put_nonempty_head([], tail), do: tail
