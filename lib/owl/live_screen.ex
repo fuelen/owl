@@ -138,7 +138,7 @@ defmodule Owl.LiveScreen do
 
   ## Example
 
-      Owl.LiveScreen.add_block(:footer, "starting...")
+      Owl.LiveScreen.add_block(:footer, state: "starting...")
       Process.sleep(1000)
       Owl.LiveScreen.update(:footer, "...almost done...")
       Process.sleep(1000)
