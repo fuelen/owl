@@ -27,6 +27,22 @@ defmodule Owl.SystemTest do
       assert count_active_children.() == children_number
     end
 
+    test "env and args with :secret extension" do
+      log =
+        capture_log(fn ->
+          Owl.System.daemon_cmd(
+            "sleep",
+            [{:secret, "5"}],
+            fn ->
+              Process.sleep(10)
+            end,
+            env: [{"PASSWORD", {:secret, "PASSWORD"}}, {"USERNAME", nil}]
+          )
+        end)
+
+      assert log =~ "$ PASSWORD=******** USERNAME= sh -c \"sleep ********\"\n"
+    end
+
     test "successful run with :ready_check option" do
       sh_script = """
       sleep 1
@@ -159,11 +175,35 @@ defmodule Owl.SystemTest do
                "SELECT 1;"
              ])
            end) =~ "$ echo postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'\n"
+
+    assert capture_log(fn ->
+             Owl.System.cmd(
+               "echo",
+               ["hello world", ["--password=", {:secret, "mypassword"}]],
+               env: [
+                 {"GREETING", "hello world"},
+                 {"SINGLE_WORD", "single"},
+                 {"PASSWORD", {:secret, "pass"}}
+               ]
+             )
+           end) =~
+             "$ GREETING='hello world' SINGLE_WORD=single PASSWORD=******** sh -c \"echo 'hello world' --password=********\"\n"
   end
 
   test inspect(&Owl.System.shell/2) do
     assert capture_log(fn ->
              Owl.System.shell("echo hello world")
-           end) =~ "$ echo hello world\n"
+           end) =~ "$ sh -c \"echo hello world\"\n"
+
+    assert capture_log(fn ->
+             Owl.System.shell("echo hello world",
+               env: [
+                 {"GREETING", "hello world"},
+                 {"SINGLE_WORD", "single"},
+                 {"PASSWORD", {:secret, "pass"}}
+               ]
+             )
+           end) =~
+             "$ GREETING='hello world' SINGLE_WORD=single PASSWORD=******** sh -c \"echo hello world\"\n"
   end
 end

@@ -16,6 +16,7 @@ defmodule Owl.System do
   * `:ready_check` - a function which checks the content of the messages produced by `command` before writing to `device`.
     If the function is set, then the execution of the `operation` will be blocked until `ready_check` returns `true`.
     By default this check is absent and `operation` is invoked immediately without awaiting any message.
+  * `:env` - a list of tuples containing environment key-value. The behaviour is similar to the option described in `cmd/3`
 
   ## Example
 
@@ -52,10 +53,14 @@ defmodule Owl.System do
       # Forwarding from [::1]:5432 -> 5432
       :ok
   """
-  @spec daemon_cmd(binary(), [binary() | {:secret, binary()}], (() -> result),
+  @spec daemon_cmd(
+          binary(),
+          [binary() | {:secret, binary()} | [binary() | {:secret, binary()}]],
+          (() -> result),
           prefix: Owl.Data.t(),
           device: IO.device(),
-          ready_check: (String.t() -> boolean())
+          ready_check: (String.t() -> boolean()),
+          env: [{binary(), binary() | {:secret, binary()} | nil}]
         ) :: result
         when result: any()
   def daemon_cmd(command, args, operation, options \\ []) when is_function(operation, 0) do
@@ -90,7 +95,7 @@ defmodule Owl.System do
         [
           command: command,
           args: args
-        ] ++ handle_data_opts ++ Keyword.take(options, [:prefix, :device])
+        ] ++ handle_data_opts ++ Keyword.take(options, [:prefix, :device, :env])
       )
 
     Process.link(pid)
@@ -105,10 +110,11 @@ defmodule Owl.System do
   end
 
   @doc """
-  A wrapper around `System.cmd/3` which additionally logs executed `command` and `args`.
+  A wrapper around `System.cmd/3` which additionally logs executed `command`, `args` and `env`.
 
   If URL is found in logged message, then password in it is masked with asterisks.
-  Additionally, it is possible to explicitly mark a whole argument as secret.
+  Additionally, it is possible to explicitly mark env values and arguments as secret for safe logging.
+  See examples for details.
 
   ## Examples
 
@@ -116,8 +122,19 @@ defmodule Owl.System do
       # 10:25:34.252 [debug] $ echo test
       {"test\\n", 0}
 
+      # marking an argument as secret
       > Owl.System.cmd("echo", ["hello", secret: "world"])
       # 10:25:40.516 [debug] $ echo hello ********
+      {"hello world\\n", 0}
+
+      # marking a part of an argument as secret
+      > Owl.System.cmd("echo", ["hello", ["--password=", {:secret, "world"}]])
+      # 10:25:40.516 [debug] $ echo hello --password=********
+      {"hello --password=world\\n", 0}
+
+      # marking a env as secret
+      > Owl.System.cmd("echo", ["hello", "world"], env: [{"PASSWORD", {:secret, "mypassword"}}])
+      # 10:25:40.516 [debug] $ PASSWORD=******** sh -c "echo hello world"
       {"hello world\\n", 0}
 
       > Owl.System.cmd("psql", ["postgresql://postgres:postgres@127.0.0.1:5432", "-tAc", "SELECT 1;"])
@@ -125,36 +142,35 @@ defmodule Owl.System do
       {"1\\n", 0}
 
   """
-  @spec cmd(binary(), [binary() | {:secret, binary()}], keyword()) ::
+  @spec cmd(
+          binary(),
+          [binary() | {:secret, binary()} | [binary() | {:secret, binary()}]],
+          keyword()
+        ) ::
           {Collectable.t(), exit_status :: non_neg_integer()}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
-    Owl.System.Helpers.log_shell_command(command, args)
+    Owl.System.Helpers.log_cmd(Keyword.get(opts, :env, []), command, args)
 
-    args =
-      Enum.map(
-        args,
-        fn
-          {:secret, arg} when is_binary(arg) -> arg
-          arg when is_binary(arg) -> arg
-        end
-      )
-
-    System.cmd(command, args, opts)
+    System.cmd(
+      command,
+      Owl.System.Helpers.normalize_cmd_args(args),
+      Owl.System.Helpers.normalize_env_option(opts)
+    )
   end
 
   @doc """
   A wrapper around `System.shell/2` which additionally logs executed `command`.
 
-  Similarly to `cmd/3`, it automatically hides password in found URLs.
+  Similarly to `cmd/3`, it automatically hides password in found URLs and allows manual hiding of env values.
 
   ## Examples
 
       > Owl.System.shell("echo hello world")
-      # 22:36:01.440 [debug] $ echo hello world
+      # 22:36:01.440 [debug] $ sh -c "echo hello world"
       {"hello world\\n", 0}
 
       > Owl.System.shell("echo postgresql://postgres:postgres@127.0.0.1:5432")
-      # 22:36:51.797 [debug] $ echo postgresql://postgres:********@127.0.0.1:5432
+      # 22:36:51.797 [debug] $ sh -c "echo postgresql://postgres:********@127.0.0.1:5432"
       {"postgresql://postgres:postgres@127.0.0.1:5432\\n", 0}
   """
   @spec shell(
@@ -162,7 +178,7 @@ defmodule Owl.System do
           keyword()
         ) :: {Collectable.t(), exit_status :: non_neg_integer()}
   def shell(command, opts \\ []) when is_binary(command) do
-    Owl.System.Helpers.log_shell_command(command)
-    System.shell(command, opts)
+    Owl.System.Helpers.log_shell(Keyword.get(opts, :env, []), command)
+    System.shell(command, Owl.System.Helpers.normalize_env_option(opts))
   end
 end

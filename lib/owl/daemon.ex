@@ -19,8 +19,20 @@ defmodule Owl.Daemon do
   def init(args) do
     command = Keyword.fetch!(args, :command)
     command_args = Keyword.fetch!(args, :args)
+    command_env = Keyword.get(args, :env, [])
     executable = System.find_executable(command)
-    Owl.System.Helpers.log_shell_command(command, command_args)
+    Owl.System.Helpers.log_cmd(command_env, command, command_args)
+
+    command_env =
+      command_env
+      |> Owl.System.Helpers.normalize_env()
+      # https://github.com/elixir-lang/elixir/blob/a64d42f5d3cb6c32752af9d3312897e8cd5bb7ec/lib/elixir/lib/system.ex#L1099
+      |> Enum.map(fn
+        {k, nil} -> {String.to_charlist(k), false}
+        {k, v} -> {String.to_charlist(k), String.to_charlist(v)}
+      end)
+
+    command_args = Owl.System.Helpers.normalize_cmd_args(command_args)
 
     {handle_data_state, handle_data_callback} =
       case Keyword.get(args, :handle_data) do
@@ -35,7 +47,8 @@ defmodule Owl.Daemon do
         :binary,
         :exit_status,
         :stderr_to_stdout,
-        args: command_args
+        args: command_args,
+        env: command_env
       ])
 
     prefix =
