@@ -172,6 +172,10 @@ defmodule Owl.System do
       > Owl.System.shell("echo postgresql://postgres:postgres@127.0.0.1:5432")
       # 22:36:51.797 [debug] $ sh -c "echo postgresql://postgres:********@127.0.0.1:5432"
       {"postgresql://postgres:postgres@127.0.0.1:5432\\n", 0}
+
+      > Owl.System.shell("echo $PASSWORD $USERNAME", env: [{"USERNAME", "john"}, {"PASSWORD", {:secret, "qwerty"}}])
+      # 12:38:27.704 [debug] $ USERNAME=john PASSWORD=******** sh -c "echo \\$PASSWORD \\$USERNAME"
+      {"qwerty john\\n", 0}
   """
   @spec shell(
           binary(),
