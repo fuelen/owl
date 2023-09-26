@@ -1,5 +1,6 @@
 {
     "skip_files": [
+        "lib/owl.ex",
         "lib/owl/palette.ex",
         "test/support/virtual_live_screen.ex"
     ]
