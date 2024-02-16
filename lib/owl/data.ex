@@ -171,10 +171,20 @@ defmodule Owl.Data do
 
       iex> Owl.Data.length(["222", Owl.Data.tag(["333", "444"], :green)])
       9
+
+      # if ucwidth dependency is present, then it is used to calculate the length of the string
+      iex> Owl.Data.length("😂")
+      2
   """
   @spec length(t()) :: non_neg_integer()
-  def length(data) when is_binary(data) do
-    String.length(data)
+  if Code.ensure_loaded?(Ucwidth) do
+    def length(data) when is_binary(data) do
+      Ucwidth.width(data)
+    end
+  else
+    def length(data) when is_binary(data) do
+      String.length(data)
+    end
   end
 
   def length(data) when is_list(data) do

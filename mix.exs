@@ -47,6 +47,7 @@ defmodule Owl.MixProject do
 
   defp deps do
     [
+      {:ucwidth, "~> 0.2", optional: true},
       {:ex_doc, "~> 0.24", only: :dev, runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
       {:dialyxir, "~> 1.0", only: :dev, runtime: false}
