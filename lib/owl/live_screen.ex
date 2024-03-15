@@ -63,7 +63,7 @@ defmodule Owl.LiveScreen do
   * `:refresh_every` - a period of refreshing a screen in milliseconds. Defaults to #{@refresh_every_default}.
   * `:terminal_width` - a width of terminal in symbols. Defaults to `:auto`, which gets value from `Owl.IO.columns/1`.
   * `:device` - an I/O device. Defaults to `:stdio`.
-  If terminal is now a available, then the server won't be started.
+  If terminal is not available, then the server won't be started.
   """
   @spec start_link([start_option()]) :: GenServer.on_start()
   def start_link(opts) do
