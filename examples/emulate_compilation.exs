@@ -1,5 +1,12 @@
 require Logger
-Logger.configure_backend(:console, device: Owl.LiveScreen)
+
+:ok = :logger.remove_handler(:default)
+
+:ok =
+  :logger.add_handler(:default, :logger_std_h, %{
+    config: %{type: {:device, Owl.LiveScreen}},
+    formatter: Logger.Formatter.new()
+  })
 
 ["ecto", "phoenix", "ex_doc", "broadway"]
 |> Enum.map(fn dependency ->

@@ -3,13 +3,19 @@ defmodule Owl.LiveScreen do
   A server that handles live updates in terminal.
 
   It partially implements [The Erlang I/O Protocol](https://www.erlang.org/doc/apps/stdlib/io_protocol.html),
-  so it is possible to use `Owl.LiveScreen` as an I/O-device in `Logger.Backends.Console`
+  so it is possible to use `Owl.LiveScreen` as an I/O-device in `Logger`
   and functions like `Owl.IO.puts/2`, `IO.puts/2`. When used as I/O-device, then output is printed above dynamic blocks.
 
   ## Example
 
       require Logger
-      Logger.configure_backend(:console, device: Owl.LiveScreen)
+      :ok = :logger.remove_handler(:default)
+
+      :ok =
+        :logger.add_handler(:default, :logger_std_h, %{
+          config: %{type: {:device, Owl.LiveScreen}},
+          formatter: Logger.Formatter.new()
+        })
 
       Owl.LiveScreen.add_block(:dependency,
         state: :init,
