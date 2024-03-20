@@ -212,6 +212,10 @@ defmodule Owl.Data do
       ["first", "second", Owl.Data.tag(["third"], :red), Owl.Data.tag(["fourth"], :red)]
   """
   @spec lines(t()) :: [t()]
+  def lines(data) when is_integer(data) do
+    lines(to_string(data))
+  end
+
   def lines(data) do
     split(data, "\n")
   end

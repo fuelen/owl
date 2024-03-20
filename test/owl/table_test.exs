@@ -21,6 +21,24 @@ defmodule Owl.TableTest do
       )
     end
 
+    test "integer values" do
+      assert_tables_equal(
+        [
+          %{"id" => 1, "name" => "Yaroslav"},
+          %{"id" => 2, "name" => "Volodymyr"}
+        ],
+        [],
+        """
+        ┌──┬─────────┐
+        │id│name     │
+        ├──┼─────────┤
+        │1 │Yaroslav │
+        │2 │Volodymyr│
+        └──┴─────────┘
+        """
+      )
+    end
+
     test "max_column_widths: pos_integer | :infinity, truncate_lines: true" do
       assert_tables_equal(
         [
