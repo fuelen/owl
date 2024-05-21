@@ -45,12 +45,18 @@ defmodule Owl.System do
       ..>     "my-pod",
       ..>     "5432:5432"
       ..>   ],
-      ..>   &dump_database/0,
+      ..>   fn ->
+      ..>     Logger.debug("Dump DB")
+      ..>   end,
       ..>   prefix: "kubectl(my-pod): ",
       ..>   ready_check: &String.contains?(&1, "Forwarding from")
       ..> )
-      # Forwarding from 127.0.0.1:5432 -> 5432
-      # Forwarding from [::1]:5432 -> 5432
+      # 12:08:01.382 [debug] $ kubectl port-forward --namespace=my-app --kubeconfig ~/.kube/myapp my-pod 5432:5432
+      # 12:08:01.384 [debug] Started daemon kubectl with OS pid 166378
+      # kubectl(my-pod): Forwarding from 127.0.0.1:5432 -> 5432
+      # kubectl(my-pod): Forwarding from [::1]:5432 -> 5432
+      # 12:08:02.484 [debug] Dump DB
+      # 12:08:02.584 [debug] $ kill 166378
       :ok
   """
   @spec daemon_cmd(
