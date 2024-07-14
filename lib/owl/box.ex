@@ -24,6 +24,8 @@ defmodule Owl.Box do
   * `:border_style` - sets the border style. Defaults to `:solid`.
   * `:border_tag` - sets the tag for border characters. See `t:Owl.Data.sequence/0` for a valid sequences Defaults to `[]`.
   * `:title` - sets a title that is displayed in a top border. Ignored if `:border_style` is `:none`. Defaults to `nil`.
+  * `:word_wrap` - sets the word wrapping mode. Can be `:break_word` or `:normal`. Defaults to `:break_word`. Ignored if `:truncate_lines` is `true`.
+  * `:truncate_lines` - specifies whether to truncate lines that are too long to fit into a box. Defaults to `false`.
 
   ## Examples
 
@@ -170,6 +172,8 @@ defmodule Owl.Box do
           vertical_align: :top | :middle | :bottom,
           border_style: :solid | :solid_rounded | :double | :none,
           border_tag: Owl.Data.sequence() | [Owl.Data.sequence()],
+          word_wrap: :normal | :break_word,
+          truncate_lines: boolean(),
           title: nil | Owl.Data.t()
         ) :: Owl.Data.t()
   def new(data, opts \\ []) do
@@ -186,6 +190,8 @@ defmodule Owl.Box do
     vertical_align = Keyword.get(opts, :vertical_align, :top)
     title = Keyword.get(opts, :title)
     border_style = Keyword.get(opts, :border_style, :solid)
+    word_wrap = Keyword.get(opts, :word_wrap, :break_word)
+    truncate_lines = Keyword.get(opts, :truncate_lines, false)
 
     border =
       if border_style != :none do
@@ -198,6 +204,11 @@ defmodule Owl.Box do
       end
 
     max_width = opts[:max_width] || Owl.IO.columns() || :infinity
+
+    if is_integer(max_width) and max_width < 2 and border_style != :none do
+      raise ArgumentError,
+            "`:max_width` must be at least 2 when `:border_style` is not `:none`, got: #{max_width}"
+    end
 
     max_width =
       if is_integer(max_width) and max_width < min_width do
@@ -212,19 +223,10 @@ defmodule Owl.Box do
         width -> width - borders_size(border_style) - padding_right - padding_left
       end
 
-    lines = Owl.Data.lines(data)
-
     lines =
-      case max_inner_width do
-        :infinity ->
-          lines
-
-        max_width ->
-          Enum.flat_map(lines, fn
-            [] -> [[]]
-            line -> Owl.Data.chunk_every(line, max_width)
-          end)
-      end
+      data
+      |> Owl.Data.lines()
+      |> Owl.Lines.format(max_inner_width, word_wrap, truncate_lines)
 
     data_height = length(lines)
 

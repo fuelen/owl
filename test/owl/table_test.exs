@@ -455,6 +455,46 @@ defmodule Owl.TableTest do
         )
       end)
     end
+
+    test "word_wrap" do
+      assert_tables_equal(
+        [%{"a" => "Hello, my name is Artur."}],
+        [
+          max_width: 9,
+          divide_body_rows: true,
+          word_wrap: :break_word
+        ],
+        """
+        ┌───────┐
+        │a      │
+        ├───────┤
+        │Hello, │
+        │my name│
+        │ is Art│
+        │ur.    │
+        └───────┘
+        """
+      )
+
+      assert_tables_equal(
+        [%{"a" => "Hello, my name is Artur."}],
+        [
+          max_width: 9,
+          divide_body_rows: true,
+          word_wrap: :normal
+        ],
+        """
+        ┌───────┐
+        │a      │
+        ├───────┤
+        │Hello, │
+        │my name│
+        │is     │
+        │Artur. │
+        └───────┘
+        """
+      )
+    end
   end
 
   defp assert_tables_equal(rows, opts, expected_result) do

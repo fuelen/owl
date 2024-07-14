@@ -22,6 +22,7 @@ defmodule Owl.Table do
   * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. No sorter by default.
   * `:max_column_widths` - sets max width for columns in symbols. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
   * `:max_width` - sets a maximum width of of the table in symbols including borders. Defaults to width of the terminal or `:infinity`, if a terminal is not available.
+  * `:word_wrap` - sets the word wrapping mode. Can be `:break_word` or `:normal`. Defaults to `:break_word`. Ignored if `:truncate_lines` is `true`.
   * `:truncate_lines` - specifies whether to truncate lines when they reach width specified by `:max_content_width`. Defaults to `false`.
 
   ## Examples
@@ -70,6 +71,7 @@ defmodule Owl.Table do
   @spec new(rows :: nonempty_list(row :: %{column => value}),
           border_style: :solid | :solid_rounded | :none | :double,
           divide_body_rows: boolean(),
+          word_wrap: :break_word | :normal,
           truncate_lines: boolean(),
           filter_columns: (column -> as_boolean(term)),
           padding_x: non_neg_integer(),
@@ -95,6 +97,7 @@ defmodule Owl.Table do
 
     divide_body_rows = Keyword.get(opts, :divide_body_rows, false)
     truncate_lines = Keyword.get(opts, :truncate_lines, false)
+    word_wrap = Keyword.get(opts, :word_wrap, :break_word)
 
     columns = columns(rows)
 
@@ -158,6 +161,7 @@ defmodule Owl.Table do
       |> apply_width_limits(
         columns,
         max_content_widths,
+        word_wrap,
         truncate_lines,
         max_width,
         padding_x,
@@ -264,30 +268,12 @@ defmodule Owl.Table do
     |> Enum.uniq()
   end
 
-  defp to_lines(content, max_content_width, truncate_lines) do
-    lines = Owl.Data.lines(content)
-
+  defp to_lines(content, max_content_width, word_wrap, truncate_lines) do
     lines =
-      case max_content_width do
-        :infinity ->
-          lines
-
-        0 ->
-          []
-
-        max_width ->
-          if truncate_lines do
-            Enum.map(lines, fn line -> Owl.Data.truncate(line, max_width) end)
-          else
-            Enum.flat_map(lines, fn
-              [] -> [[]]
-              line -> Owl.Data.chunk_every(line, max_width)
-            end)
-          end
-      end
-
-    lines =
-      Enum.map(lines, fn line ->
+      content
+      |> Owl.Data.lines()
+      |> Owl.Lines.format(max_content_width, word_wrap, truncate_lines)
+      |> Enum.map(fn line ->
         %{value: line, length: Owl.Data.length(line)}
       end)
 
@@ -328,6 +314,7 @@ defmodule Owl.Table do
          rows,
          columns,
          max_content_widths,
+         word_wrap,
          truncate_lines,
          max_width,
          padding_x,
@@ -386,7 +373,7 @@ defmodule Owl.Table do
           {cells, column_width} =
             column_values
             |> Enum.map_reduce(0, fn value, max_column_width_so_far ->
-              lines = to_lines(value, max_content_width, truncate_lines)
+              lines = to_lines(value, max_content_width, word_wrap, truncate_lines)
               width = lines |> Enum.reduce(0, &max(&1.length, &2))
 
               {

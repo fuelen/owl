@@ -137,6 +137,42 @@ defmodule Owl.BoxTest do
       end
     end
 
+    test "border requires more space than max_width" do
+      assert_raise ArgumentError,
+                   "`:max_width` must be at least 2 when `:border_style` is not `:none`, got: 1",
+                   fn ->
+                     Owl.Box.new("test", max_width: 1)
+                   end
+
+      assert "test" |> Owl.Box.new(max_width: 1, border_style: :none) |> to_string() ==
+               """
+               t
+               e
+               s
+               t
+               """
+               |> String.trim_trailing()
+    end
+
+    test "render borders only if max_width is 2 and `border_style` is not :none" do
+      assert "" |> Owl.Box.new(max_width: 2) |> to_string() ==
+               """
+               ┌┐
+               ││
+               └┘
+               """
+               |> String.trim_trailing()
+
+      assert "test\ntest" |> Owl.Box.new(max_width: 2) |> to_string() ==
+               """
+               ┌┐
+               ││
+               ││
+               └┘
+               """
+               |> String.trim_trailing()
+    end
+
     test "borders style" do
       assert "test" |> Owl.Box.new(border_style: :solid_rounded) |> to_string() ==
                """
@@ -145,6 +181,156 @@ defmodule Owl.BoxTest do
                ╰────╯
                """
                |> String.trim_trailing()
+    end
+
+    test "truncate lines" do
+      assert "test\ntest" |> Owl.Box.new(max_width: 5, truncate_lines: true) |> to_string() ==
+               """
+               ┌───┐
+               │te…│
+               │te…│
+               └───┘
+               """
+               |> String.trim_trailing()
+    end
+
+    test "wrap_word" do
+      get_wrapped_lines = fn data, max_width ->
+        data
+        |> Owl.Box.new(max_width: max_width, word_wrap: :normal, border_style: :none)
+        |> to_string()
+        |> Owl.Data.lines()
+      end
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 2) == [
+               "He",
+               "ll",
+               "o!",
+               "My",
+               "na",
+               "me",
+               "is",
+               "Ar",
+               "tu",
+               "r."
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 3) == [
+               "Hel",
+               "lo!",
+               "My ",
+               "nam",
+               "e  ",
+               "is ",
+               "Art",
+               "ur."
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 4) == [
+               "Hell",
+               "o!  ",
+               "My  ",
+               "name",
+               "is A",
+               "rtur",
+               ".   "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 5) == [
+               "Hello",
+               "! My ",
+               "name ",
+               "is Ar",
+               "tur. "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 6) == [
+               "Hello!",
+               "My    ",
+               "name  ",
+               "is    ",
+               "Artur."
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 7) == [
+               "Hello! ",
+               "My name",
+               "is     ",
+               "Artur. "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 8) == [
+               "Hello! ",
+               "My name",
+               "is     ",
+               "Artur. "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 9) == [
+               "Hello! My",
+               "name is  ",
+               "Artur.   "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 10) == [
+               "Hello! My",
+               "name is  ",
+               "Artur.   "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 11) == [
+               "Hello! My",
+               "name is  ",
+               "Artur.   "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 12) == [
+               "Hello! My",
+               "name is  ",
+               "Artur.   "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 13) == [
+               "Hello! My",
+               "name is  ",
+               "Artur.   "
+             ]
+
+      assert get_wrapped_lines.("Hello! My name is Artur.", 14) == [
+               "Hello! My name",
+               "is Artur.     "
+             ]
+
+      assert [Owl.Data.tag("Hi there!", :red), " Hi", [Owl.Data.tag("!!!", :green)]]
+             |> Owl.Box.new(max_width: 6, word_wrap: :normal, border_style: :none)
+             |> Owl.Data.to_ansidata()
+             |> Owl.Data.from_ansidata()
+             |> List.flatten() == [
+               Owl.Data.tag("Hi", :red),
+               "    ",
+               "\n",
+               Owl.Data.tag("there!", :red),
+               "\n",
+               "Hi",
+               Owl.Data.tag("!!!", :green),
+               " "
+             ]
+
+      # It would be great if spaces are tagged as well in output result, but this is not implemented yet.
+      # This test is present just to track this issue.
+      assert "A B C"
+             |> Owl.Data.tag([:red, :green_background])
+             |> Owl.Box.new(word_wrap: :normal, border_style: :none)
+             |> Owl.Data.to_ansidata()
+             |> Owl.Data.from_ansidata()
+             |> List.flatten() ==
+               [
+                 Owl.Data.tag("A", [:green_background, :red]),
+                 " ",
+                 Owl.Data.tag("B", [:green_background, :red]),
+                 " ",
+                 Owl.Data.tag("C", [:green_background, :red])
+               ]
     end
   end
 end
