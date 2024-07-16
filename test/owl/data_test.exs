@@ -243,7 +243,7 @@ defmodule Owl.DataTest do
     end
 
     test "9" do
-      assert Owl.Data.split('hello', "e") == ["h", ["l", "l", "o"]]
+      assert Owl.Data.split(~c"hello", "e") == ["h", ["l", "l", "o"]]
     end
   end
 
@@ -475,7 +475,7 @@ defmodule Owl.DataTest do
     end
 
     test "converts from charlists" do
-      assert Owl.Data.from_ansidata(["\e[31m", 'Hello']) == Owl.Data.tag('Hello', :red)
+      assert Owl.Data.from_ansidata(["\e[31m", ~c"Hello"]) == Owl.Data.tag(~c"Hello", :red)
     end
 
     test "does not convert data concatenated with escape sequences" do

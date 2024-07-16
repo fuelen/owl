@@ -86,7 +86,7 @@ defmodule Owl.Data do
       "Hello"
 
       iex> Owl.Data.tag([72, 101, 108, 108, 111], :red) |> Owl.Data.untag()
-      'Hello'
+      ~c"Hello"
 
       iex> Owl.Data.tag(["Hello", Owl.Data.tag("world", :green)], :red) |> Owl.Data.untag()
       ["Hello", "world"]
