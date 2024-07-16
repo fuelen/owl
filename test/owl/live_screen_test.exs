@@ -7,7 +7,7 @@ defmodule Owl.LiveScreenTest do
   test "server" do
     capture_frames(
       fn live_screen_pid, _render ->
-        # await_render() is almost indentical to render.(), but executes a bit longer in time
+        # await_render() is almost identical to render.(), but executes a bit longer in time
         # In this test we won't use render function from callback in order to test await_render.
 
         # await_render doesn't hang when timer is not enabled

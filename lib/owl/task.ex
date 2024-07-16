@@ -6,7 +6,7 @@ defmodule Owl.Task do
   @doc """
   Runs a function as a task under supervision tree.
 
-  This is usefull when you need graceful shutdown in simple scripts, where Owl is installed
+  This is useful when you need graceful shutdown in simple scripts, where Owl is installed
   using `Mix.install/2`.
 
   ## Example
