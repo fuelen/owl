@@ -24,7 +24,7 @@ defmodule Owl.Task do
       System.stop()
 
   """
-  @spec run((() -> result)) :: {:ok, result} | {:exit, term()} when result: any()
+  @spec run((-> result)) :: {:ok, result} | {:exit, term()} when result: any()
   def run(function) do
     task = Task.Supervisor.async_nolink(Owl.TaskSupervisor, function)
     Task.yield(task, :infinity)

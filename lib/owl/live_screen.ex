@@ -97,7 +97,7 @@ defmodule Owl.LiveScreen do
       Owl.LiveScreen.await_render()
 
   """
-  @spec capture_stdio(GenServer.server(), (() -> result)) :: result when result: any
+  @spec capture_stdio(GenServer.server(), (-> result)) :: result when result: any
   def capture_stdio(server \\ __MODULE__, callback) when is_function(callback, 0) do
     original_gl = Process.group_leader()
 

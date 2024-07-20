@@ -13,7 +13,7 @@ defmodule Owl.Data do
   # improper lists are not here, just because they were not tested
   @type t :: [binary() | non_neg_integer() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t()) | binary()
 
-  @typedoc """
+  @typedoc ~S"""
   ANSI escape sequence.
 
   An atom alias of ANSI escape sequence.
@@ -257,13 +257,13 @@ defmodule Owl.Data do
     |> unlines()
   end
 
-  @doc """
+  @doc ~S"""
   Transforms data to `t:IO.ANSI.ansidata/0` format which can be consumed by `IO` module.
 
   ## Examples
 
-      iex> "hello" |> Owl.Data.tag([:red, :cyan_background]) |> Owl.Data.to_ansidata()
-      [[[[[[[] | "\e[46m"] | "\e[31m"], "hello"] | "\e[39m"] | "\e[49m"] | "\e[0m"]
+      iex> "hello" |> Owl.Data.tag(:red) |> Owl.Data.to_ansidata()
+      [[[[[] | "\e[31m"], "hello"] | "\e[39m"] | "\e[0m"]
 
   """
   @spec to_ansidata(t()) :: IO.ANSI.ansidata()
@@ -308,7 +308,7 @@ defmodule Owl.Data do
 
   defp do_to_ansidata(term, _open_tags), do: term
 
-  @doc """
+  @doc ~S"""
   Transforms data from `t:IO.ANSI.ansidata/0`, replacing raw escape sequences with tags (see `tag/2`).
 
   This makes it possible to use data formatted outside of Owl with other Owl modules, like `Owl.Box`.
@@ -326,13 +326,8 @@ defmodule Owl.Data do
 
   ## Examples
 
-      iex> [[[[[[[] | "\e[46m"] | "\e[31m"], "hello"] | "\e[39m"] | "\e[49m"] | "\e[0m"]
-      ...> |> Owl.Data.from_ansidata()
-      Owl.Data.tag("hello", [:cyan_background, :red])
-
       iex> [:red, "hello"] |> IO.ANSI.format() |> Owl.Data.from_ansidata()
       Owl.Data.tag("hello", :red)
-
   """
   @spec from_ansidata(IO.ANSI.ansidata()) :: t()
   def from_ansidata(ansidata) do

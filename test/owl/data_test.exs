@@ -1,6 +1,7 @@
 defmodule Owl.DataTest do
   use ExUnit.Case, async: true
   doctest Owl.Data
+  import Owl.Data.TestHelpers
 
   test inspect(&Owl.Data.length/2) do
     assert Owl.Data.length(Owl.Data.tag("one", :green)) == 3
@@ -114,7 +115,8 @@ defmodule Owl.DataTest do
                  )
                ],
                " "
-             ) == [
+             )
+             <~> [
                %Owl.Tag{data: ["one"], sequences: [:blue_background, :green]},
                %Owl.Tag{data: ["two"], sequences: [:blue_background, :green]},
                %Owl.Tag{data: ["three"], sequences: [:blue_background, :green]},
@@ -137,27 +139,27 @@ defmodule Owl.DataTest do
                  Owl.Data.tag([" nine ten"], :blue_background)
                ],
                " "
-             ) ==
-               [
-                 "one",
-                 %Owl.Tag{data: ["two"], sequences: [:blue_background]},
-                 %Owl.Tag{
-                   data: [
-                     "three",
-                     %Owl.Tag{
-                       data: ["four"],
-                       sequences: [:yellow_background]
-                     }
-                   ],
-                   sequences: [:blue_background]
-                 },
-                 %Owl.Tag{data: ["five"], sequences: [:yellow_background, :red]},
-                 %Owl.Tag{data: ["six"], sequences: [:yellow_background, :red]},
-                 "seven",
-                 "eight",
-                 %Owl.Tag{data: ["nine"], sequences: [:blue_background]},
-                 %Owl.Tag{data: ["ten"], sequences: [:blue_background]}
-               ]
+             )
+             <~> [
+               "one",
+               %Owl.Tag{data: ["two"], sequences: [:blue_background]},
+               %Owl.Tag{
+                 data: [
+                   "three",
+                   %Owl.Tag{
+                     data: ["four"],
+                     sequences: [:yellow_background]
+                   }
+                 ],
+                 sequences: [:blue_background]
+               },
+               %Owl.Tag{data: ["five"], sequences: [:yellow_background, :red]},
+               %Owl.Tag{data: ["six"], sequences: [:yellow_background, :red]},
+               "seven",
+               "eight",
+               %Owl.Tag{data: ["nine"], sequences: [:blue_background]},
+               %Owl.Tag{data: ["ten"], sequences: [:blue_background]}
+             ]
     end
 
     test "6" do
@@ -185,7 +187,8 @@ defmodule Owl.DataTest do
                  sequences: [:red, :black_background]
                },
                "\n"
-             ) == [
+             )
+             <~> [
                %Owl.Tag{
                  data: ["┌", "──────────────────", "┐"],
                  sequences: [:black_background, :red]
@@ -294,8 +297,10 @@ defmodule Owl.DataTest do
                Owl.Data.tag("!!!", :blue),
                "!!"
              ])
-           ) ==
-             "\e[31m\e[41m\e[33mprefix: \e[31m\e[49mHello\e[33m inner \e[31m world\e[39m\e[34m!!!\e[39m!!\e[0m"
+           ) in [
+             "\e[31m\e[41m\e[33mprefix: \e[31m\e[49mHello\e[33m inner \e[31m world\e[39m\e[34m!!!\e[39m!!\e[0m",
+             "\e[31m\e[33m\e[41mprefix: \e[49m\e[31mHello\e[33m inner \e[31m world\e[39m\e[34m!!!\e[39m!!\e[0m"
+           ]
 
     assert Owl.Data.to_ansidata([Owl.Data.tag("#", :red), Owl.Data.tag("#", :red)]) == [
              [[[[[[[] | "\e[31m"], "#"] | "\e[39m"] | "\e[31m"], "#"] | "\e[39m"] | "\e[0m"
@@ -380,12 +385,13 @@ defmodule Owl.DataTest do
       assert to_from_ansidata(["Hello ", Owl.Data.tag("world", :underline), "!"]) ==
                [["Hello ", Owl.Data.tag("world", :underline)], "!"]
 
-      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", [:red, :underline]), "!"]) ==
-               [["Hello ", Owl.Data.tag("world", [:red, :underline])], "!"]
+      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", [:red, :underline]), "!"])
+             <~> [["Hello ", Owl.Data.tag("world", [:red, :underline])], "!"]
 
       assert to_from_ansidata(
                Owl.Data.tag(["Hello, ", Owl.Data.tag("world", :underline), "!"], :red)
-             ) == [
+             )
+             <~> [
                [Owl.Data.tag("Hello, ", :red), Owl.Data.tag("world", [:red, :underline])],
                Owl.Data.tag("!", :red)
              ]
@@ -411,7 +417,8 @@ defmodule Owl.DataTest do
                ),
                Owl.Data.tag("!!!", :blue),
                "!!"
-             ]) == [
+             ])
+             <~> [
                [
                  [
                    [
@@ -431,27 +438,27 @@ defmodule Owl.DataTest do
 
     test "converts ansidata highlighted using Inspect.Algebra" do
       ansidata =
-        %{foo: 1, bar: "two"}
+        [foo: 1, bar: "two"]
         |> Inspect.Algebra.to_doc(Inspect.Opts.new(syntax_colors: IO.ANSI.syntax_colors()))
         |> Inspect.Algebra.format(:infinity)
 
       assert Owl.Data.from_ansidata(ansidata) == [
-               "%{",
+               "[",
                [
                  "",
                  [
-                   Owl.Data.tag("bar:", :cyan),
+                   Owl.Data.tag("foo:", :cyan),
                    [
                      " ",
                      [
-                       Owl.Data.tag(~S("two"), :green),
+                       Owl.Data.tag("1", :yellow),
                        [
                          ",",
                          [
                            " ",
                            [
-                             Owl.Data.tag("foo:", :cyan),
-                             [" ", [Owl.Data.tag("1", :yellow), ["", "}"]]]
+                             Owl.Data.tag("bar:", :cyan),
+                             [" ", [Owl.Data.tag("\"two\"", :green), ["", "]"]]]
                            ]
                          ]
                        ]

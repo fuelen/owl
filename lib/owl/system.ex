@@ -62,7 +62,7 @@ defmodule Owl.System do
   @spec daemon_cmd(
           binary(),
           [binary() | {:secret, binary()} | [binary() | {:secret, binary()}]],
-          (() -> result),
+          (-> result),
           prefix: Owl.Data.t(),
           device: IO.device(),
           ready_check: (String.t() -> boolean()),

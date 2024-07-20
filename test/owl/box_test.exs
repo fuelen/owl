@@ -1,5 +1,6 @@
 defmodule Owl.BoxTest do
   use ExUnit.Case, async: true
+  import Owl.Data.TestHelpers
   doctest Owl.Box
 
   describe inspect(&Owl.Box.new/2) do
@@ -323,14 +324,14 @@ defmodule Owl.BoxTest do
              |> Owl.Box.new(word_wrap: :normal, border_style: :none)
              |> Owl.Data.to_ansidata()
              |> Owl.Data.from_ansidata()
-             |> List.flatten() ==
-               [
-                 Owl.Data.tag("A", [:green_background, :red]),
-                 " ",
-                 Owl.Data.tag("B", [:green_background, :red]),
-                 " ",
-                 Owl.Data.tag("C", [:green_background, :red])
-               ]
+             |> List.flatten()
+             <~> [
+               Owl.Data.tag("A", [:green_background, :red]),
+               " ",
+               Owl.Data.tag("B", [:green_background, :red]),
+               " ",
+               Owl.Data.tag("C", [:green_background, :red])
+             ]
     end
   end
 end

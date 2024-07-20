@@ -5,7 +5,7 @@ defmodule Owl.Box do
 
   @title_padding_left 1
   @title_padding_right 4
-  @doc """
+  @doc ~S"""
   Wraps data into a box.
 
   ## Options
@@ -43,7 +43,7 @@ defmodule Owl.Box do
       └───────────┘
       \""" |> String.trim_trailing()
 
-      iex> "Hello\\nworld!"
+      iex> "Hello\nworld!"
       ...> |> Owl.Box.new(
       ...>   title: "Greeting!",
       ...>   min_width: 20,
@@ -124,7 +124,7 @@ defmodule Owl.Box do
       \e[36m└─────────┘\e[39m\e[0m
       \""" |> String.trim_trailing()
 
-      iex> "Hello\\nworld!"
+      iex> "Hello\nworld!"
       ...> |> Owl.Box.new(
       ...>   min_width: 20,
       ...>   horizontal_align: :center,
@@ -140,7 +140,7 @@ defmodule Owl.Box do
       \e[36m╚\e[39m\e[36m══════════════════\e[39m\e[36m╝\e[39m\e[0m
       \""" |> String.trim_trailing()
 
-      iex> "Hello\\nworld!"
+      iex> "Hello\nworld!"
       ...> |> Owl.Box.new(
       ...>   title: "Greeting!",
       ...>   min_width: 20,

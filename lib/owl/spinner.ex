@@ -120,7 +120,7 @@ defmodule Owl.Spinner do
       )
       => {:error, :oops}
   """
-  @spec run(process_function :: (() -> :ok | :error | {:ok, value} | {:error, reason}),
+  @spec run(process_function :: (-> :ok | :error | {:ok, value} | {:error, reason}),
           refresh_every: non_neg_integer(),
           frames: [ok: frame(), error: frame(), processing: [frame()]],
           labels: [

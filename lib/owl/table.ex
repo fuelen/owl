@@ -3,7 +3,7 @@ defmodule Owl.Table do
   Allows drawing awesome tables.
   """
 
-  @doc """
+  @doc ~S"""
   Draws a table.
 
   Accepts a list of maps, where each map represents a row.
@@ -19,7 +19,7 @@ defmodule Owl.Table do
   Options in case of a keyword list:
     * `:header` - sets a function to render header cell. Defaults to `&Function.identity/1`.
     * `:body` - sets a function to render body cell. Defaults to `&Function.identity/1`.
-  * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. No sorter by default.
+  * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. Defaults to `:asc`.
   * `:max_column_widths` - sets max width for columns in symbols. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
   * `:max_width` - sets a maximum width of of the table in symbols including borders. Defaults to width of the terminal or `:infinity`, if a terminal is not available.
   * `:word_wrap` - sets the word wrapping mode. Can be `:break_word` or `:normal`. Defaults to `:break_word`. Ignored if `:truncate_lines` is `true`.
@@ -107,11 +107,7 @@ defmodule Owl.Table do
         filter_callback -> Enum.filter(columns, filter_callback)
       end
 
-    columns =
-      case Keyword.get(opts, :sort_columns) do
-        nil -> columns
-        sorter -> Enum.sort(columns, sorter)
-      end
+    columns = Enum.sort(columns, Keyword.get(opts, :sort_columns, :asc))
 
     padding_x = opts[:padding_x] || 0
     max_width = opts[:max_width] || Owl.IO.columns() || :infinity
