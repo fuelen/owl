@@ -4,7 +4,7 @@ defmodule Owl.System do
   """
 
   @doc """
-  Runs `command` as a daemon, executes `operation` and kills the daemon aftewards.
+  Runs `command` as a daemon, executes `operation` and kills the daemon afterwards.
 
   Automatically puts messages from `stderr` and `stdout` to `device` prepending them with `prefix`.
   Returns result of invoking `operation`.
