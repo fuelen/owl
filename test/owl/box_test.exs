@@ -321,15 +321,17 @@ defmodule Owl.BoxTest do
       # This test is present just to track this issue.
       assert "A B C"
              |> Owl.Data.tag([:red, :green_background])
-             |> Owl.Box.new(word_wrap: :normal, border_style: :none)
+             |> Owl.Box.new(word_wrap: :normal, border_style: :none, max_width: 80)
              |> Owl.Data.to_ansidata()
              |> Owl.Data.from_ansidata()
-             |> List.flatten()
              <~> [
-               Owl.Data.tag("A", [:green_background, :red]),
-               " ",
-               Owl.Data.tag("B", [:green_background, :red]),
-               " ",
+               [
+                 [
+                   [Owl.Data.tag("A", [:green_background, :red]), " "],
+                   Owl.Data.tag("B", [:green_background, :red])
+                 ],
+                 " "
+               ],
                Owl.Data.tag("C", [:green_background, :red])
              ]
     end
