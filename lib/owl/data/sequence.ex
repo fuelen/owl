@@ -29,6 +29,8 @@ defmodule Owl.Data.Sequence do
     case binary do
       "\e[38;5;" <> _ -> binary
       "\e[48;5;" <> _ -> binary
+      "\e[38;2;" <> _ -> binary
+      "\e[48;2;" <> _ -> binary
       _ -> name_by_sequence(binary)
     end
   end
@@ -48,6 +50,8 @@ defmodule Owl.Data.Sequence do
   def type!(sequence) when is_atom(sequence), do: type_by_name(sequence)
   def type!("\e[38;5;" <> _), do: :foreground
   def type!("\e[48;5;" <> _), do: :background
+  def type!("\e[38;2;" <> _), do: :foreground
+  def type!("\e[48;2;" <> _), do: :background
 
   @doc """
   Get the default value of a sequence type.

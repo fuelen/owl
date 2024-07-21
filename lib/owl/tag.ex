@@ -73,6 +73,40 @@ defmodule Owl.Tag do
       concat(["IO.ANSI.color_background(", to_doc(number, opts), ")"])
     end
 
+    defp inspect_sequence("\e[38;2;" <> rest, opts) do
+      [r, g, b] = String.split(rest, ";")
+      {r, ""} = Integer.parse(r)
+      {g, ""} = Integer.parse(g)
+      {b, "m"} = Integer.parse(b)
+
+      concat([
+        "Owl.TrueColor.color(",
+        to_doc(r, opts),
+        ",",
+        to_doc(g, opts),
+        ",",
+        to_doc(b, opts),
+        ")"
+      ])
+    end
+
+    defp inspect_sequence("\e[48;2;" <> rest, opts) do
+      [r, g, b] = String.split(rest, ";")
+      {r, ""} = Integer.parse(r)
+      {g, ""} = Integer.parse(g)
+      {b, "m"} = Integer.parse(b)
+
+      concat([
+        "Owl.TrueColor.color_background(",
+        to_doc(r, opts),
+        ",",
+        to_doc(g, opts),
+        ",",
+        to_doc(b, opts),
+        ")"
+      ])
+    end
+
     defp inspect_sequence(sequence, opts) do
       to_doc(sequence, opts)
     end
