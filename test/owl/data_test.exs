@@ -273,18 +273,18 @@ defmodule Owl.DataTest do
     end
   end
 
-  test inspect(&Owl.Data.to_ansidata/1) do
-    assert Owl.Data.to_ansidata(["1", "2", ["3", "4"], "5"]) == [
+  test inspect(&Owl.Data.to_chardata/1) do
+    assert Owl.Data.to_chardata(["1", "2", ["3", "4"], "5"]) == [
              [[[[[], "1"], "2"], "3"], "4"],
              "5"
            ]
 
-    assert Owl.Data.to_ansidata(Owl.Data.tag("Hello", :red)) == [
+    assert Owl.Data.to_chardata(Owl.Data.tag("Hello", :red)) == [
              [[[[] | "\e[31m"], "Hello"] | "\e[39m"] | "\e[0m"
            ]
 
     assert to_string(
-             Owl.Data.to_ansidata([
+             Owl.Data.to_chardata([
                Owl.Data.tag(
                  [
                    Owl.Data.tag("prefix: ", [:red_background, :yellow]),
@@ -302,93 +302,93 @@ defmodule Owl.DataTest do
              "\e[31m\e[33m\e[41mprefix: \e[49m\e[31mHello\e[33m inner \e[31m world\e[39m\e[34m!!!\e[39m!!\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata([Owl.Data.tag("#", :red), Owl.Data.tag("#", :red)]) == [
+    assert Owl.Data.to_chardata([Owl.Data.tag("#", :red), Owl.Data.tag("#", :red)]) == [
              [[[[[[[] | "\e[31m"], "#"] | "\e[39m"] | "\e[31m"], "#"] | "\e[39m"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :blink_slow), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :blink_slow), "!"]) == [
              [[[[[[], "Hello "] | "\e[5m"], "world"] | "\e[25m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :blink_rapid), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :blink_rapid), "!"]) == [
              [[[[[[], "Hello "] | "\e[6m"], "world"] | "\e[25m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :faint), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :faint), "!"]) == [
              [[[[[[], "Hello "] | "\e[2m"], "world"] | "\e[22m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :bright), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :bright), "!"]) == [
              [[[[[[], "Hello "] | "\e[1m"], "world"] | "\e[22m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :inverse), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :inverse), "!"]) == [
              [[[[[[], "Hello "] | "\e[7m"], "world"] | "\e[27m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :underline), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :underline), "!"]) == [
              [[[[[[], "Hello "] | "\e[4m"], "world"] | "\e[24m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :italic), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :italic), "!"]) == [
              [[[[[[], "Hello "] | "\e[3m"], "world"] | "\e[23m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :overlined), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :overlined), "!"]) == [
              [[[[[[], "Hello "] | "\e[53m"], "world"] | "\e[55m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :reverse), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :reverse), "!"]) == [
              [[[[[[], "Hello "] | "\e[7m"], "world"] | "\e[27m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :light_red), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :light_red), "!"]) == [
              [[[[[[], "Hello "] | "\e[91m"], "world"] | "\e[39m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :light_red_background), "!"]) ==
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :light_red_background), "!"]) ==
              [[[[[[[], "Hello "] | "\e[101m"], "world"] | "\e[49m"], "!"] | "\e[0m"]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :default_color), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :default_color), "!"]) == [
              [[[[[[], "Hello "] | "\e[39m"], "world"] | "\e[39m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", :default_background), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :default_background), "!"]) == [
              [[[[[[], "Hello "] | "\e[49m"], "world"] | "\e[49m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata(["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]) == [
+    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]) == [
              [[[[[[], "Hello "], "\e[38;5;161m"], "world"] | "\e[39m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_ansidata([
+    assert Owl.Data.to_chardata([
              "Hello ",
              Owl.Data.tag("world", IO.ANSI.color_background(161)),
              "!"
            ]) == [[[[[[[], "Hello "], "\e[48;5;161m"], "world"] | "\e[49m"], "!"] | "\e[0m"]
 
-    assert Owl.Data.to_ansidata([Owl.Data.tag([Owl.Data.tag("Hello ", :red), " world"], :red)]) ==
+    assert Owl.Data.to_chardata([Owl.Data.tag([Owl.Data.tag("Hello ", :red), " world"], :red)]) ==
              [[[[[[[] | "\e[31m"] | "\e[31m"], "Hello "], " world"] | "\e[39m"] | "\e[0m"]
   end
 
-  describe inspect(&Owl.Data.from_ansidata/1) do
-    test "converting to ansidata and back" do
-      assert to_from_ansidata(Owl.Data.tag("Hello", :red)) ==
+  describe inspect(&Owl.Data.from_chardata/1) do
+    test "converting to chardata and back" do
+      assert to_from_chardata(Owl.Data.tag("Hello", :red)) ==
                Owl.Data.tag("Hello", :red)
 
-      assert to_from_ansidata(Owl.Data.tag(["Hello", ?!], :red)) ==
+      assert to_from_chardata(Owl.Data.tag(["Hello", ?!], :red)) ==
                Owl.Data.tag(["Hello", "!"], :red)
 
-      assert to_from_ansidata([Owl.Data.tag("Hello", :red), ?!]) ==
+      assert to_from_chardata([Owl.Data.tag("Hello", :red), ?!]) ==
                [Owl.Data.tag("Hello", :red), "!"]
 
-      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", :underline), "!"]) ==
+      assert to_from_chardata(["Hello ", Owl.Data.tag("world", :underline), "!"]) ==
                [["Hello ", Owl.Data.tag("world", :underline)], "!"]
 
-      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", [:red, :underline]), "!"])
+      assert to_from_chardata(["Hello ", Owl.Data.tag("world", [:red, :underline]), "!"])
              <~> [["Hello ", Owl.Data.tag("world", [:red, :underline])], "!"]
 
-      assert to_from_ansidata(
+      assert to_from_chardata(
                Owl.Data.tag(["Hello, ", Owl.Data.tag("world", :underline), "!"], :red)
              )
              <~> [
@@ -396,16 +396,16 @@ defmodule Owl.DataTest do
                Owl.Data.tag("!", :red)
              ]
 
-      assert to_from_ansidata(["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]) ==
+      assert to_from_chardata(["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]) ==
                [["Hello ", Owl.Data.tag("world", "\e[38;5;161m")], "!"]
 
-      assert to_from_ansidata([
+      assert to_from_chardata([
                "Hello ",
                Owl.Data.tag("world", IO.ANSI.color_background(161)),
                "!"
              ]) == [["Hello ", Owl.Data.tag("world", "\e[48;5;161m")], "!"]
 
-      assert to_from_ansidata([
+      assert to_from_chardata([
                Owl.Data.tag(
                  [
                    Owl.Data.tag("prefix: ", [:red_background, :yellow]),
@@ -436,13 +436,13 @@ defmodule Owl.DataTest do
              ]
     end
 
-    test "converts ansidata highlighted using Inspect.Algebra" do
-      ansidata =
+    test "converts chardata highlighted using Inspect.Algebra" do
+      chardata =
         [foo: 1, bar: "two"]
         |> Inspect.Algebra.to_doc(Inspect.Opts.new(syntax_colors: IO.ANSI.syntax_colors()))
         |> Inspect.Algebra.format(:infinity)
 
-      assert Owl.Data.from_ansidata(ansidata) == [
+      assert Owl.Data.from_chardata(chardata) == [
                "[",
                [
                  "",
@@ -469,28 +469,28 @@ defmodule Owl.DataTest do
              ]
     end
 
-    test "converts ansidata fragments" do
-      assert [:red, "Hello"] |> IO.ANSI.format_fragment() |> Owl.Data.from_ansidata() ==
+    test "converts chardata fragments" do
+      assert [:red, "Hello"] |> IO.ANSI.format_fragment() |> Owl.Data.from_chardata() ==
                Owl.Data.tag("Hello", :red)
 
       assert [:red, "Hello ", [:yellow, "world"]]
              |> IO.ANSI.format_fragment()
-             |> Owl.Data.from_ansidata() == [
+             |> Owl.Data.from_chardata() == [
                Owl.Data.tag("Hello ", :red),
                Owl.Data.tag("world", :yellow)
              ]
     end
 
     test "converts from charlists" do
-      assert Owl.Data.from_ansidata(["\e[31m", ~c"Hello"]) == Owl.Data.tag(~c"Hello", :red)
+      assert Owl.Data.from_chardata(["\e[31m", ~c"Hello"]) == Owl.Data.tag(~c"Hello", :red)
     end
 
     test "does not convert data concatenated with escape sequences" do
-      assert Owl.Data.from_ansidata(["\e[31mHello\e[0m"]) == "\e[31mHello\e[0m"
+      assert Owl.Data.from_chardata(["\e[31mHello\e[0m"]) == "\e[31mHello\e[0m"
     end
 
-    defp to_from_ansidata(tagged) do
-      tagged |> Owl.Data.to_ansidata() |> Owl.Data.from_ansidata()
+    defp to_from_chardata(tagged) do
+      tagged |> Owl.Data.to_chardata() |> Owl.Data.from_chardata()
     end
   end
 

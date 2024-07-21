@@ -56,7 +56,7 @@ defmodule Owl.Table do
       ...>   padding_x: 1,
       ...>   sort_columns: :desc
       ...> )
-      ...> |> Owl.Data.to_ansidata()
+      ...> |> Owl.Data.to_chardata()
       ...> |> to_string()
       \"""
       ╭──────────┬──────────╮

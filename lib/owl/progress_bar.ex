@@ -260,7 +260,7 @@ defmodule Owl.ProgressBar do
       ...>   partial_symbols: [Owl.Data.tag("-", :green), Owl.Data.tag("=", :blue)],
       ...>   empty_symbol: " ",
       ...>   screen_width: 40
-      ...> })|> Owl.Data.to_ansidata() |> to_string
+      ...> })|> Owl.Data.to_chardata() |> to_string()
       "Demo      [\e[34m=\e[39m                      ]   4%\e[0m"
 
       iex> Owl.ProgressBar.render(%{

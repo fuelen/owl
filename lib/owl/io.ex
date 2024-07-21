@@ -444,7 +444,7 @@ defmodule Owl.IO do
       rest -> puts(rest |> Enum.reverse() |> Owl.Data.unlines())
     end
 
-    prompt = Owl.Data.to_ansidata(last_row)
+    prompt = Owl.Data.to_chardata(last_row)
     pid = spawn_link(fn -> loop_prompt(prompt) end)
     ref = make_ref()
     value = IO.gets(prompt)
@@ -457,7 +457,7 @@ defmodule Owl.IO do
 
   defp gets(false = _secret, prompt) do
     prompt
-    |> Owl.Data.to_ansidata()
+    |> Owl.Data.to_chardata()
     |> IO.gets()
     |> normalize_gets_result()
   end
@@ -550,7 +550,7 @@ defmodule Owl.IO do
   """
   @spec puts(Owl.Data.t(), device :: IO.device()) :: :ok
   def puts(data, device \\ :stdio) do
-    data = Owl.Data.to_ansidata(data)
+    data = Owl.Data.to_chardata(data)
 
     IO.puts(device, data)
   end
@@ -599,7 +599,7 @@ defmodule Owl.IO do
       |> Keyword.merge(opts)
       |> Keyword.update(:label, nil, fn
         nil -> nil
-        value -> Owl.Data.to_ansidata(value)
+        value -> Owl.Data.to_chardata(value)
       end)
     )
   end

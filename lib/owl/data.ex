@@ -1,12 +1,12 @@
 defmodule Owl.Data do
   @moduledoc """
-  A set of functions for `t:iodata/0` with [tags](`Owl.Tag`).
+  A set of functions for `t:chardata/0` with [tags](`Owl.Tag`).
   """
 
   alias Owl.Data.Sequence
 
   @typedoc """
-  A recursive data type that is similar to `t:iodata/0`, but additionally supports `t:Owl.Tag.t/1`.
+  A recursive data type that is similar to `t:chardata/0`, but additionally supports `t:Owl.Tag.t/1`.
 
   Can be printed using `Owl.IO.puts/2`.
   """
@@ -94,7 +94,7 @@ defmodule Owl.Data do
       iex> ["Hello ", Owl.Data.tag("world", :red), ["!"]] |> Owl.Data.untag()
       ["Hello ", "world", ["!"]]
   """
-  @spec untag(t()) :: iodata()
+  @spec untag(t()) :: IO.chardata()
   def untag(data) when is_list(data) do
     Enum.map(data, &untag_child/1)
   end
@@ -227,8 +227,8 @@ defmodule Owl.Data do
       iex> ["first\\nsecond\\n", Owl.Data.tag("third\\nfourth", :red)]
       ...> |> Owl.Data.lines()
       ...> |> Owl.Data.unlines()
-      ...> |> Owl.Data.to_ansidata()
-      Owl.Data.to_ansidata(["first\\nsecond\\n", Owl.Data.tag("third\\nfourth", :red)])
+      ...> |> Owl.Data.to_chardata()
+      Owl.Data.to_chardata(["first\\nsecond\\n", Owl.Data.tag("third\\nfourth", :red)])
   """
   @spec unlines([t()]) :: [t()]
   def unlines(data) do
@@ -258,22 +258,27 @@ defmodule Owl.Data do
   end
 
   @doc ~S"""
-  Transforms data to `t:IO.ANSI.ansidata/0` format which can be consumed by `IO` module.
+  Transforms data to `t:chardata/0` format which can be consumed by `IO` module.
 
   ## Examples
 
-      iex> "hello" |> Owl.Data.tag(:red) |> Owl.Data.to_ansidata()
+      iex> "hello" |> Owl.Data.tag(:red) |> Owl.Data.to_chardata()
       [[[[[] | "\e[31m"], "hello"] | "\e[39m"] | "\e[0m"]
-
   """
-  @spec to_ansidata(t()) :: IO.ANSI.ansidata()
-  def to_ansidata(data) do
+  @spec to_chardata(t()) :: IO.chardata()
+  def to_chardata(data) do
     # combination of lines + unlines is needed in order to break background and do not spread it to the end of the line
     data
     |> lines()
     |> unlines()
     |> do_to_ansidata(%{})
     |> IO.ANSI.format()
+  end
+
+  @doc false
+  @deprecated "Use `Owl.Data.to_chardata/1` instead"
+  def to_ansidata(data) do
+    to_chardata(data)
   end
 
   defp do_to_ansidata(
@@ -309,11 +314,11 @@ defmodule Owl.Data do
   defp do_to_ansidata(term, _open_tags), do: term
 
   @doc ~S"""
-  Transforms data from `t:IO.ANSI.ansidata/0`, replacing raw escape sequences with tags (see `tag/2`).
+  Transforms chardata, replacing raw escape sequences with tags (see `tag/2`).
 
   This makes it possible to use data formatted outside of Owl with other Owl modules, like `Owl.Box`.
 
-  The `ansidata` passed to this function must contain escape sequences as separate binaries, not concatenated with other data.
+  The `data` passed to this function must contain escape sequences as separate binaries, not concatenated with other data.
   For instance, the following will work:
 
       iex> Owl.Data.from_ansidata(["\e[31m", "hello"])
@@ -326,16 +331,22 @@ defmodule Owl.Data do
 
   ## Examples
 
-      iex> [:red, "hello"] |> IO.ANSI.format() |> Owl.Data.from_ansidata()
+      iex> [:red, "hello"] |> IO.ANSI.format() |> Owl.Data.from_chardata()
       Owl.Data.tag("hello", :red)
   """
-  @spec from_ansidata(IO.ANSI.ansidata()) :: t()
-  def from_ansidata(ansidata) do
-    {data, _open_tags} = do_from_ansidata(ansidata, %{})
+  @spec from_chardata(IO.chardata()) :: t()
+  def from_chardata(data) do
+    {data, _open_tags} = do_from_chardata(data, %{})
     data
   end
 
-  defp do_from_ansidata(binary, open_tags) when is_binary(binary) do
+  @doc false
+  @deprecated "Use `Owl.Data.from_chardata/1` instead"
+  def from_ansidata(data) do
+    from_chardata(data)
+  end
+
+  defp do_from_chardata(binary, open_tags) when is_binary(binary) do
     case Sequence.ansi_to_type(binary) do
       :reset ->
         {[], %{}}
@@ -348,21 +359,21 @@ defmodule Owl.Data do
     end
   end
 
-  defp do_from_ansidata(integer, open_tags) when is_integer(integer) do
+  defp do_from_chardata(integer, open_tags) when is_integer(integer) do
     {tag_all(integer, open_tags), open_tags}
   end
 
-  defp do_from_ansidata([], open_tags) do
+  defp do_from_chardata([], open_tags) do
     {[], open_tags}
   end
 
-  defp do_from_ansidata([inner], open_tags) do
-    do_from_ansidata(inner, open_tags)
+  defp do_from_chardata([inner], open_tags) do
+    do_from_chardata(inner, open_tags)
   end
 
-  defp do_from_ansidata([head | tail], open_tags) do
-    {head, open_tags} = do_from_ansidata(head, open_tags)
-    {tail, open_tags} = do_from_ansidata(tail, open_tags)
+  defp do_from_chardata([head | tail], open_tags) do
+    {head, open_tags} = do_from_chardata(head, open_tags)
+    {tail, open_tags} = do_from_chardata(tail, open_tags)
 
     case {head, tail} do
       {[], _} ->

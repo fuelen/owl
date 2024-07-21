@@ -501,9 +501,9 @@ defmodule Owl.TableTest do
     table = Owl.Table.new(rows, opts)
     expected_result = String.trim_trailing(expected_result, "\n")
 
-    assert table |> Owl.Data.to_ansidata() |> to_string() == expected_result,
+    assert table |> Owl.Data.to_chardata() |> to_string() == expected_result,
            to_string(
-             Owl.Data.to_ansidata([
+             Owl.Data.to_chardata([
                "Tables do not match\n",
                Owl.Data.tag("result:", :cyan),
                "\n",

@@ -304,8 +304,8 @@ defmodule Owl.BoxTest do
 
       assert [Owl.Data.tag("Hi there!", :red), " Hi", [Owl.Data.tag("!!!", :green)]]
              |> Owl.Box.new(max_width: 6, word_wrap: :normal, border_style: :none)
-             |> Owl.Data.to_ansidata()
-             |> Owl.Data.from_ansidata()
+             |> Owl.Data.to_chardata()
+             |> Owl.Data.from_chardata()
              |> List.flatten() == [
                Owl.Data.tag("Hi", :red),
                "    ",
@@ -322,8 +322,8 @@ defmodule Owl.BoxTest do
       assert "A B C"
              |> Owl.Data.tag([:red, :green_background])
              |> Owl.Box.new(word_wrap: :normal, border_style: :none, max_width: 80)
-             |> Owl.Data.to_ansidata()
-             |> Owl.Data.from_ansidata()
+             |> Owl.Data.to_chardata()
+             |> Owl.Data.from_chardata()
              <~> [
                [
                  [

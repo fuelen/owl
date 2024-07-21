@@ -104,7 +104,7 @@ defmodule Owl.Box do
       ...> |> Owl.Data.tag(:green)
       ...> |> Owl.Box.new(title: Owl.Data.tag("Red!", :red))
       ...> |> Owl.Data.tag(:cyan)
-      ...> |> Owl.Data.to_ansidata()
+      ...> |> Owl.Data.to_chardata()
       ...> |> to_string()
       \"""
       \e[36m┌─\e[31mRed!\e[36m────┐\e[39m
@@ -116,7 +116,7 @@ defmodule Owl.Box do
       ...> |> Owl.Data.tag(:green)
       ...> |> Owl.Box.new(title: Owl.Data.tag("Red!", :red))
       ...> |> Owl.Data.tag(:cyan)
-      ...> |> Owl.Data.to_ansidata()
+      ...> |> Owl.Data.to_chardata()
       ...> |> to_string()
       \"""
       \e[36m┌─\e[31mRed!\e[36m────┐\e[39m
@@ -131,7 +131,7 @@ defmodule Owl.Box do
       ...>   border_style: :double,
       ...>   border_tag: :cyan
       ...> )
-      ...> |> Owl.Data.to_ansidata()
+      ...> |> Owl.Data.to_chardata()
       ...> |> to_string()
       \"""
       \e[36m╔\e[39m\e[36m══════════════════\e[39m\e[36m╗\e[39m
@@ -148,7 +148,7 @@ defmodule Owl.Box do
       ...>   border_style: :double,
       ...>   border_tag: :cyan
       ...> )
-      ...> |> Owl.Data.to_ansidata()
+      ...> |> Owl.Data.to_chardata()
       ...> |> to_string()
       \"""
       \e[36m╔\e[39m\e[36m═\e[39mGreeting!\e[36m════════\e[39m\e[36m╗\e[39m
