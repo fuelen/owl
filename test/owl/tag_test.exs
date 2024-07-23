@@ -13,6 +13,12 @@ defmodule Owl.TagTest do
     assert inspect(Owl.Data.tag("test", IO.ANSI.color_background(200))) ==
              ~s|Owl.Data.tag("test", IO.ANSI.color_background(200))|
 
-    assert inspect(Owl.Data.tag("test", IO.ANSI.red())) == ~s|Owl.Data.tag("test", "\\e[31m")|
+    assert inspect(Owl.Data.tag("test", Owl.TrueColor.color(200, 100, 50))) ==
+             ~s|Owl.Data.tag("test", Owl.TrueColor.color(200,100,50))|
+
+    assert inspect(Owl.Data.tag("test", Owl.TrueColor.color_background(200, 100, 50))) ==
+             ~s|Owl.Data.tag("test", Owl.TrueColor.color_background(200,100,50))|
+
+    assert inspect(Owl.Data.tag("test", IO.ANSI.red())) == ~S|Owl.Data.tag("test", "\e[31m")|
   end
 end

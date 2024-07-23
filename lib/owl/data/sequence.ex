@@ -1,4 +1,4 @@
-defmodule Owl.Data.Sequence.Helper do
+defmodule Owl.Data.Sequence.DSL do
   @moduledoc false
 
   defmacro defsequence_type(name, type, define_name_by_sequence? \\ true) do
@@ -20,27 +20,72 @@ end
 defmodule Owl.Data.Sequence do
   @moduledoc false
 
-  import Owl.Data.Sequence.Helper
+  import Owl.Data.Sequence.DSL
+
+  def split(string) do
+    with {:ok, attributes} <- extract_display_attributes(string) do
+      {:ok, chunk_attributes(attributes)}
+    end
+  end
+
+  defp extract_display_attributes("\e[" <> rest) do
+    rest
+    |> String.split(";")
+    |> Enum.reduce_while([], fn
+      substring, acc ->
+        case Integer.parse(substring) do
+          :error -> {:halt, :error}
+          {number, ""} -> {:cont, [number | acc]}
+          {number, "m"} -> {:cont, [number | acc]}
+          {_number, _rest} -> {:halt, :error}
+        end
+    end)
+    |> case do
+      :error -> :error
+      attributes -> {:ok, Enum.reverse(attributes)}
+    end
+  end
+
+  defp extract_display_attributes(_), do: :error
+
+  defp chunk_attributes(attributes) do
+    attributes
+    |> chunk_attributes([])
+    |> Enum.reverse()
+  end
+
+  defp chunk_attributes([lead_attribute, 5, n | tail], acc)
+       when lead_attribute in [38, 48] do
+    chunk_attributes(tail, ["\e[#{lead_attribute};5;#{n}m" | acc])
+  end
+
+  defp chunk_attributes([lead_attribute, 2, r, g, b | tail], acc)
+       when lead_attribute in [38, 48] do
+    chunk_attributes(tail, ["\e[#{lead_attribute};2;#{r};#{g};#{b}m" | acc])
+  end
+
+  defp chunk_attributes([head | tail], acc) do
+    chunk_attributes(tail, ["\e[#{head}m" | acc])
+  end
+
+  defp chunk_attributes([], acc) do
+    acc
+  end
 
   @doc """
-  Get the sequence name of an escape sequence or `nil` if not a sequence.
+  Try to convert binary sequence to a sequence name.
+
+  Returns binary if escape sequence is for colors.
+  Returns name as an atom if a sequence is supported.
+  Returns nil if the sequence is not supported.
   """
-  def ansi_to_name(binary) when is_binary(binary) do
+  def binary_to_name(binary) when is_binary(binary) do
     case binary do
       "\e[38;5;" <> _ -> binary
       "\e[48;5;" <> _ -> binary
       "\e[38;2;" <> _ -> binary
       "\e[48;2;" <> _ -> binary
       _ -> name_by_sequence(binary)
-    end
-  end
-
-  @doc """
-  Get the sequence type of an escape sequence or `nil` if not a sequence.
-  """
-  def ansi_to_type(binary) when is_binary(binary) do
-    if name = ansi_to_name(binary) do
-      type!(name)
     end
   end
 

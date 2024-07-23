@@ -306,16 +306,25 @@ defmodule Owl.DataTest do
              [[[[[[[] | "\e[31m"], "#"] | "\e[39m"] | "\e[31m"], "#"] | "\e[39m"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :blink_slow), "!"]) == [
-             [[[[[[], "Hello "] | "\e[5m"], "world"] | "\e[25m"], "!"] | "\e[0m"
+    assert Owl.Data.to_chardata(
+             Owl.Data.tag(["Hello ", Owl.Data.tag("world", :blink_off), "!"], :blink_slow)
+           ) == [
+             [[[[[[[[] | "\e[5m"], "Hello "] | "\e[25m"], "world"] | "\e[5m"], "!"] | "\e[25m"]
+             | "\e[0m"
            ]
 
-    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :blink_rapid), "!"]) == [
-             [[[[[[], "Hello "] | "\e[6m"], "world"] | "\e[25m"], "!"] | "\e[0m"
+    assert Owl.Data.to_chardata(
+             Owl.Data.tag(["Hello ", Owl.Data.tag("world", :blink_off), "!"], :blink_rapid)
+           ) == [
+             [[[[[[[[] | "\e[6m"], "Hello "] | "\e[25m"], "world"] | "\e[6m"], "!"] | "\e[25m"]
+             | "\e[0m"
            ]
 
-    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :faint), "!"]) == [
-             [[[[[[], "Hello "] | "\e[2m"], "world"] | "\e[22m"], "!"] | "\e[0m"
+    assert Owl.Data.to_chardata(
+             Owl.Data.tag(["Hello ", Owl.Data.tag("world", :normal), "!"], :faint)
+           ) == [
+             [[[[[[[[] | "\e[2m"], "Hello "] | "\e[22m"], "world"] | "\e[2m"], "!"] | "\e[22m"]
+             | "\e[0m"
            ]
 
     assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :bright), "!"]) == [
@@ -330,12 +339,18 @@ defmodule Owl.DataTest do
              [[[[[[], "Hello "] | "\e[4m"], "world"] | "\e[24m"], "!"] | "\e[0m"
            ]
 
-    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :italic), "!"]) == [
-             [[[[[[], "Hello "] | "\e[3m"], "world"] | "\e[23m"], "!"] | "\e[0m"
+    assert Owl.Data.to_chardata(
+             Owl.Data.tag(["Hello ", Owl.Data.tag("world", :not_italic), "!"], :italic)
+           ) == [
+             [[[[[[[[] | "\e[3m"], "Hello "] | "\e[23m"], "world"] | "\e[3m"], "!"] | "\e[23m"]
+             | "\e[0m"
            ]
 
-    assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :overlined), "!"]) == [
-             [[[[[[], "Hello "] | "\e[53m"], "world"] | "\e[55m"], "!"] | "\e[0m"
+    assert Owl.Data.to_chardata(
+             Owl.Data.tag(["Hello ", Owl.Data.tag("world", :not_overlined), "!"], :overlined)
+           ) == [
+             [[[[[[[[] | "\e[53m"], "Hello "] | "\e[55m"], "world"] | "\e[53m"], "!"] | "\e[55m"]
+             | "\e[0m"
            ]
 
     assert Owl.Data.to_chardata(["Hello ", Owl.Data.tag("world", :reverse), "!"]) == [
@@ -377,33 +392,37 @@ defmodule Owl.DataTest do
                Owl.Data.tag("Hello", :red)
 
       assert to_from_chardata(Owl.Data.tag(["Hello", ?!], :red)) ==
-               Owl.Data.tag(["Hello", "!"], :red)
+               Owl.Data.tag("Hello!", :red)
 
       assert to_from_chardata([Owl.Data.tag("Hello", :red), ?!]) ==
                [Owl.Data.tag("Hello", :red), "!"]
 
+      assert to_from_chardata([Owl.Data.tag("Hello", :red), Owl.Data.tag("?!", :red)]) ==
+               Owl.Data.tag(["Hello", "?!"], :red)
+
       assert to_from_chardata(["Hello ", Owl.Data.tag("world", :underline), "!"]) ==
-               [["Hello ", Owl.Data.tag("world", :underline)], "!"]
+               ["Hello ", Owl.Data.tag("world", :underline), "!"]
 
       assert to_from_chardata(["Hello ", Owl.Data.tag("world", [:red, :underline]), "!"])
-             <~> [["Hello ", Owl.Data.tag("world", [:red, :underline])], "!"]
+             <~> ["Hello ", Owl.Data.tag("world", [:underline, :red]), "!"]
 
       assert to_from_chardata(
                Owl.Data.tag(["Hello, ", Owl.Data.tag("world", :underline), "!"], :red)
              )
              <~> [
-               [Owl.Data.tag("Hello, ", :red), Owl.Data.tag("world", [:red, :underline])],
+               Owl.Data.tag("Hello, ", :red),
+               Owl.Data.tag("world", [:underline, :red]),
                Owl.Data.tag("!", :red)
              ]
 
       assert to_from_chardata(["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]) ==
-               [["Hello ", Owl.Data.tag("world", "\e[38;5;161m")], "!"]
+               ["Hello ", Owl.Data.tag("world", IO.ANSI.color(161)), "!"]
 
       assert to_from_chardata([
                "Hello ",
                Owl.Data.tag("world", IO.ANSI.color_background(161)),
                "!"
-             ]) == [["Hello ", Owl.Data.tag("world", "\e[48;5;161m")], "!"]
+             ]) == ["Hello ", Owl.Data.tag("world", IO.ANSI.color_background(161)), "!"]
 
       assert to_from_chardata([
                Owl.Data.tag(
@@ -419,20 +438,27 @@ defmodule Owl.DataTest do
                "!!"
              ])
              <~> [
-               [
-                 [
-                   [
-                     [
-                       Owl.Data.tag("prefix: ", [:red_background, :yellow]),
-                       Owl.Data.tag("Hello", :red)
-                     ],
-                     Owl.Data.tag(" inner ", :yellow)
-                   ],
-                   Owl.Data.tag(" world", :red)
-                 ],
-                 Owl.Data.tag("!!!", :blue)
-               ],
+               Owl.Data.tag("prefix: ", [:red_background, :yellow]),
+               Owl.Data.tag("Hello", :red),
+               Owl.Data.tag(" inner ", :yellow),
+               Owl.Data.tag(" world", :red),
+               Owl.Data.tag("!!!", :blue),
                "!!"
+             ]
+
+      assert to_from_chardata([
+               Owl.Data.tag("#", Owl.TrueColor.color(253, 151, 31)),
+               Owl.Data.tag(" ", Owl.TrueColor.color(253, 151, 31)),
+               Owl.Data.tag("Owl", Owl.TrueColor.color(253, 151, 31)),
+               "\n",
+               Owl.Data.tag("[", Owl.TrueColor.color(255, 255, 255)),
+               Owl.Data.tag("![", Owl.TrueColor.color(255, 255, 255)),
+               Owl.Data.tag("CI Status", Owl.TrueColor.color(255, 255, 255)),
+               Owl.Data.tag("]", Owl.TrueColor.color(255, 255, 255))
+             ]) == [
+               Owl.Data.tag(["#", " ", "Owl"], Owl.TrueColor.color(253, 151, 31)),
+               "\n",
+               Owl.Data.tag(["[", "![", "CI Status", "]"], Owl.TrueColor.color(255, 255, 255))
              ]
     end
 
@@ -444,28 +470,15 @@ defmodule Owl.DataTest do
 
       assert Owl.Data.from_chardata(chardata) == [
                "[",
-               [
-                 "",
-                 [
-                   Owl.Data.tag("foo:", :cyan),
-                   [
-                     " ",
-                     [
-                       Owl.Data.tag("1", :yellow),
-                       [
-                         ",",
-                         [
-                           " ",
-                           [
-                             Owl.Data.tag("bar:", :cyan),
-                             [" ", [Owl.Data.tag("\"two\"", :green), ["", "]"]]]
-                           ]
-                         ]
-                       ]
-                     ]
-                   ]
-                 ]
-               ]
+               Owl.Data.tag("foo:", :cyan),
+               " ",
+               Owl.Data.tag("1", :yellow),
+               ",",
+               " ",
+               Owl.Data.tag("bar:", :cyan),
+               " ",
+               Owl.Data.tag("\"two\"", :green),
+               "]"
              ]
     end
 
@@ -482,11 +495,44 @@ defmodule Owl.DataTest do
     end
 
     test "converts from charlists" do
-      assert Owl.Data.from_chardata(["\e[31m", ~c"Hello"]) == Owl.Data.tag(~c"Hello", :red)
+      assert Owl.Data.from_chardata(["\e[31m", ~c"Hello"]) == Owl.Data.tag("Hello", :red)
     end
 
-    test "does not convert data concatenated with escape sequences" do
-      assert Owl.Data.from_chardata(["\e[31mHello\e[0m"]) == "\e[31mHello\e[0m"
+    test "convert data concatenated with escape sequences" do
+      assert Owl.Data.from_chardata(["\e[31mHello\e[0m"]) == Owl.Data.tag("Hello", :red)
+    end
+
+    test "split multiple attributes" do
+      assert Owl.Data.from_chardata("\e[31;42mHello\e[0m")
+             <~> Owl.Data.tag("Hello", [:red, :green_background])
+
+      assert Owl.Data.from_chardata("\e[4;38;2;166;226;46;48;2;33;39;112mHello\e[0m")
+             <~> Owl.Data.tag("Hello", [
+               :underline,
+               Owl.TrueColor.color(166, 226, 46),
+               Owl.TrueColor.color_background(33, 39, 112)
+             ])
+    end
+
+    test "don't treat incompleted sequence as valid" do
+      assert Owl.Data.from_chardata("\e[31iHello") == "\e[31iHello"
+      assert Owl.Data.from_chardata("\e[31Hello") == "\e[31Hello"
+
+      # letter is not a valid code
+      assert Owl.Data.from_chardata("\e[31;X;45mHello\e[0m") == "\e[31;X;45mHello"
+    end
+
+    test "ignore unsupported display attributes" do
+      # 74 is a valid code according to wiki, but rarely supported
+      # https://en.wikipedia.org/wiki/ANSI_escape_code
+      # and we don't support it as well
+      assert Owl.Data.from_chardata("\e[31;74;45mHello\e[0m")
+             <~> Owl.Data.tag("Hello", [:magenta_background, :red])
+    end
+
+    test "no content" do
+      assert Owl.Data.from_chardata("") == []
+      assert Owl.Data.from_chardata("\e[31m") == []
     end
 
     defp to_from_chardata(tagged) do

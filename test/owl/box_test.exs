@@ -308,11 +308,9 @@ defmodule Owl.BoxTest do
              |> Owl.Data.from_chardata()
              |> List.flatten() == [
                Owl.Data.tag("Hi", :red),
-               "    ",
-               "\n",
+               "    \n",
                Owl.Data.tag("there!", :red),
-               "\n",
-               "Hi",
+               "\nHi",
                Owl.Data.tag("!!!", :green),
                " "
              ]
@@ -325,13 +323,10 @@ defmodule Owl.BoxTest do
              |> Owl.Data.to_chardata()
              |> Owl.Data.from_chardata()
              <~> [
-               [
-                 [
-                   [Owl.Data.tag("A", [:green_background, :red]), " "],
-                   Owl.Data.tag("B", [:green_background, :red])
-                 ],
-                 " "
-               ],
+               Owl.Data.tag("A", [:green_background, :red]),
+               " ",
+               Owl.Data.tag("B", [:green_background, :red]),
+               " ",
                Owl.Data.tag("C", [:green_background, :red])
              ]
     end

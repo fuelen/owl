@@ -318,24 +318,25 @@ defmodule Owl.Data do
 
   This makes it possible to use data formatted outside of Owl with other Owl modules, like `Owl.Box`.
 
-  The `data` passed to this function must contain escape sequences as separate binaries, not concatenated with other data.
-  For instance, the following will work:
-
-      iex> Owl.Data.from_ansidata(["\e[31m", "hello"])
-      Owl.Data.tag("hello", :red)
-
-  Whereas this will not:
-
-      iex> Owl.Data.from_ansidata("\e[31mhello")
-      "\e[31mhello"
-
   ## Examples
 
       iex> [:red, "hello"] |> IO.ANSI.format() |> Owl.Data.from_chardata()
       Owl.Data.tag("hello", :red)
+
+      іex> {output, 0} = Owl.System.cmd("bat", ["README.md", "--color=always", "--style=plain"])
+      ...> output
+      ...> |> Owl.Data.from_chardata()
+      ...> |> Owl.Box.new(title: Owl.Data.tag("README.md", :cyan), border_tag: :light_cyan)
+      ...> |> Owl.IO.puts()
   """
   @spec from_chardata(IO.chardata()) :: t()
   def from_chardata(data) do
+    data =
+      Regex.split(~r/\e\[(\d+;)*\d+m/, IO.chardata_to_string(data),
+        include_captures: true,
+        trim: true
+      )
+
     {data, _open_tags} = do_from_chardata(data, %{})
     data
   end
@@ -347,20 +348,22 @@ defmodule Owl.Data do
   end
 
   defp do_from_chardata(binary, open_tags) when is_binary(binary) do
-    case Sequence.ansi_to_type(binary) do
-      :reset ->
-        {[], %{}}
+    case Owl.Data.Sequence.split(binary) do
+      {:ok, sequences} ->
+        open_tags =
+          Enum.reduce(sequences, open_tags, fn sequence, acc ->
+            case Sequence.binary_to_name(sequence) do
+              nil -> acc
+              :reset -> %{}
+              name -> update_open_tags(acc, Sequence.type!(name), name)
+            end
+          end)
 
-      nil ->
+        {[], open_tags}
+
+      :error ->
         {tag_all(binary, open_tags), open_tags}
-
-      type ->
-        {[], update_open_tags(open_tags, type, Sequence.ansi_to_name(binary))}
     end
-  end
-
-  defp do_from_chardata(integer, open_tags) when is_integer(integer) do
-    {tag_all(integer, open_tags), open_tags}
   end
 
   defp do_from_chardata([], open_tags) do
@@ -382,11 +385,30 @@ defmodule Owl.Data do
       {_, []} ->
         {head, open_tags}
 
-      {%Owl.Tag{data: head, sequences: s}, %Owl.Tag{data: tail, sequences: s}} ->
-        data = if is_list(tail), do: [head | tail], else: [head, tail]
+      {%Owl.Tag{data: p1, sequences: s}, %Owl.Tag{data: p2, sequences: s}} ->
+        data =
+          if is_list(p2) do
+            [p1 | p2]
+          else
+            [p1, p2]
+          end
+
         {tag(data, s), open_tags}
 
-      _ ->
+      {%Owl.Tag{data: p1, sequences: s}, [%Owl.Tag{data: p2, sequences: s} | rest]} ->
+        data =
+          if is_list(p2) do
+            [p1 | p2]
+          else
+            [p1, p2]
+          end
+
+        {[tag(data, s) | rest], open_tags}
+
+      {head, tail} when is_list(tail) ->
+        {[head | tail], open_tags}
+
+      {head, tail} ->
         {[head, tail], open_tags}
     end
   end
