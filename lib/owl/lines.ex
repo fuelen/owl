@@ -23,57 +23,80 @@ defmodule Owl.Lines do
   defp wrap_words(line, :normal, max_width) do
     line
     |> Owl.Data.split(" ")
-    |> Enum.flat_map_reduce(0, fn word, line_length ->
-      word_length = Owl.Data.length(word)
-      break_word? = word_length > max_width
+    |> Enum.intersperse(" ")
+    |> Enum.flat_map_reduce({0, false}, fn
+      %Owl.Tag{data: []}, acc ->
+        {[], acc}
 
-      cond do
-        break_word? ->
-          {line_length, pre} =
-            cond do
-              line_length == 0 -> {0, nil}
-              line_length == max_width -> {0, :break}
-              line_length + 1 == max_width -> {0, :break}
-              true -> {line_length, {:data, " "}}
+      [], acc ->
+        {[], acc}
+
+      word, {line_length, after_space?} ->
+        word_length = Owl.Data.length(word)
+        break_word? = word_length > max_width
+
+        cond do
+          break_word? ->
+            {line_length, pre} =
+              cond do
+                line_length == 0 -> {0, nil}
+                line_length == max_width -> {0, :break}
+                true -> {line_length, nil}
+              end
+
+            first_part_length = max_width - line_length
+            first_part = Owl.Data.slice(word, 0, first_part_length)
+
+            rest_parts =
+              Owl.Data.chunk_every(
+                Owl.Data.slice(word, first_part_length, word_length - first_part_length),
+                max_width
+              )
+
+            items =
+              Enum.map_intersperse([first_part | rest_parts], :break, fn data -> {:data, data} end)
+
+            line_length = List.last(rest_parts) |> Owl.Data.length()
+
+            if pre do
+              {[pre | items], {line_length, false}}
+            else
+              {items, {line_length, false}}
             end
 
-          first_part_length = max_width - if line_length == 0, do: 0, else: line_length + 1
-          first_part = Owl.Data.slice(word, 0, first_part_length)
+          word_length == max_width ->
+            if line_length == 0 do
+              {[{:data, word}, :break], {0, false}}
+            else
+              {[:break, {:data, word}, :break], {0, false}}
+            end
 
-          rest_parts =
-            Owl.Data.chunk_every(
-              Owl.Data.slice(word, first_part_length, word_length - first_part_length),
-              max_width
-            )
+          word_length + line_length > max_width ->
+            space? = word == " "
 
-          items =
-            Enum.map_intersperse([first_part | rest_parts], :break, fn data -> {:data, data} end)
+            if space? do
+              {[:break], {0, true}}
+            else
+              {[:break, {:data, word}], {word_length, false}}
+            end
 
-          line_length = List.last(rest_parts) |> Owl.Data.length()
+          true ->
+            space? = word == " "
 
-          if pre do
-            {[pre | items], line_length}
-          else
-            {items, line_length}
-          end
+            cond do
+              space? and line_length == 0 and not after_space? ->
+                {[], {0, true}}
 
-        word_length + 1 == max_width or word_length == max_width ->
-          if line_length == 0 do
-            {[{:data, word}, :break], 0}
-          else
-            {[:break, {:data, word}, :break], 0}
-          end
+              space? and after_space? ->
+                {[data: "  "], {line_length + 2, false}}
 
-        word_length + line_length + 1 > max_width ->
-          {[:break, {:data, word}], word_length}
+              space? and word_length + line_length == max_width ->
+                {[:break], {0, false}}
 
-        true ->
-          if line_length == 0 do
-            {[{:data, word}], word_length}
-          else
-            {[{:data, " "}, {:data, word}], word_length + line_length + 1}
-          end
-      end
+              true ->
+                {[{:data, word}], {word_length + line_length, false}}
+            end
+        end
     end)
     |> elem(0)
     |> Enum.chunk_by(fn item -> item == :break end)

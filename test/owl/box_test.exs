@@ -203,6 +203,32 @@ defmodule Owl.BoxTest do
         |> Owl.Data.lines()
       end
 
+      assert get_wrapped_lines.("Hello!  My name is Artur.", 2) == [
+               "He",
+               "ll",
+               "o!",
+               "  ",
+               "My",
+               "na",
+               "me",
+               "is",
+               "Ar",
+               "tu",
+               "r."
+             ]
+
+      assert get_wrapped_lines.("Hello!  My name is Artur.", 3) == [
+               "Hel",
+               "lo!",
+               "   ",
+               "My ",
+               "nam",
+               "e  ",
+               "is ",
+               "Art",
+               "ur."
+             ]
+
       assert get_wrapped_lines.("Hello! My name is Artur.", 2) == [
                "He",
                "ll",
@@ -280,21 +306,21 @@ defmodule Owl.BoxTest do
              ]
 
       assert get_wrapped_lines.("Hello! My name is Artur.", 11) == [
-               "Hello! My",
-               "name is  ",
-               "Artur.   "
+               "Hello! My ",
+               "name is   ",
+               "Artur.    "
              ]
 
       assert get_wrapped_lines.("Hello! My name is Artur.", 12) == [
-               "Hello! My",
-               "name is  ",
-               "Artur.   "
+               "Hello! My ",
+               "name is   ",
+               "Artur.    "
              ]
 
       assert get_wrapped_lines.("Hello! My name is Artur.", 13) == [
-               "Hello! My",
-               "name is  ",
-               "Artur.   "
+               "Hello! My ",
+               "name is   ",
+               "Artur.    "
              ]
 
       assert get_wrapped_lines.("Hello! My name is Artur.", 14) == [
@@ -328,6 +354,40 @@ defmodule Owl.BoxTest do
                Owl.Data.tag("B", [:green_background, :red]),
                " ",
                Owl.Data.tag("C", [:green_background, :red])
+             ]
+
+      assert [
+               "qwertyuiopasdfghjklzxcvbnm\n",
+               Owl.Data.tag("```", Owl.TrueColor.color(255, 255, 255)),
+               "\n",
+               Owl.Data.tag("   ,_,", Owl.TrueColor.color(255, 255, 255)),
+               "\n",
+               Owl.Data.tag("  {o,o}", Owl.TrueColor.color(255, 255, 255)),
+               "\n",
+               Owl.Data.tag("  /)  )", Owl.TrueColor.color(255, 255, 255)),
+               "\n",
+               Owl.Data.tag("---\"-\"--", Owl.TrueColor.color(255, 255, 255)),
+               "\n",
+               Owl.Data.tag("```", Owl.TrueColor.color(255, 255, 255))
+             ]
+             |> Owl.Box.new(word_wrap: :normal, max_width: 11)
+             |> Owl.Data.to_chardata()
+             |> Owl.Data.from_chardata() == [
+               "┌─────────┐\n│qwertyuio│\n│pasdfghjk│\n│lzxcvbnm │\n│",
+               Owl.Data.tag("```", Owl.TrueColor.color(255, 255, 255)),
+               "      │\n│   ",
+               Owl.Data.tag(",_,", Owl.TrueColor.color(255, 255, 255)),
+               "   │\n│  ",
+               Owl.Data.tag("{o,o}", Owl.TrueColor.color(255, 255, 255)),
+               "  │\n│  ",
+               Owl.Data.tag("/)", Owl.TrueColor.color(255, 255, 255)),
+               "  ",
+               Owl.Data.tag(")", Owl.TrueColor.color(255, 255, 255)),
+               "  │\n│",
+               Owl.Data.tag("---\"-\"--", Owl.TrueColor.color(255, 255, 255)),
+               " │\n│",
+               Owl.Data.tag("```", Owl.TrueColor.color(255, 255, 255)),
+               "      │\n└─────────┘"
              ]
     end
   end
