@@ -79,6 +79,29 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
+  Allows updating the device of the LiveScreen.
+
+  This is useful for example when using the Erlang SSH console.
+
+  ## Example
+      group_leader = Process.group_leader()
+
+      Owl.LiveScreen.set_device(group_leader)
+  """
+  @spec set_device(GenServer.server(), IO.device()) :: :ok
+  def set_device(server \\ __MODULE__, new_leader) do
+    GenServer.call(server, {:set_device, new_leader})
+  end
+
+  @doc """
+  Returns the current device used by the LiveScreen.
+  """
+  @spec get_device(GenServer.server()) :: IO.device()
+  def get_device(server \\ __MODULE__) do
+    GenServer.call(server, :get_device)
+  end
+
+  @doc """
   Redirects output from `:stdio` to `#{inspect(__MODULE__)}`.
 
   ## Example
@@ -282,6 +305,18 @@ defmodule Owl.LiveScreen do
   end
 
   @impl true
+  def handle_call({:set_device, new_device}, _, state) do
+    state = render(state)
+
+    state = init_state(state.terminal_width, state.refresh_every, new_device)
+
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:get_device, _, state) do
+    {:reply, state.device, state}
+  end
+
   def handle_call(:flush, _, state) do
     state = render(state)
 
