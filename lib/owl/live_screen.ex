@@ -89,8 +89,8 @@ defmodule Owl.LiveScreen do
       Owl.LiveScreen.set_device(group_leader)
   """
   @spec set_device(GenServer.server(), IO.device()) :: :ok
-  def set_device(server \\ __MODULE__, new_leader) do
-    GenServer.call(server, {:set_device, new_leader})
+  def set_device(server \\ __MODULE__, new_device) do
+    GenServer.call(server, {:set_device, new_device})
   end
 
   @doc """

@@ -100,4 +100,30 @@ defmodule Owl.LiveScreenTest do
       terminal_height: 5
     )
   end
+
+  test "set_device and get_device" do
+    terminal_width = 50
+    terminal_height = 20
+
+    device1 =
+      ExUnit.Callbacks.start_supervised!(
+        {VirtualLiveScreen.Device, pid: self(), columns: terminal_width, rows: terminal_height},
+        id: :device1
+      )
+
+    device2 =
+      ExUnit.Callbacks.start_supervised!(
+        {VirtualLiveScreen.Device, pid: self(), columns: terminal_width, rows: terminal_height},
+        id: :device2
+      )
+
+    live_screen_pid =
+      ExUnit.Callbacks.start_supervised!(
+        {Owl.LiveScreen, device: device1, terminal_width: terminal_width}
+      )
+
+    assert Owl.LiveScreen.get_device(live_screen_pid) == device1
+    assert Owl.LiveScreen.set_device(live_screen_pid, device2) == :ok
+    assert Owl.LiveScreen.get_device(live_screen_pid) == device2
+  end
 end
