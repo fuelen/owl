@@ -75,7 +75,7 @@ defmodule Owl.Palette do
     |> List.update_at(-1, fn codes ->
       Enum.concat(codes, List.duplicate("", 15))
     end)
-    |> List.zip()
+    |> Enum.zip()
     |> Enum.map(&Tuple.to_list/1)
     |> Enum.intersperse("\n")
   end
