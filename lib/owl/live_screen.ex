@@ -456,10 +456,20 @@ defmodule Owl.LiveScreen do
 
     {state, render_above_data, io_reply} = render_above(state)
 
-    {state, render_updated_blocks_data} =
-      rerender_updated_blocks(state, render_above_data != [], terminal_width)
+    # -1, because we need to leave one row for the last new line (cursor)
+    rows_left = Owl.IO.rows(state.device) - 1
 
-    {state, render_added_blocks_data} = render_added_blocks(state, terminal_width)
+    {state, render_added_blocks_data, rows_left} =
+      render_added_blocks(state, terminal_width, rows_left)
+
+    {state, render_updated_blocks_data} =
+      rerender_updated_blocks(state, render_above_data != [], terminal_width, rows_left)
+
+    state = %{
+      state
+      | blocks_to_add: [],
+        rendered_blocks: state.rendered_blocks ++ state.blocks_to_add
+    }
 
     data =
       [
@@ -482,7 +492,7 @@ defmodule Owl.LiveScreen do
     %{state | block_states: %{}, notify_on_next_render: []}
   end
 
-  defp get_content(state, block_id, terminal_width) do
+  defp get_content(state, block_id, terminal_width, rows_left) do
     case Map.fetch(state.block_states, block_id) do
       {:ok, block_state} ->
         block_content = state.render_functions[block_id].(block_state)
@@ -495,15 +505,71 @@ defmodule Owl.LiveScreen do
             line -> Owl.Data.chunk_every(line, terminal_width)
           end)
 
-        {
+        block_height = length(lines)
+
+        max_height = max(block_height, state.rendered_content_height[block_id][:max] || 0)
+        lines = lines ++ List.duplicate([], max_height - block_height)
+        block_height = max_height
+        new_rows_left = max(rows_left - block_height, 0)
+
+        content_height_to_render = rows_left - new_rows_left
+
+        lines_to_render =
+          lines
+          |> Enum.reverse()
+          |> Enum.slice(0, content_height_to_render)
+          |> Enum.reverse()
+
+        block_content =
           lines
           |> Enum.map(&[IO.ANSI.clear_line(), &1])
-          |> Owl.Data.unlines(),
-          length(lines)
+          |> Owl.Data.unlines()
+
+        content_to_render =
+          if content_height_to_render == block_height do
+            block_content
+          else
+            lines_to_render
+            |> Enum.map(&[IO.ANSI.clear_line(), &1])
+            |> Owl.Data.unlines()
+          end
+
+        %{
+          rendered_new_state?: true,
+          block_content: block_content,
+          block_height: block_height,
+          new_rows_left: new_rows_left,
+          content_to_render: content_to_render,
+          content_to_render_height: content_height_to_render
         }
 
       :error ->
-        {state.content[block_id], state.rendered_content_height[block_id]}
+        block_content = state.content[block_id]
+        block_height = state.rendered_content_height[block_id].max
+
+        new_rows_left = max(rows_left - block_height, 0)
+        content_height_to_render = rows_left - new_rows_left
+
+        content_to_render =
+          if content_height_to_render == block_height do
+            block_content
+          else
+            block_content
+            |> Owl.Data.lines()
+            |> Enum.reverse()
+            |> Enum.slice(0, content_height_to_render)
+            |> Enum.reverse()
+            |> Owl.Data.unlines()
+          end
+
+        %{
+          rendered_new_state?: false,
+          block_content: block_content,
+          block_height: block_height,
+          new_rows_left: new_rows_left,
+          content_to_render: content_to_render,
+          content_to_render_height: content_height_to_render
+        }
     end
   end
 
@@ -512,7 +578,7 @@ defmodule Owl.LiveScreen do
   defp render_above(%{put_above_blocks: []} = state), do: {state, [], &noop/0}
 
   defp render_above(%{put_above_blocks: put_above_blocks} = state) do
-    blocks_height = Enum.sum(Map.values(state.rendered_content_height))
+    blocks_height = Enum.sum_by(Map.values(state.rendered_content_height), & &1.rendered)
     data = Enum.reverse(put_above_blocks)
 
     cursor_up =
@@ -548,101 +614,153 @@ defmodule Owl.LiveScreen do
     List.duplicate([IO.ANSI.cursor_up(1), IO.ANSI.clear_line()], n)
   end
 
-  defp rerender_updated_blocks(state, rendered_above?, terminal_width) do
+  defp rerender_updated_blocks(state, rendered_above?, terminal_width, rows_left) do
     blocks_to_replace = Map.keys(state.block_states) -- state.blocks_to_add
 
     if not rendered_above? and Enum.empty?(blocks_to_replace) do
       {state, []}
     else
-      {content_blocks, %{total_height: total_height, state: state, next_offset: return_to_end}} =
+      {content_blocks, %{state: state}} =
         state.rendered_blocks
-        |> Enum.flat_map_reduce(
-          %{total_height: 0, next_offset: 0, force_rerender?: rendered_above?, state: state},
-          fn block_id,
+        |> Enum.reverse()
+        |> Enum.map_reduce(
+          %{state: state, rows_left: rows_left},
+          fn block_id, %{state: state, rows_left: rows_left} ->
+            %{
+              rendered_new_state?: rendered_new_state?,
+              block_content: block_content,
+              block_height: block_height,
+              new_rows_left: new_rows_left,
+              content_to_render: content_to_render,
+              content_to_render_height: content_to_render_height
+            } = get_content(state, block_id, terminal_width, rows_left)
+
+            {%{
+               height_diff:
+                 content_to_render_height - state.rendered_content_height[block_id].rendered,
+               content: content_to_render,
+               height: content_to_render_height,
+               rendered_new_state?: rendered_new_state?,
+               visible?: rows_left > 0
+             },
              %{
-               total_height: total_height,
-               next_offset: next_offset,
-               state: state,
-               force_rerender?: force_rerender?
-             } ->
-            if force_rerender? or block_id in blocks_to_replace do
-              {block_content, height} = get_content(state, block_id, terminal_width)
+               rows_left: new_rows_left,
+               state: %{
+                 state
+                 | rendered_content_height:
+                     Map.put(state.rendered_content_height, block_id, %{
+                       rendered: content_to_render_height,
+                       max: block_height
+                     }),
+                   content: Map.put(state.content, block_id, block_content)
+               }
+             }}
+          end
+        )
 
-              max_height = max(height, state.rendered_content_height[block_id])
+      content_blocks = Enum.reverse(content_blocks)
 
-              block_content = [
-                block_content,
-                List.duplicate(["\n", IO.ANSI.clear_line()], max_height - height)
-              ]
+      {content_blocks, %{total_height: total_height, next_offset: return_to_end}} =
+        Enum.flat_map_reduce(
+          content_blocks,
+          %{
+            content_above_increased_height?: rendered_above?,
+            next_offset: 0,
+            total_height: 0
+          },
+          fn block, acc ->
+            cond do
+              not block.visible? ->
+                {[], acc}
 
-              {[%{offset: next_offset, content: block_content}],
-               %{
-                 total_height: total_height + state.rendered_content_height[block_id],
-                 next_offset: 0,
-                 force_rerender?:
-                   force_rerender? || height > state.rendered_content_height[block_id],
-                 state: %{
-                   state
-                   | rendered_content_height:
-                       Map.put(state.rendered_content_height, block_id, max_height),
-                     content: Map.put(state.content, block_id, block_content)
-                 }
-               }}
-            else
-              height = state.rendered_content_height[block_id]
+              acc.content_above_increased_height? || block.height_diff > 0 ->
+                {[Map.put(block, :offset, acc.next_offset)],
+                 %{
+                   acc
+                   | content_above_increased_height?: true,
+                     next_offset: 0,
+                     total_height: block.height + acc.total_height - block.height_diff
+                 }}
 
-              {[],
-               %{
-                 total_height: total_height + height,
-                 next_offset: next_offset + height,
-                 state: state,
-                 force_rerender?: force_rerender?
-               }}
+              block.rendered_new_state? ->
+                {[Map.put(block, :offset, acc.next_offset)],
+                 %{
+                   acc
+                   | next_offset: 0,
+                     # - block.height_diff
+                     total_height: block.height + acc.total_height
+                 }}
+
+              acc.next_offset == 0 and acc.total_height == 0 ->
+                {[], acc}
+
+              true ->
+                {[],
+                 %{
+                   acc
+                   | next_offset: acc.next_offset + block.height,
+                     total_height: block.height + acc.total_height
+                 }}
             end
           end
         )
 
-      if content_blocks == [] do
-        {state, []}
-      else
-        data = [
-          if(rendered_above? or total_height == 0, do: [], else: IO.ANSI.cursor_up(total_height)),
-          content_blocks
-          |> Enum.map(fn
-            %{offset: 0, content: content} -> content
-            %{offset: offset, content: content} -> [IO.ANSI.cursor_down(offset), content]
-          end)
-          |> Owl.Data.unlines(),
-          if(return_to_end == 0, do: [], else: IO.ANSI.cursor_down(return_to_end))
-        ]
+      data =
+        if content_blocks == [] do
+          []
+        else
+          [
+            if(rendered_above?, do: [], else: IO.ANSI.cursor_up(total_height)),
+            content_blocks
+            |> Enum.map(fn
+              %{offset: 0, content: content} -> content
+              %{offset: offset, content: content} -> [IO.ANSI.cursor_down(offset), content]
+            end)
+            |> Owl.Data.unlines(),
+            if(return_to_end == 0, do: [], else: IO.ANSI.cursor_down(return_to_end))
+          ]
+        end
 
-        {state, data}
-      end
+      {state, data}
     end
   end
 
-  defp render_added_blocks(%{blocks_to_add: []} = state, _terminal_width), do: {state, []}
+  defp render_added_blocks(%{blocks_to_add: []} = state, _terminal_width, rows_left),
+    do: {state, [], rows_left}
 
-  defp render_added_blocks(state, terminal_width) do
-    {content_blocks, state} =
-      Enum.map_reduce(state.blocks_to_add, state, fn block_id, state ->
-        {block_content, height} = get_content(state, block_id, terminal_width)
+  defp render_added_blocks(state, terminal_width, rows_left) do
+    {content_blocks, {state, rows_left}} =
+      state.blocks_to_add
+      |> Enum.reverse()
+      |> Enum.flat_map_reduce({state, rows_left}, fn block_id, {state, rows_left} ->
+        %{
+          rendered_new_state?: true,
+          block_content: block_content,
+          block_height: block_height,
+          new_rows_left: rows_left,
+          content_to_render: content_to_render
+        } = get_content(state, block_id, terminal_width, rows_left)
 
-        {block_content,
-         %{
-           state
-           | rendered_content_height: Map.put(state.rendered_content_height, block_id, height),
-             content: Map.put(state.content, block_id, block_content)
-         }}
+        content =
+          if content_to_render == [] do
+            []
+          else
+            [content_to_render]
+          end
+
+        {content,
+         {%{
+            state
+            | rendered_content_height:
+                Map.put(state.rendered_content_height, block_id, %{
+                  max: block_height,
+                  rendered: block_height
+                }),
+              content: Map.put(state.content, block_id, block_content)
+          }, rows_left}}
       end)
 
-    state = %{
-      state
-      | blocks_to_add: [],
-        rendered_blocks: state.rendered_blocks ++ state.blocks_to_add
-    }
-
-    {state, Owl.Data.unlines(content_blocks)}
+    {state, Owl.Data.unlines(Enum.reverse(content_blocks)), rows_left}
   end
 
   defp empty_blocks_list?(state) do

@@ -8,7 +8,7 @@ defmodule Owl.LiveScreenTest do
     capture_frames(
       fn live_screen_pid, _render ->
         # await_render() is almost identical to render.(), but executes a bit longer in time
-        # In this test we won't use render function from callback in order to test await_render.
+        # In this test render function from callback is not used in order to test await_render.
 
         # await_render doesn't hang when timer is not enabled
         Owl.LiveScreen.await_render(live_screen_pid)
@@ -35,21 +35,46 @@ defmodule Owl.LiveScreenTest do
                          "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Ksecond\nput\n\n\e[2KFirst block:\n\e[2Kupdate #1\n"}
 
         block2 = make_ref()
-
-        Owl.LiveScreen.add_block(live_screen_pid, block2, state: "Second block:\nupdate #1\n\n")
+        Owl.LiveScreen.add_block(live_screen_pid, block2, state: "Second block:\nupdate #1\n")
 
         Owl.LiveScreen.await_render(live_screen_pid)
-        assert_received {:live_screen_frame, "\e[2KSecond block:\n\e[2Kupdate #1\n\e[2K\n\e[2K\n"}
+        assert_received {:live_screen_frame, "\e[2KSecond block:\n\e[2Kupdate #1\n\e[2K\n"}
+
+        Owl.LiveScreen.update(live_screen_pid, block2, "Second block:\nupdate #2\n\n")
+        Owl.LiveScreen.await_render(live_screen_pid)
+
+        assert_received {:live_screen_frame,
+                         "\e[3A\e[2KSecond block:\n\e[2Kupdate #2\n\e[2K\n\e[2K\n"}
+
         IO.puts(live_screen_pid, "third\nput")
 
         assert_received {:live_screen_frame,
-                         "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Kthird\nput\n\n\e[2KFirst block:\n\e[2Kupdate #1\n\e[2KSecond block:\n\e[2Kupdate #1\n\e[2K\n\e[2K\n"}
+                         "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Kthird\nput\n\n\e[2KFirst block:\n\e[2Kupdate #1\n\e[2KSecond block:\n\e[2Kupdate #2\n\e[2K\n\e[2K\n"}
 
-        Owl.LiveScreen.update(live_screen_pid, block2, "Second block\nupdate #2")
+        Owl.LiveScreen.update(live_screen_pid, block2, "Second block:\nupdate #3\n\n")
+        Owl.LiveScreen.await_render(live_screen_pid)
+
+        assert_received {:live_screen_frame,
+                         "\e[4A\e[2KSecond block:\n\e[2Kupdate #3\n\e[2K\n\e[2K\n"}
+
+        block3 = make_ref()
+        Owl.LiveScreen.add_block(live_screen_pid, block3, state: "Third block:\nupdate #1")
+        Owl.LiveScreen.await_render(live_screen_pid)
+        assert_received {:live_screen_frame, "\e[2KThird block:\n\e[2Kupdate #1\n"}
+
+        Owl.LiveScreen.update(live_screen_pid, block1, "First block:\nupdate #2")
+        Owl.LiveScreen.update(live_screen_pid, block3, "Third block:\nupdate #2")
+
+        Owl.LiveScreen.await_render(live_screen_pid)
+
+        assert_received {:live_screen_frame,
+                         "\e[8A\e[2KFirst block:\n\e[2Kupdate #2\n\e[4B\e[2KThird block:\n\e[2Kupdate #2\n"}
+
+        Owl.LiveScreen.update(live_screen_pid, block2, "Second block\nupdate #4")
         Owl.LiveScreen.flush(live_screen_pid)
 
         assert_received {:live_screen_frame,
-                         "\e[6A\e[2B\e[2KSecond block\n\e[2Kupdate #2\n\e[2K\n\e[2K\n"}
+                         "\e[6A\e[2KSecond block\n\e[2Kupdate #4\n\e[2K\n\e[2K\e[2B\n"}
 
         IO.puts(live_screen_pid, "new line")
         assert_received {:live_screen_frame, "new line\n\n"}
@@ -58,6 +83,77 @@ defmodule Owl.LiveScreenTest do
         refute_received {:live_screen_frame, _}
       end,
       terminal_width: @terminal_width
+    )
+  end
+
+  test "height of all blocks > height of the terminal" do
+    capture_frames(
+      fn live_screen_pid, render ->
+        block1 = make_ref()
+        Owl.LiveScreen.add_block(live_screen_pid, block1, state: "First block:\nupdate #1")
+
+        block2 = make_ref()
+        Owl.LiveScreen.add_block(live_screen_pid, block2, state: "Second block:\nupdate #1")
+
+        block3 = make_ref()
+        Owl.LiveScreen.add_block(live_screen_pid, block3, state: "Third block:\nupdate #1")
+        render.()
+
+        assert_received {:live_screen_frame,
+                         "\e[2KSecond block:\n\e[2Kupdate #1\n\e[2KThird block:\n\e[2Kupdate #1\n"}
+
+        Owl.LiveScreen.update(live_screen_pid, block1, "First block:\nupdate #1\nnew_line")
+        render.()
+
+        refute_received {:live_screen_frame, _}
+        Owl.LiveScreen.update(live_screen_pid, block2, "Second block:\nupdate #2\nnew_line")
+        render.()
+        assert_received {:live_screen_frame, "\e[4A\e[2Kupdate #2\n\e[2Knew_line\e[2B\n"}
+
+        Owl.LiveScreen.update(live_screen_pid, block2, "Second block:\nupdate #3\nnew_line")
+        Owl.LiveScreen.update(live_screen_pid, block3, "Third block:\nupdate #2\nnew_line")
+        render.()
+
+        assert_received {:live_screen_frame,
+                         "\e[3A\e[2Knew_line\n\e[2KThird block:\n\e[2Kupdate #2\n\e[2Knew_line\n"}
+
+        Owl.LiveScreen.update(live_screen_pid, block3, "1\n2\n3\n4\n5")
+        render.()
+        assert_received {:live_screen_frame, "\e[3A\e[2K2\n\e[2K3\n\e[2K4\n\e[2K5\n"}
+
+        IO.puts(live_screen_pid, "regular_output 1\nregular output 2")
+
+        render.()
+
+        assert_received {:live_screen_frame,
+                         "\e[1A\e[2K\e[1A\e[2K\e[1A\e[2K\e[1A\e[2Kregular_output 1\nregular output 2\n\n\e[2K2\n\e[2K3\n\e[2K4\n\e[2K5\n"}
+
+        refute_received {:live_screen_frame, _}
+      end,
+      terminal_width: @terminal_width,
+      terminal_height: 5
+    )
+  end
+
+  test "height of a single block > height of the terminal" do
+    capture_frames(
+      fn live_screen_pid, render ->
+        block1 = make_ref()
+        Owl.LiveScreen.add_block(live_screen_pid, block1, state: "1\n2\n3\n4\n5")
+
+        render.()
+
+        assert_received {:live_screen_frame, "\e[2K2\n\e[2K3\n\e[2K4\n\e[2K5\n"}
+
+        Owl.LiveScreen.update(live_screen_pid, block1, "1")
+        render.()
+
+        assert_received {:live_screen_frame, "\e[4A\e[2K\n\e[2K\n\e[2K\n\e[2K\n"}
+
+        refute_received {:live_screen_frame, _}
+      end,
+      terminal_width: @terminal_width,
+      terminal_height: 5
     )
   end
 
