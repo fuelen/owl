@@ -578,7 +578,7 @@ defmodule Owl.LiveScreen do
   defp render_above(%{put_above_blocks: []} = state), do: {state, [], &noop/0}
 
   defp render_above(%{put_above_blocks: put_above_blocks} = state) do
-    blocks_height = Enum.sum_by(Map.values(state.rendered_content_height), & &1.rendered)
+    blocks_height = Enum.sum(Enum.map(Map.values(state.rendered_content_height), & &1.rendered))
     data = Enum.reverse(put_above_blocks)
 
     cursor_up =
