@@ -1,6 +1,7 @@
 # Owl
 [![CI Status](https://github.com/fuelen/owl/actions/workflows/ci.yml/badge.svg)](https://github.com/fuelen/owl/actions)
 [![Hex.pm](https://img.shields.io/hexpm/v/owl.svg)](https://hex.pm/packages/owl)
+[![Hex.pm Downloads](https://img.shields.io/hexpm/dt/owl)](https://hex.pm/packages/owl)
 [![Coverage Status](https://coveralls.io/repos/github/fuelen/owl/badge.svg?branch=main)](https://coveralls.io/github/fuelen/owl?branch=main)
 ```
    ,_,
