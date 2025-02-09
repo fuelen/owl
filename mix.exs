@@ -1,13 +1,13 @@
 defmodule Owl.MixProject do
   use Mix.Project
-  @version "0.12.1"
+  @version "0.12.2"
   @source_url "https://github.com/fuelen/owl"
 
   def project do
     [
       app: :owl,
       version: @version,
-      elixir: "~> 1.12",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
