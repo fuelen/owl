@@ -14,11 +14,17 @@ defmodule Owl.Data do
   @type t :: [binary() | non_neg_integer() | t() | Owl.Tag.t(t())] | Owl.Tag.t(t()) | binary()
 
   @typedoc ~S"""
-  ANSI escape sequence.
+  An atom alias of ANSI escape sequence, a binary representation, or a hyperlink tuple.
 
-  An atom alias of ANSI escape sequence.
+  Examples:
 
-  A binary representation of color like `"\e[38;5;33m"` (which is `IO.ANSI.color(33)` or `IO.ANSI.color(0, 2, 5)`).
+    * An atom alias for color/effect like `:red`, `:underline`, `:bright`
+    * A binary representation of a sequence like `"\e[38;5;33m"`
+      (which is `IO.ANSI.color(33)` or `IO.ANSI.color(0, 2, 5)`)
+    * A hyperlink tuple `{:hyperlink, "https://elixir-lang.org"}`
+
+  The `{:hyperlink, url}` form will be converted into an
+  [OSC 8 hyperlink sequence](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda).
   """
   @type sequence ::
           :black
@@ -56,6 +62,7 @@ defmodule Owl.Data do
           | :italic
           | :overlined
           | :reverse
+          | {:hyperlink, String.t()}
           | binary()
 
   @doc """
@@ -68,6 +75,9 @@ defmodule Owl.Data do
 
       iex> Owl.Data.tag("hello world", [:green, :red_background])
       Owl.Data.tag("hello world", [:green, :red_background])
+
+      iex> Owl.Data.tag("Example", hyperlink: "https://example.com")
+      Owl.Data.tag("Example", {:hyperlink, "https://example.com"})
   """
   @spec tag(data, sequence() | [sequence()]) :: Owl.Tag.t(data) when data: t()
   def tag(data, sequence_or_sequences) do
@@ -93,6 +103,9 @@ defmodule Owl.Data do
 
       iex> ["Hello ", Owl.Data.tag("world", :red), ["!"]] |> Owl.Data.untag()
       ["Hello ", "world", ["!"]]
+
+      iex> Owl.Data.untag(Owl.Data.tag("Example", hyperlink: "https://example.com"))
+      "Example"
   """
   @spec untag(t()) :: IO.chardata()
   def untag(data) when is_list(data) do
@@ -172,6 +185,9 @@ defmodule Owl.Data do
       iex> Owl.Data.length(["222", Owl.Data.tag(["333", "444"], :green)])
       9
 
+      iex> Owl.Data.length(Owl.Data.tag("Example", hyperlink: "https://example.com"))
+      7
+
       # if ucwidth dependency is present, then it is used to calculate the length of the string
       iex> Owl.Data.length("😂")
       2
@@ -210,6 +226,13 @@ defmodule Owl.Data do
 
       iex> Owl.Data.lines(["first\\nsecond\\n", Owl.Data.tag("third\\nfourth", :red)])
       ["first", "second", Owl.Data.tag(["third"], :red), Owl.Data.tag(["fourth"], :red)]
+
+      iex> "Hello\\nworld" |> Owl.Data.tag({:hyperlink, "https://example.com"}) |> Owl.Data.lines |> Enum.intersperse(" ")
+      [
+        Owl.Data.tag(["Hello"], {:hyperlink, "https://example.com"}),
+        " ",
+        Owl.Data.tag(["world"], {:hyperlink, "https://example.com"})
+      ]
   """
   @spec lines(t()) :: [t()]
   def lines(data) do
@@ -291,7 +314,11 @@ defmodule Owl.Data do
       Enum.reduce(new_open_tags, [], fn {sequence_type, sequence}, acc ->
         case Map.get(open_tags, sequence_type) do
           nil ->
-            return_to = Sequence.default_value_by_type!(sequence_type)
+            return_to =
+              case sequence_type do
+                :hyperlink -> Sequence.close_hyperlink()
+                sequence_type -> Sequence.default_value_by_type!(sequence_type)
+              end
 
             [return_to | acc]
 
@@ -299,9 +326,21 @@ defmodule Owl.Data do
             if previous_sequence == sequence do
               acc
             else
-              [previous_sequence | acc]
+              return_to =
+                case previous_sequence do
+                  {:hyperlink, url} -> [Sequence.close_hyperlink(), Sequence.open_hyperlink(url)]
+                  previous_sequence -> previous_sequence
+                end
+
+              [return_to | acc]
             end
         end
+      end)
+
+    sequences =
+      Enum.map(sequences, fn
+        {:hyperlink, url} -> Sequence.open_hyperlink(url)
+        seq -> seq
       end)
 
     [sequences, do_to_ansidata(data, new_open_tags), close_tags]
@@ -312,6 +351,12 @@ defmodule Owl.Data do
   end
 
   defp do_to_ansidata(term, _open_tags), do: term
+
+  @doc false
+  @deprecated "Use `Owl.Data.from_chardata/1` instead"
+  def from_ansidata(data) do
+    from_chardata(data)
+  end
 
   @doc ~S"""
   Transforms chardata, replacing raw escape sequences with tags (see `tag/2`).
@@ -332,7 +377,7 @@ defmodule Owl.Data do
   @spec from_chardata(IO.chardata()) :: t()
   def from_chardata(data) do
     data =
-      Regex.split(~r/\e\[(\d+;)*\d+m/, IO.chardata_to_string(data),
+      Regex.split(~r/(\e\[(\d+;)*\d+m)|(\e\]8;.*?;.*?\e\\)/, IO.chardata_to_string(data),
         include_captures: true,
         trim: true
       )
@@ -341,22 +386,15 @@ defmodule Owl.Data do
     data
   end
 
-  @doc false
-  @deprecated "Use `Owl.Data.from_chardata/1` instead"
-  def from_ansidata(data) do
-    from_chardata(data)
-  end
-
   defp do_from_chardata(binary, open_tags) when is_binary(binary) do
-    case Owl.Data.Sequence.split(binary) do
+    case Owl.Data.Sequence.parse_many(binary) do
       {:ok, sequences} ->
         open_tags =
-          Enum.reduce(sequences, open_tags, fn sequence, acc ->
-            case Sequence.binary_to_name(sequence) do
-              nil -> acc
-              :reset -> %{}
-              name -> update_open_tags(acc, Sequence.type!(name), name)
-            end
+          Enum.reduce(sequences, open_tags, fn
+            :reset, _acc -> %{}
+            {:hyperlink, ""}, acc -> Map.delete(acc, :hyperlink)
+            {:hyperlink, _url} = sequence, acc -> Map.put(acc, :hyperlink, sequence)
+            sequence, acc -> update_open_tags(acc, Sequence.type(sequence), sequence)
           end)
 
         {[], open_tags}
@@ -520,16 +558,20 @@ defmodule Owl.Data do
 
     # cleanup output, so it just looks prettier
     result
-    |> trim_leading_blank_tags()
     |> maybe_unwrap_list()
+    |> trim_leading_blank_tags()
   end
 
-  defp maybe_unwrap_list([item]), do: item
+  defp maybe_unwrap_list([item]), do: maybe_unwrap_list(item)
   defp maybe_unwrap_list(items), do: items
 
   defp trim_leading_blank_tags([%Owl.Tag{data: []} | tail]) do
-    trim_leading_blank_tags(tail)
+    tail
+    |> maybe_unwrap_list()
+    |> trim_leading_blank_tags()
   end
+
+  defp trim_leading_blank_tags(%Owl.Tag{data: []}), do: []
 
   defp trim_leading_blank_tags(result), do: result
 
@@ -706,7 +748,7 @@ defmodule Owl.Data do
 
   defp sequences_to_state(init, sequences) do
     Enum.reduce(sequences, init, fn sequence, acc ->
-      Map.put(acc, Sequence.type!(sequence), sequence)
+      Map.put(acc, Sequence.type(sequence), sequence)
     end)
   end
 

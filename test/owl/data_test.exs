@@ -384,6 +384,83 @@ defmodule Owl.DataTest do
 
     assert Owl.Data.to_chardata([Owl.Data.tag([Owl.Data.tag("Hello ", :red), " world"], :red)]) ==
              [[[[[[[] | "\e[31m"] | "\e[31m"], "Hello "], " world"] | "\e[39m"] | "\e[0m"]
+
+    assert Owl.Data.to_chardata(
+             Owl.Data.tag("Google", [:bright, {:hyperlink, "https://google.com"}])
+           ) == [
+             [
+               [
+                 [
+                   [
+                     [[[[[[] | "\e[1m"], "\e]8;id="], "14121060"], ";"], "https://google.com"],
+                     "\e\\"
+                   ],
+                   "Google"
+                 ],
+                 "\e]8;;\e\\"
+               ]
+               | "\e[22m"
+             ]
+             | "\e[0m"
+           ]
+
+    assert Owl.Data.to_chardata(
+             Owl.Data.tag(
+               ["Hello ", Owl.Data.tag("Google", {:hyperlink, "https://google.com"}), "!"],
+               hyperlink: "https://example.com"
+             )
+           ) == [
+             [
+               [
+                 [
+                   [
+                     [
+                       [
+                         [
+                           [
+                             [
+                               [
+                                 [
+                                   [
+                                     [
+                                       [
+                                         [
+                                           [
+                                             [[[[], "\e]8;id="], "8081902"], ";"],
+                                             "https://example.com"
+                                           ],
+                                           "\e\\"
+                                         ],
+                                         "Hello "
+                                       ],
+                                       "\e]8;id="
+                                     ],
+                                     "14121060"
+                                   ],
+                                   ";"
+                                 ],
+                                 "https://google.com"
+                               ],
+                               "\e\\"
+                             ],
+                             "Google"
+                           ],
+                           "\e]8;;\e\\"
+                         ],
+                         "\e]8;id="
+                       ],
+                       "8081902"
+                     ],
+                     ";"
+                   ],
+                   "https://example.com"
+                 ],
+                 "\e\\"
+               ],
+               "!"
+             ],
+             "\e]8;;\e\\"
+           ]
   end
 
   describe inspect(&Owl.Data.from_chardata/1) do
@@ -460,6 +537,78 @@ defmodule Owl.DataTest do
                "\n",
                Owl.Data.tag(["[", "![", "CI Status", "]"], Owl.TrueColor.color(255, 255, 255))
              ]
+
+      assert to_from_chardata(
+               Owl.Data.tag(
+                 [
+                   "Resources: ",
+                   Owl.Data.tag(
+                     [
+                       "Search engine: ",
+                       Owl.Data.tag("Google", [:blue, {:hyperlink, "https://google.com"}]),
+                       ", Programming: ",
+                       Owl.Data.tag(
+                         [
+                           Owl.Data.tag("Elixir Lang", [
+                             :magenta,
+                             {:hyperlink, "https://elixir-lang.org"}
+                           ]),
+                           " (Docs: ",
+                           Owl.Data.tag("Official", [
+                             :green,
+                             {:hyperlink, "https://elixir-lang.org/docs.html"}
+                           ]),
+                           ", Community: ",
+                           Owl.Data.tag("Forum", [
+                             :yellow,
+                             {:hyperlink, "https://elixirforum.com"}
+                           ]),
+                           ")"
+                         ],
+                         :italic
+                       )
+                     ],
+                     [:red, :bright]
+                   ),
+                   " — Enjoy!"
+                 ],
+                 [:cyan]
+               )
+             )
+             <~> [
+               Owl.Data.tag("Resources: ", :cyan),
+               Owl.Data.tag("Search engine: ", [:bright, :red]),
+               Owl.Data.tag("Google", [:bright, {:hyperlink, "https://google.com"}, :blue]),
+               Owl.Data.tag(", Programming: ", [:bright, :red]),
+               Owl.Data.tag("Elixir Lang", [
+                 :bright,
+                 :italic,
+                 {:hyperlink, "https://elixir-lang.org"},
+                 :magenta
+               ]),
+               Owl.Data.tag(" (Docs: ", [:bright, :italic, :red]),
+               Owl.Data.tag("Official", [
+                 :bright,
+                 :italic,
+                 {:hyperlink, "https://elixir-lang.org/docs.html"},
+                 :green
+               ]),
+               Owl.Data.tag(", Community: ", [:bright, :italic, :red]),
+               Owl.Data.tag("Forum", [
+                 :bright,
+                 :italic,
+                 {:hyperlink, "https://elixirforum.com"},
+                 :yellow
+               ]),
+               Owl.Data.tag(")", [:bright, :italic, :red]),
+               Owl.Data.tag(" — Enjoy!", :cyan)
+             ]
+
+      assert to_from_chardata(Owl.Data.tag("Google", {:hyperlink, ""})) == "Google"
+
+      # invalid hyperlink sequence
+      assert Owl.Data.from_chardata("\e]8;id=14121060;https://google.com\eGoogle\e]8;;\e\\") ==
+               "\e]8;id=14121060;https://google.com\eGoogle\e]8;;\e\\"
     end
 
     test "converts chardata highlighted using Inspect.Algebra" do

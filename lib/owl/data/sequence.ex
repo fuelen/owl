@@ -1,35 +1,26 @@
-defmodule Owl.Data.Sequence.DSL do
-  @moduledoc false
-
-  defmacro defsequence_type(name, type, define_name_by_sequence? \\ true) do
-    quote bind_quoted: [
-            name: name,
-            type: type,
-            define_name_by_sequence?: define_name_by_sequence?
-          ] do
-      if define_name_by_sequence? do
-        seq = apply(IO.ANSI, name, [])
-        defp name_by_sequence(unquote(seq)), do: unquote(name)
-      end
-
-      defp type_by_name(unquote(name)), do: unquote(type)
-    end
-  end
-end
-
 defmodule Owl.Data.Sequence do
   @moduledoc false
 
-  import Owl.Data.Sequence.DSL
-
-  def split(string) do
-    with {:ok, attributes} <- extract_display_attributes(string) do
-      {:ok, chunk_attributes(attributes)}
+  # CSI (Control Sequence Introducer)
+  def parse_many("\e[" <> csi_params) do
+    with {:ok, attributes} <- extract_csi_attributes(csi_params) do
+      {:ok, attributes |> chunk_csi_attributes() |> Enum.map(&parse/1) |> Enum.reject(&is_nil/1)}
     end
   end
 
-  defp extract_display_attributes("\e[" <> rest) do
-    rest
+  # OSC (Operating System Command)
+  # Hyperlink is the only supported OSC sequence for now.
+  def parse_many("\e]8" <> _rest = binary) do
+    case parse(binary) do
+      nil -> :error
+      sequence -> {:ok, [sequence]}
+    end
+  end
+
+  def parse_many(_), do: :error
+
+  defp extract_csi_attributes(csi_params) do
+    csi_params
     |> String.split(";")
     |> Enum.reduce_while([], fn
       substring, acc ->
@@ -46,57 +37,29 @@ defmodule Owl.Data.Sequence do
     end
   end
 
-  defp extract_display_attributes(_), do: :error
-
-  defp chunk_attributes(attributes) do
+  defp chunk_csi_attributes(attributes) do
     attributes
-    |> chunk_attributes([])
+    |> chunk_csi_attributes([])
     |> Enum.reverse()
   end
 
-  defp chunk_attributes([lead_attribute, 5, n | tail], acc)
+  defp chunk_csi_attributes([lead_attribute, 5, n | tail], acc)
        when lead_attribute in [38, 48] do
-    chunk_attributes(tail, ["\e[#{lead_attribute};5;#{n}m" | acc])
+    chunk_csi_attributes(tail, ["\e[#{lead_attribute};5;#{n}m" | acc])
   end
 
-  defp chunk_attributes([lead_attribute, 2, r, g, b | tail], acc)
+  defp chunk_csi_attributes([lead_attribute, 2, r, g, b | tail], acc)
        when lead_attribute in [38, 48] do
-    chunk_attributes(tail, ["\e[#{lead_attribute};2;#{r};#{g};#{b}m" | acc])
+    chunk_csi_attributes(tail, ["\e[#{lead_attribute};2;#{r};#{g};#{b}m" | acc])
   end
 
-  defp chunk_attributes([head | tail], acc) do
-    chunk_attributes(tail, ["\e[#{head}m" | acc])
+  defp chunk_csi_attributes([head | tail], acc) do
+    chunk_csi_attributes(tail, ["\e[#{head}m" | acc])
   end
 
-  defp chunk_attributes([], acc) do
+  defp chunk_csi_attributes([], acc) do
     acc
   end
-
-  @doc """
-  Try to convert binary sequence to a sequence name.
-
-  Returns binary if escape sequence is for colors.
-  Returns name as an atom if a sequence is supported.
-  Returns nil if the sequence is not supported.
-  """
-  def binary_to_name(binary) when is_binary(binary) do
-    case binary do
-      "\e[38;5;" <> _ -> binary
-      "\e[48;5;" <> _ -> binary
-      "\e[38;2;" <> _ -> binary
-      "\e[48;2;" <> _ -> binary
-      _ -> name_by_sequence(binary)
-    end
-  end
-
-  @doc """
-  Get the sequence type of a sequence name.
-  """
-  def type!(sequence) when is_atom(sequence), do: type_by_name(sequence)
-  def type!("\e[38;5;" <> _), do: :foreground
-  def type!("\e[48;5;" <> _), do: :background
-  def type!("\e[38;2;" <> _), do: :foreground
-  def type!("\e[48;2;" <> _), do: :background
 
   @doc """
   Get the default value of a sequence type.
@@ -111,37 +74,98 @@ defmodule Owl.Data.Sequence do
   def default_value_by_type!(:inverse), do: :inverse_off
   def default_value_by_type!(:reverse), do: :reverse_off
 
-  defsequence_type(:reset, :reset)
+  colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
 
-  for color <- [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white] do
-    defsequence_type(color, :foreground)
-    defsequence_type(:"light_#{color}", :foreground)
-    defsequence_type(:"#{color}_background", :background)
-    defsequence_type(:"light_#{color}_background", :background)
+  names =
+    Enum.flat_map(colors, fn color ->
+      [color, :"light_#{color}", :"#{color}_background", :"light_#{color}_background"]
+    end) ++
+      [
+        :reset,
+        :default_color,
+        :default_background,
+        :blink_off,
+        :blink_slow,
+        :blink_rapid,
+        :normal,
+        :faint,
+        :bright,
+        :inverse,
+        # :reverse is omitted, because it has the same code as :inverse
+        :underline,
+        :no_underline,
+        :italic,
+        :not_italic,
+        :overlined,
+        :not_overlined
+      ]
+
+  for name <- names do
+    binary = apply(IO.ANSI, name, [])
+    def parse(unquote(binary)), do: unquote(name)
   end
 
-  defsequence_type(:default_color, :foreground)
-  defsequence_type(:default_background, :background)
+  def parse("\e]8;" <> rest) do
+    case String.split(rest, ";") do
+      [_params, url_and_terminator] ->
+        {:hyperlink, String.trim_trailing(url_and_terminator, "\e\\")}
 
-  defsequence_type(:blink_off, :blink)
-  defsequence_type(:blink_slow, :blink)
-  defsequence_type(:blink_rapid, :blink)
+      _ ->
+        nil
+    end
+  end
 
-  defsequence_type(:normal, :intensity)
-  defsequence_type(:faint, :intensity)
-  defsequence_type(:bright, :intensity)
+  def parse("\e[38;5;" <> _ = binary), do: binary
+  def parse("\e[48;5;" <> _ = binary), do: binary
+  def parse("\e[38;2;" <> _ = binary), do: binary
+  def parse("\e[48;2;" <> _ = binary), do: binary
 
-  defsequence_type(:inverse, :inverse)
-  defsequence_type(:reverse, :reverse, false)
+  # nil for unsupported sequences
+  def parse(_), do: nil
 
-  defsequence_type(:underline, :underline)
-  defsequence_type(:no_underline, :underline)
+  for color <- colors do
+    def type(unquote(color)), do: :foreground
+    def type(unquote(:"light_#{color}")), do: :foreground
+    def type(unquote(:"#{color}_background")), do: :background
+    def type(unquote(:"light_#{color}_background")), do: :background
+  end
 
-  defsequence_type(:italic, :italic)
-  defsequence_type(:not_italic, :italic)
+  def type(:default_color), do: :foreground
+  def type(:default_background), do: :background
 
-  defsequence_type(:overlined, :overlined)
-  defsequence_type(:not_overlined, :overlined)
+  def type(:blink_off), do: :blink
+  def type(:blink_slow), do: :blink
+  def type(:blink_rapid), do: :blink
 
-  defp name_by_sequence(_), do: nil
+  def type(:normal), do: :intensity
+  def type(:faint), do: :intensity
+  def type(:bright), do: :intensity
+
+  def type(:inverse), do: :inverse
+
+  def type(:reverse), do: :reverse
+
+  def type(:underline), do: :underline
+  def type(:no_underline), do: :underline
+
+  def type(:italic), do: :italic
+  def type(:not_italic), do: :italic
+
+  def type(:overlined), do: :overlined
+  def type(:not_overlined), do: :overlined
+
+  def type({:hyperlink, _url}), do: :hyperlink
+
+  def type("\e[38;5;" <> _), do: :foreground
+  def type("\e[48;5;" <> _), do: :background
+  def type("\e[38;2;" <> _), do: :foreground
+  def type("\e[48;2;" <> _), do: :background
+
+  def open_hyperlink(url) when is_binary(url) do
+    ["\e]8;id=", to_string(:erlang.phash2(url)), ";", url, "\e\\"]
+  end
+
+  def close_hyperlink do
+    "\e]8;;\e\\"
+  end
 end
