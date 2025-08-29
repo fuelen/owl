@@ -1,12 +1,12 @@
 defmodule Owl.Data do
   @moduledoc """
-  A set of functions for `t:chardata/0` with [tags](`Owl.Tag`).
+  A set of functions for `t:IO.chardata/0` with [tags](`Owl.Tag`).
   """
 
   alias Owl.Data.Sequence
 
   @typedoc """
-  A recursive data type that is similar to `t:chardata/0`, but additionally supports `t:Owl.Tag.t/1`.
+  A recursive data type that is similar to `t:IO.chardata/0`, but additionally supports `t:Owl.Tag.t/1`.
 
   Can be printed using `Owl.IO.puts/2`.
   """
@@ -281,7 +281,7 @@ defmodule Owl.Data do
   end
 
   @doc ~S"""
-  Transforms data to `t:chardata/0` format which can be consumed by `IO` module.
+  Transforms data to `t:IO.chardata/0` format which can be consumed by `IO` module.
 
   ## Examples
 
