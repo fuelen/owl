@@ -387,21 +387,41 @@ defmodule Owl.DataTest do
 
     assert Owl.Data.to_chardata(
              Owl.Data.tag("Google", [:bright, {:hyperlink, "https://google.com"}])
-           ) == [
+           ) in [
+             # OTP 25
              [
                [
                  [
                    [
-                     [[[[[[] | "\e[1m"], "\e]8;id="], "14121060"], ";"], "https://google.com"],
-                     "\e\\"
-                   ],
-                   "Google"
+                     [
+                       [[[[[[], "\e]8;id="], "14121060"], ";"], "https://google.com"], "\e\\"]
+                       | "\e[1m"
+                     ],
+                     "Google"
+                   ]
+                   | "\e[22m"
                  ],
                  "\e]8;;\e\\"
                ]
-               | "\e[22m"
+               | "\e[0m"
+             ],
+             # OTP 26+
+             [
+               [
+                 [
+                   [
+                     [
+                       [[[[[[] | "\e[1m"], "\e]8;id="], "14121060"], ";"], "https://google.com"],
+                       "\e\\"
+                     ],
+                     "Google"
+                   ],
+                   "\e]8;;\e\\"
+                 ]
+                 | "\e[22m"
+               ]
+               | "\e[0m"
              ]
-             | "\e[0m"
            ]
 
     assert Owl.Data.to_chardata(
