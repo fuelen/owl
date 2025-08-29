@@ -37,7 +37,7 @@ The package can be installed by adding `owl` to your list of dependencies in `mi
 ```elixir
 def deps do
   [
-    {:owl, "~> 0.12"},
+    {:owl, "~> 0.13"},
     # ucwidth is an optional dependency, uncomment it for multibyte characters support (emoji, etc)
     # {:ucwidth, "~> 0.2"}
   ]

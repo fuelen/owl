@@ -1,6 +1,6 @@
 defmodule Owl.MixProject do
   use Mix.Project
-  @version "0.12.2"
+  @version "0.13.0"
   @source_url "https://github.com/fuelen/owl"
 
   def project do
