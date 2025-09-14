@@ -22,8 +22,13 @@ It provides a convenient interface for:
 * printing palette colors
 * progress bars and spinners, with support for multiple bars/spinners simultaneously
 * live updating of multi-line blocks
+* capturing `:stdio` output and printing it above LiveScreen blocks
 * working with a virtual device that partially implements
 [The Erlang I/O Protocol](https://www.erlang.org/doc/apps/stdlib/io_protocol.html) and does not conflict with live blocks.
+* running shell commands and daemons with secure logging and masked secrets
+* rendering hyperlinks (OSC 8) in supported terminals
+* true-color (24‑bit) ANSI sequences
+* word wrapping and truncation utilities for colorized multi-line text
 
 ## Demo
 [![asciicast](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2.svg)](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2)
