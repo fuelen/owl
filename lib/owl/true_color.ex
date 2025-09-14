@@ -1,6 +1,6 @@
 defmodule Owl.TrueColor do
   @moduledoc """
-  A module for true color escape sequences
+  True color escape sequences.
 
   ## Example
 

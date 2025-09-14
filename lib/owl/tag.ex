@@ -4,32 +4,32 @@ defmodule Owl.Tag do
 
   Use `Owl.Data.tag/2` to build a tag.
 
-  Tag is a container for data and ANSI sequences associated with it.
-  It allows having local binding for styles in console, similar to tags in HTML.
+  A tag is a container for data and ANSI sequences associated with it.
+  It provides a local binding for styles in the console, similar to HTML tags.
 
-  Let's say you have a string that should be written to stdout in red color.
+  Suppose you have a string that should be written to stdout in red.
   This can be easily done by using a naive approach:
 
       substring = "world"
       IO.puts([IO.ANSI.red(), "Hello \#{substring}!!"])
 
-  It works well for easy cases. If you want to make `substring` in another color you can try this:
+  It works for simple cases. If you want to make `substring` another color, you might try this:
 
       substring = [IO.ANSI.green(), "world"]
       IO.puts([IO.ANSI.red(), "Hello \#{substring}!!"])
 
-  but you'll notice, that the text after `substring` is green too. In order make `"!!"` part red again, you have
-  to write color explicitly:
+  but you'll notice the text after `substring` is green too. To make the `"!!"` part red again, you must
+  set the color explicitly:
 
       IO.puts([IO.ANSI.red(), "Hello \#{substring}\#{IO.ANSI.red()}!!"])
 
-  if substring changes background color, you have to return to the previous one too:
+  If `substring` changes the background color, you must restore the previous one too:
 
       substring = [IO.ANSI.green(), IO.ANSI.red_background() "world"]
       IO.puts([IO.ANSI.red(), "Hello \#{substring}\#{[IO.ANSI.red(), IO.ANSI.default_background()]}!!"])
 
-  Such code is very hard to maintain.
-  This is how the issue can be addressed with `Owl.Data.tag/2`:
+  Such code is hard to maintain.
+  Here's how to address the issue with `Owl.Data.tag/2`:
 
       substring = Owl.Data.tag("world", :green)
       Owl.IO.puts(Owl.Data.tag(["Hello ", substring, "!!"], :red))

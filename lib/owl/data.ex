@@ -6,7 +6,7 @@ defmodule Owl.Data do
   alias Owl.Data.Sequence
 
   @typedoc """
-  A recursive data type that is similar to `t:IO.chardata/0`, but additionally supports `t:Owl.Tag.t/1`.
+  A recursive data type similar to `t:IO.chardata/0`, with additional support for `t:Owl.Tag.t/1`.
 
   Can be printed using `Owl.IO.puts/2`.
   """
@@ -137,7 +137,7 @@ defmodule Owl.Data do
   end
 
   @doc """
-  Zips corresponding lines into 1 line.
+  Zips corresponding lines into a single line.
 
   The zipping finishes as soon as either data completes.
 
@@ -169,7 +169,7 @@ defmodule Owl.Data do
   end
 
   @doc """
-  Returns length of the data.
+  Returns the length of the data.
 
   ## Examples
 
@@ -218,7 +218,7 @@ defmodule Owl.Data do
   end
 
   @doc """
-  Splits data by new lines.
+  Splits data by newline characters.
 
   A special case of `split/2`.
 
@@ -240,7 +240,7 @@ defmodule Owl.Data do
   end
 
   @doc """
-  Creates a `t:t/0` from an a list of `t:t/0`, it inserts new line characters between original elements.
+  Creates a `t:t/0` from a list of `t:t/0`, inserting newline characters between the original elements.
 
   ## Examples
 
@@ -261,7 +261,7 @@ defmodule Owl.Data do
   @doc """
   Adds a `prefix` before each line of the `data`.
 
-  An important feature is that styling of the data will be saved for each line.
+  An important feature is that the styling of the data is preserved for each line.
 
   ## Example
 
@@ -281,7 +281,7 @@ defmodule Owl.Data do
   end
 
   @doc ~S"""
-  Transforms data to `t:IO.chardata/0` format which can be consumed by `IO` module.
+  Transforms data into `t:IO.chardata/0`, which can be consumed by the `IO` module.
 
   ## Examples
 
@@ -361,7 +361,7 @@ defmodule Owl.Data do
   @doc ~S"""
   Transforms chardata, replacing raw escape sequences with tags (see `tag/2`).
 
-  This makes it possible to use data formatted outside of Owl with other Owl modules, like `Owl.Box`.
+  This allows data formatted outside Owl to be used with other Owl modules, such as `Owl.Box`.
 
   ## Examples
 
@@ -467,7 +467,7 @@ defmodule Owl.Data do
   end
 
   @doc """
-  Divides data into parts based on a pattern saving sequences for tagged data in new tags.
+  Divides data into parts based on a pattern, preserving sequences for tagged data in new tags.
 
   ## Example
 
@@ -494,9 +494,9 @@ defmodule Owl.Data do
   end
 
   @doc """
-  Truncates data, so the length of returning data is <= `length`.
+  Truncates data so the length of the returned data is <= `length`.
 
-  Puts ellipsis symbol at the end if data was truncated.
+  Appends an ellipsis if the data was truncated.
 
   ## Examples
       iex> Owl.Data.truncate([Owl.Data.tag("Hello", :red), Owl.Data.tag(" world!", :green)], 10)
@@ -526,7 +526,7 @@ defmodule Owl.Data do
   end
 
   @doc """
-  Returns a data starting at the offset `start`, and of the given `length`.
+  Returns data starting at the offset `start` and of the given `length`.
 
   It is like `String.slice/3` but for `t:t/0`.
 

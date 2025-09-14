@@ -92,7 +92,7 @@ defmodule Owl.System.Helpers do
         "sh -c \"#{command}\""
 
       {:win32, _osname} ->
-        raise "windows is not supported yet"
+        raise "Windows is not supported yet"
     end
   end
 

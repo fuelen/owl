@@ -1,10 +1,10 @@
 defmodule Owl.LiveScreen do
   @moduledoc ~S"""
-  A server that handles live updates in terminal.
+  A server that handles live updates in the terminal.
 
   It partially implements [The Erlang I/O Protocol](https://www.erlang.org/doc/apps/stdlib/io_protocol.html),
-  so it is possible to use `Owl.LiveScreen` as an I/O-device in `Logger`
-  and functions like `Owl.IO.puts/2`, `IO.puts/2`. When used as I/O-device, then output is printed above dynamic blocks.
+  so it is possible to use `Owl.LiveScreen` as an I/O device in `Logger`
+  and functions like `Owl.IO.puts/2`, `IO.puts/2`. When used as an I/O device, output is printed above dynamic blocks.
 
   ## Example
 
@@ -65,11 +65,11 @@ defmodule Owl.LiveScreen do
   ## Options
 
   * `:name` - used for name registration as described in the "Name
-  registration" section in the documentation for `GenServer`. Defaults to `Owl.LiveScreen`
-  * `:refresh_every` - a period of refreshing a screen in milliseconds. Defaults to #{@refresh_every_default}.
-  * `:terminal_width` - a width of terminal in symbols. Defaults to `:auto`, which gets value from `Owl.IO.columns/1`.
+  registration" section in the documentation for `GenServer`. Defaults to `Owl.LiveScreen`.
+  * `:refresh_every` - the interval for refreshing the screen, in milliseconds. Defaults to #{@refresh_every_default}.
+  * `:terminal_width` - the terminal width in characters. Defaults to `:auto`, which uses `Owl.IO.columns/1`.
   * `:device` - an I/O device. Defaults to `:stdio`.
-  If terminal is not available, then the server won't be started.
+  If a terminal is not available, the server will not be started.
   """
   @spec start_link([start_option()]) :: GenServer.on_start()
   def start_link(opts) do
@@ -79,9 +79,9 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
-  Allows updating the device of the LiveScreen.
+  Updates the device used by LiveScreen.
 
-  This is useful for example when using the Erlang SSH console.
+  This is useful, for example, when using the Erlang SSH console.
 
   ## Example
       group_leader = Process.group_leader()
@@ -112,7 +112,7 @@ defmodule Owl.LiveScreen do
         Enum.each(1..100, fn i ->
           Process.sleep(10)
           Owl.ProgressBar.inc(id: :users)
-          # Output from next call will be printed above progress bar
+          # Output from the next call will be printed above the progress bar
           IO.inspect([:test, i])
         end)
       end)
@@ -145,7 +145,7 @@ defmodule Owl.LiveScreen do
   ## Options
 
   * `:render` - a function that accepts `state` and returns a view of the block. Defaults to `Function.identity/1`, which
-  means that state has to have type `t:Owl.Data.t/0`.
+  means `state` must have type `t:Owl.Data.t/0`.
   * `:state` - initial state of the block. Defaults to `nil`.
 
   ## Example
@@ -163,7 +163,7 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
-  Updates a state of the block for using it in the next render iteration.
+  Updates the block state to be used in the next render iteration.
 
   ## Example
 
@@ -180,9 +180,9 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
-  Awaits for next rendering.
+  Waits for the next rendering.
 
-  This is useful when you want to ensure that last published state is rendered on the screen.
+  Useful to ensure that the last published state is rendered on the screen.
 
   ## Example
 

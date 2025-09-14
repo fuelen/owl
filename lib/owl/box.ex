@@ -1,6 +1,6 @@
 defmodule Owl.Box do
   @moduledoc """
-  Allows wrapping data to boxes.
+  Wraps data in boxes.
   """
 
   @title_padding_left 1
@@ -16,13 +16,13 @@ defmodule Owl.Box do
   * `:padding_bottom` - sets the padding area for bottom side. Overrides value set by `:padding_y` or `:padding`. Defaults to 0.
   * `:padding_right` - sets the padding area for right side. Overrides value set by `:padding_x` or `:padding`. Defaults to 0.
   * `:padding_left` - sets the padding area for left side. Overrides value set by `:padding_x` or `:padding`. Defaults to 0.
-  * `:min_height` - sets the minimum height of the box, including paddings and size of the borders. Defaults to 0.
-  * `:min_width` - sets the minimum width of the box, including paddings and size of the borders. Defaults to 0.
-  * `:max_width` - sets the maximum width of the box, including paddings and size of the borders. Defaults to width of the terminal, if available, `:infinity` otherwise.
-  * `:horizontal_align` - sets the horizontal alignment of the content inside a box. Defaults to `:right`.
-  * `:vertical_align` - sets the vertical alignment of the content inside a box. Defaults to `:top`.
+  * `:min_height` - sets the minimum height of the box, including paddings and the border size. Defaults to 0.
+  * `:min_width` - sets the minimum width of the box, including paddings and the border size. Defaults to 0.
+  * `:max_width` - sets the maximum width of the box, including paddings and the border size. Defaults to the terminal width if available; otherwise `:infinity`.
+  * `:horizontal_align` - sets the horizontal alignment of the content inside the box. Defaults to `:right`.
+  * `:vertical_align` - sets the vertical alignment of the content inside the box. Defaults to `:top`.
   * `:border_style` - sets the border style. Defaults to `:solid`.
-  * `:border_tag` - sets the tag for border characters. See `t:Owl.Data.sequence/0` for a valid sequences Defaults to `[]`.
+  * `:border_tag` - sets the tag for border characters. See `t:Owl.Data.sequence/0` for valid sequences. Defaults to `[]`.
   * `:title` - sets a title that is displayed in a top border. Ignored if `:border_style` is `:none`. Defaults to `nil`.
   * `:word_wrap` - sets the word wrapping mode. Can be `:break_word` or `:normal`. Defaults to `:break_word`. Ignored if `:truncate_lines` is `true`.
   * `:truncate_lines` - specifies whether to truncate lines that are too long to fit into a box. Defaults to `false`.

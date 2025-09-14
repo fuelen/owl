@@ -1,15 +1,15 @@
 defmodule Owl.Palette do
   @moduledoc """
-  Poor man's color picker.
+  A simple color picker.
   """
   @demo_block "████"
 
   @doc """
-  Returns palette with named codes.
+  Returns a palette with named codes.
 
       Owl.Palette.named() |> Owl.IO.puts()
 
-  Selected color can be used as follows:
+  You can use a selected color as follows:
 
       # print "test" using cyan foreground color
       "test" |> Owl.Data.tag(:cyan) |> Owl.IO.puts
@@ -50,11 +50,11 @@ defmodule Owl.Palette do
   end
 
   @doc """
-  Returns palette with codes from 0 to 255.
+  Returns a palette with codes from 0 to 255.
 
       Owl.Palette.codes() |> Owl.IO.puts()
 
-  Selected color can be used as follows
+  You can use a selected color as follows:
 
       # print "test" using foreground color with code 161
       "test" |> Owl.Data.tag(IO.ANSI.color(161)) |> Owl.IO.puts
@@ -81,11 +81,11 @@ defmodule Owl.Palette do
   end
 
   @doc """
-  Returns palette with individual RGB values.
+  Returns a palette with individual RGB values.
 
       Owl.Palette.rgb() |> Owl.IO.puts()
 
-  Selected color can be used as follows
+  You can use a selected color as follows:
 
       # print "test" using foreground color RGB(4, 3, 2)
       "test" |> Owl.Data.tag(IO.ANSI.color(4, 3, 2)) |> Owl.IO.puts

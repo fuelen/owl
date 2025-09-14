@@ -20,7 +20,7 @@ defmodule Owl.Spinner do
       |> Task.async_stream(&Owl.Spinner.run/1, timeout: :infinity)
       |> Stream.run()
 
-  Multiline frames are supported as well:
+  Multi-line frames are supported as well:
 
       Owl.Spinner.run(fn -> Process.sleep(5_000) end,
         frames: [

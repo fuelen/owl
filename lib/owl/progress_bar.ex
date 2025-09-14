@@ -66,20 +66,19 @@ defmodule Owl.ProgressBar do
   ## Options
 
   * `:id` - an id of the progress bar. Required.
-  * `:label` - a label of the progress bar. Required.
-  * `:total` - a total value. Required.
-  * `:current` - a current value. Defaults to `0`.
-  * `:bar_width_ratio` - a bar width ratio. Defaults to 0.7.
-  * `:timer` - set to `true` to launch a timer and display it before the bar in format `MM:SS`. Defaults to `false`.
-  * `:absolute_values` - set to `true` to show absolute values before the bar in format `current/total`. Defaults to `false`.
+  * `:label` - a label for the progress bar. Required.
+  * `:total` - the total value. Required.
+  * `:current` - the current value. Defaults to `0`.
+  * `:bar_width_ratio` - the width ratio for the bar. Defaults to 0.7.
+  * `:timer` - set to `true` to launch a timer and display it before the bar in the format `MM:SS`. Defaults to `false`.
+  * `:absolute_values` - set to `true` to show absolute values before the bar in the format `current/total`. Defaults to `false`.
   * `:start_symbol` - a symbol that is rendered at the beginning of the progress bar. Defaults to `"["`.
-  * `:end_symbol` - a symbol that rendered at the end of the progress bar. Defaults to `"]"`.
-  * `:filled_symbol` - a symbol that use used when `current` value is big enough to fill the cell. Defaults to `"≡"`
-  * `:partial_symbols` - a list of symbols that are used when `current` value is too small to render
-  `filled_symbol`. Defaults to `["-", "="]`.
+  * `:end_symbol` - a symbol that is rendered at the end of the progress bar. Defaults to `"]"`.
+  * `:filled_symbol` - a symbol that is used when the `current` value is large enough to fill the cell. Defaults to `"≡"`.
+  * `:partial_symbols` - a list of symbols used when the `current` value is too small to render `filled_symbol`. Defaults to `["-", "="]`.
   * `:empty_symbol` - an empty symbol. Defaults to `" "`.
-  * `:screen_width` - a width of output data. Defaults to width of the terminal or 80 symbols, if a terminal is not available.
-  * `:live_screen_server` - a reference to `Owl.LiveScreen` server. Defaults to `Owl.LiveScreen`.
+  * `:screen_width` - the width of the output data. Defaults to the terminal width or 80 characters if a terminal is not available.
+  * `:live_screen_server` - a reference to the `Owl.LiveScreen` server. Defaults to `Owl.LiveScreen`.
   """
   @spec start(
           label: Owl.Data.t(),
@@ -102,14 +101,14 @@ defmodule Owl.ProgressBar do
   end
 
   @doc """
-  Increases `current` value by `step`.
+  Increases the `current` value by `step`.
 
-  When `current` value becomes equal to `total`, then progress bar terminates.
+  When `current` becomes equal to `total`, the progress bar terminates.
 
   ## Options
 
-  * `:id` - an required identifier of the progress bar.
-  * `:step` - a value by which `current` value should be increased. Defaults to 1.
+  * `:id` - a required identifier for the progress bar.
+  * `:step` - the amount by which `current` should be increased. Defaults to 1.
 
   ## Examples
 

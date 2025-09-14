@@ -1,12 +1,12 @@
 defmodule Owl.Task do
   @moduledoc """
-  Run task using internal supervision tree.
+  Runs a task using the internal supervision tree.
   """
 
   @doc """
-  Runs a function as a task under supervision tree.
+  Runs a function as a task under the supervision tree.
 
-  This is useful when you need graceful shutdown in simple scripts, where Owl is installed
+  This is useful when you need a graceful shutdown in simple scripts where Owl is installed
   using `Mix.install/2`.
 
   ## Example

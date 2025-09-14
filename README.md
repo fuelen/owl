@@ -11,24 +11,24 @@
 ```
 Owl is a toolkit for writing command-line user interfaces in Elixir.
 
-It provides a convenient interface for
+It provides a convenient interface for:
 
 * colorizing text using tags
-* input control with validations and casting to various data types
-* select/multiselect controls, inspired by AUR package managers
+* input controls with validation and casting to various data types
+* select/multi-select controls, inspired by AUR package managers
 * tables
-* editing text in `ELIXIR_EDITOR`
-* wrapping multiline colorized data into ASCII boxes
+* editing text in the `ELIXIR_EDITOR`
+* wrapping multi-line, colorized data into ASCII boxes
 * printing palette colors
-* progress bars and spinners, multiple bars/spinners at the same time are supported as well
-* live-updating of multiline blocks
-* working with virtual device which partially implements
-[The Erlang I/O Protocol](https://www.erlang.org/doc/apps/stdlib/io_protocol.html) and doesn't conflict with live blocks.
+* progress bars and spinners, with support for multiple bars/spinners simultaneously
+* live updating of multi-line blocks
+* working with a virtual device that partially implements
+[The Erlang I/O Protocol](https://www.erlang.org/doc/apps/stdlib/io_protocol.html) and does not conflict with live blocks.
 
 ## Demo
 [![asciicast](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2.svg)](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2)
 
-The code can be found  in [examples](https://github.com/fuelen/owl/tree/main/examples) directory.
+The code can be found in the [examples](https://github.com/fuelen/owl/tree/main/examples) directory.
 
 ## Installation
 

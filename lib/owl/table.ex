@@ -1,29 +1,29 @@
 defmodule Owl.Table do
   @moduledoc """
-  Allows drawing awesome tables.
+  Draws rich, customizable tables.
   """
 
   @doc ~S"""
   Draws a table.
 
   Accepts a list of maps, where each map represents a row.
-  The keys and values of maps should have the type `t:Owl.Data.t/0`, otherwise use `:render_cell` option to make values printable.
+  The keys and values in the maps should be of type `t:Owl.Data.t/0`. Otherwise, use the `:render_cell` option to make values printable.
 
   ## Options
 
   * `:border_style` - sets the border style. Defaults to `:solid`.
-  * `:divide_body_rows` - specifies whether to show divider between rows in body. It is better to use it if cells have multiline values. Ignored, if `:border_style` is set to `:none`. Defaults to `false`.
-  * `:filter_columns` - sets a function which filters column (second argument for `Enum.filter/2`). No filter function by default.
+  * `:divide_body_rows` - whether to show a divider between rows in the body. Prefer enabling this if cells have multi-line values. Ignored if `:border_style` is `:none`. Defaults to `false`.
+  * `:filter_columns` - a function that filters columns (second argument to `Enum.filter/2`). No filter function by default.
   * `:padding_x`- sets horizontal padding. Defaults to `0`.
   * `:render_cell` - sets how to render header and body cells. Accepts either a function or a keyword list. Defaults to `&Function.identity/1`.
   Options in case of a keyword list:
     * `:header` - sets a function to render header cell. Defaults to `&Function.identity/1`.
     * `:body` - sets a function to render body cell. Defaults to `&Function.identity/1`.
-  * `:sort_columns` - sets a sorter (second argument for `Enum.sort/2`) for columns. Defaults to `:asc`.
-  * `:max_column_widths` - sets max width for columns in symbols. Accepts a function that returns an inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
-  * `:max_width` - sets a maximum width of of the table in symbols including borders. Defaults to width of the terminal or `:infinity`, if a terminal is not available.
-  * `:word_wrap` - sets the word wrapping mode. Can be `:break_word` or `:normal`. Defaults to `:break_word`. Ignored if `:truncate_lines` is `true`.
-  * `:truncate_lines` - specifies whether to truncate lines when they reach width specified by `:max_content_width`. Defaults to `false`.
+  * `:sort_columns` - sets a sorter (second argument to `Enum.sort/2`) for columns. Defaults to `:asc`.
+  * `:max_column_widths` - sets the maximum width for columns in characters. Accepts a function that returns the inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
+  * `:max_width` - sets the maximum width of the table in characters, including borders. Defaults to the terminal width or `:infinity` if a terminal is not available.
+  * `:word_wrap` - sets the word-wrapping mode. Can be `:break_word` or `:normal`. Defaults to `:break_word`. Ignored if `:truncate_lines` is `true`.
+  * `:truncate_lines` - whether to truncate lines when they reach the width specified by `:max_content_width`. Defaults to `false`.
 
   ## Examples
 

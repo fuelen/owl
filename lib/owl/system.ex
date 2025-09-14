@@ -1,22 +1,22 @@
 defmodule Owl.System do
   @moduledoc """
-  An alternative to some `System` functions.
+  Alternatives to selected `System` functions with safer logging.
   """
 
   @doc """
-  Runs `command` as a daemon, executes `operation` and kills the daemon afterwards.
+  Runs `command` as a daemon, executes `operation`, and then terminates the daemon.
 
-  Automatically puts messages from `stderr` and `stdout` to `device` prepending them with `prefix`.
-  Returns result of invoking `operation`.
+  Automatically writes messages from `stderr` and `stdout` to `device`, prefixing them with `prefix`.
+  Returns the result of invoking `operation`.
 
   ## Options
 
-  * `:prefix` - a prefix for `stderr` and `stdout` messages from daemon. Defaults to `command` followed by colon.
-  * `:device` - device to which messages from `stderr` and `stdout` are put. Defaults to `:stdio`.
-  * `:ready_check` - a function which checks the content of the messages produced by `command` before writing to `device`.
-    If the function is set, then the execution of the `operation` will be blocked until `ready_check` returns `true`.
-    By default this check is absent and `operation` is invoked immediately without awaiting any message.
-  * `:env` - a list of tuples containing environment key-value. The behaviour is similar to the option described in `cmd/3`
+  * `:prefix` - a prefix for `stderr` and `stdout` messages from the daemon. Defaults to `command` followed by a colon.
+  * `:device` - the device to which messages from `stderr` and `stdout` are written. Defaults to `:stdio`.
+  * `:ready_check` - a function that examines messages produced by `command` before writing to `device`.
+    If set, execution of `operation` is blocked until `ready_check` returns `true`.
+    By default this check is absent, and `operation` is invoked immediately without waiting for any message.
+  * `:env` - a list of environment key-value tuples. Behaviour is similar to the option described in `cmd/3`.
 
   ## Example
 
@@ -116,11 +116,11 @@ defmodule Owl.System do
   end
 
   @doc """
-  A wrapper around `System.cmd/3` which additionally logs executed `command`, `args` and `env`.
+  A wrapper around `System.cmd/3` that additionally logs the executed `command`, `args`, and `env`.
 
-  If URL is found in logged message, then password in it is masked with asterisks.
-  Additionally, it is possible to explicitly mark env values and arguments as secret for safe logging.
-  See examples for details.
+  If a URL is found in the logged message, the password in it is masked with asterisks.
+  You can explicitly mark environment values and arguments as secret for safe logging.
+  See the examples for details.
 
   ## Examples
 
@@ -165,9 +165,9 @@ defmodule Owl.System do
   end
 
   @doc """
-  A wrapper around `System.shell/2` which additionally logs executed `command`.
+  A wrapper around `System.shell/2` that additionally logs the executed `command`.
 
-  Similarly to `cmd/3`, it automatically hides password in found URLs and allows manual hiding of env values.
+  Similar to `cmd/3`, it automatically hides passwords in URLs and allows manually hiding environment values.
 
   ## Examples
 

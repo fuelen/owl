@@ -1,11 +1,11 @@
 defmodule Owl.IO do
-  @moduledoc "A set of functions for handling IO with support of `t:Owl.Data.t/0`."
+  @moduledoc "A set of functions for handling I/O with support for `t:Owl.Data.t/0`."
 
   @type select_option :: {:label, Owl.Data.t() | nil} | {:render_as, (any() -> Owl.Data.t())}
   @doc """
   Selects one item from the given nonempty list.
 
-  Returns value immediately if list contains only 1 element.
+  Returns the value immediately if the list contains only one element.
 
   ## Options
 
@@ -89,17 +89,17 @@ defmodule Owl.IO do
           | {:max, non_neg_integer() | nil}
 
   @doc """
-  Select multiple values from the given nonempty list.
+  Selects multiple values from the given nonempty list.
 
-  Input item numbers must be separated by any non-digit character. Most likely you'd want to use spaces or commas.
-  It is possible to specify a range of numbers using hyphen.
+  Input item numbers must be separated by any non-digit character. Most likely you'll want to use spaces or commas.
+  You can specify a range of numbers using a hyphen.
 
   ## Options
 
   * `:label` - a text label. Defaults to `nil` (no label).
   * `:render_as` - a function that renders given item. Defaults to `Function.identity/1`.
-  * `:min` - a minimum output list length. Defaults to `nil` (no lower bound).
-  * `:max` - a maximum output list length. Defaults to `nil` (no upper bound).
+  * `:min` - the minimum output list length. Defaults to `nil` (no lower bound).
+  * `:max` - the maximum output list length. Defaults to `nil` (no upper bound).
 
   ## Examples
 
@@ -209,21 +209,21 @@ defmodule Owl.IO do
   end
 
   @doc """
-  Opens `data` in editor for editing.
+  Opens `data` in an editor for editing.
 
-  Returns updated data when file is saved and editor is closed.
-  Similarly to `IEx.Helpers.open/1`, this function uses `ELIXIR_EDITOR` environment variable by default.
+  Returns the updated data when the file is saved and the editor is closed.
+  Similar to `IEx.Helpers.open/1`, this function uses the `ELIXIR_EDITOR` environment variable by default.
   `__FILE__` notation is supported as well.
 
   ## Example
 
-      # use neovim in alacritty terminal emulator as an editor
+  # use neovim in the Alacritty terminal emulator as an editor
       $ export ELIXIR_EDITOR="alacritty -e nvim"
 
-      # open editor from Elixir code
+  # open the editor from Elixir code
       Owl.IO.open_in_editor("hello\\nworld")
 
-      # specify editor explicitly
+  # specify the editor explicitly
       Owl.IO.open_in_editor("hello\\nworld", "alacritty -e nvim")
   """
   @spec open_in_editor(iodata()) :: String.t()
@@ -264,16 +264,16 @@ defmodule Owl.IO do
 
   @default_confirmation_message "Are you sure?"
   @doc """
-  Asks user to type a confirmation.
+  Asks the user to type a confirmation.
 
-  Valid inputs are a blank string and values specified in `:answers` option.
-  User will be asked to type a confirmation again on invalid input.
+  Valid inputs are a blank string and values specified in the `:answers` option.
+  The user will be asked to type a confirmation again on invalid input.
 
   ## Options
 
-  * `:message` - typically a question about performing operation. Defaults to `#{Kernel.inspect(@default_confirmation_message)}`.
-  * `:default` - a value that is used when user responds with a blank string. Defaults to `false`.
-  * `:answers` - allows to specify alternative answers. Defaults to `[true: {"y", ["yes"]}, false: {"n", ["no"]}]`.
+  * `:message` - typically a question about performing an operation. Defaults to `#{Kernel.inspect(@default_confirmation_message)}`.
+  * `:default` - the value used when the user responds with a blank string. Defaults to `false`.
+  * `:answers` - allows specifying alternative answers. Defaults to `[true: {"y", ["yes"]}, false: {"n", ["no"]}]`.
 
   ## Examples
 
@@ -339,22 +339,22 @@ defmodule Owl.IO do
           | {:optional, boolean()}
 
   @doc """
-  Reads a line from the `stdio` and casts a value to the given type.
+  Reads a line from `stdio` and casts it to the given type.
 
-  After reading a line from `stdio` it will be automatically trimmed with `String.trim/2`.
-  The end value will be returned when user types a valid value.
+  After reading a line from `stdio`, it is automatically trimmed with `String.trim/2`.
+  The final value is returned when the user types a valid value.
 
   ## Options
 
-  * `:secret` - set to `true` if you want to make input invisible. Defaults to `false`.
+  * `:secret` - set to `true` to make input invisible. Defaults to `false`.
   * `:label` - a text label. Defaults to `nil` (no label).
-  * `:optional` - a boolean that sets whether value is optional. Defaults to `false`.
+  * `:optional` - whether the value is optional. Defaults to `false`.
   * `:cast` - casts a value after reading it from `stdio`. Defaults to `:string`. Possible values:
     * an anonymous function with arity 1 that is described by `t:cast_input/0`
     * a pair with built-in type represented as atom and a keyword-list with options. Built-in types:
       * `:integer`, options:
-        * `:min` - a minimum allowed value. Defaults to `nil` (no lower bound).
-        * `:max` - a maximum allowed value. Defaults to `nil` (no upper bound).
+        * `:min` - the minimum allowed value. Defaults to `nil` (no lower bound).
+        * `:max` - the maximum allowed value. Defaults to `nil` (no upper bound).
       * `:string`, options:
         * no options
     * an atom which is simply an alias to `{atom(), []}`
@@ -537,14 +537,14 @@ defmodule Owl.IO do
   @doc """
   Wrapper around `IO.puts/2` that accepts `t:Owl.Data.t/0`.
 
-  The other difference is that `device` argument is moved to second argument.
+  The other difference is that the `device` argument is moved to the second position.
 
   ## Examples
 
       Owl.IO.puts(["Hello ", Owl.Data.tag("world", :green)])
       #=> Hello world
 
-      # specify Owl.LiveScreen as a device in order to print data above rendered live blocks
+      # specify Owl.LiveScreen as the device to print data above rendered live blocks
       Owl.IO.puts(["Hello ", Owl.Data.tag("world", :green)], Owl.LiveScreen)
       #=> Hello world
   """
