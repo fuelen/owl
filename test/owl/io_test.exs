@@ -188,6 +188,7 @@ defmodule Owl.IOTest do
   end
 
   test inspect(&Owl.IO.open_in_editor/2) do
+    # editor as a binary
     assert Owl.IO.open_in_editor("data\n", "echo 'new data' >>") == "data\nnew data\n"
   end
 
@@ -199,6 +200,12 @@ defmodule Owl.IOTest do
     assert Owl.IO.open_in_editor("data\n") == "data\nnew data\n"
   after
     System.delete_env("ELIXIR_EDITOR")
+  end
+
+  test "inspect(&Owl.IO.open_in_editor/2) with opts" do
+    # opts with editor + format
+    result = Owl.IO.open_in_editor("data\n", editor: "printf __FILE__ > __FILE__", format: "ex")
+    assert String.ends_with?(result, ".ex")
   end
 
   test inspect(&Owl.IO.inspect/3) do

@@ -217,19 +217,36 @@ defmodule Owl.IO do
 
   ## Example
 
-  # use neovim in the Alacritty terminal emulator as an editor
+      # use neovim in the Alacritty terminal emulator as an editor
       $ export ELIXIR_EDITOR="alacritty -e nvim"
 
-  # open the editor from Elixir code
+      # open the editor from Elixir code
       Owl.IO.open_in_editor("hello\\nworld")
 
-  # specify the editor explicitly
+      # specify the editor explicitly
       Owl.IO.open_in_editor("hello\\nworld", "alacritty -e nvim")
+
+      # pass options as a keyword list
+      Owl.IO.open_in_editor("hello\\nworld", editor: "alacritty -e nvim")
+
+      # specify file format to help editor highlight correctly
+      Owl.IO.open_in_editor("%{foo: :bar}\\n", editor: "alacritty -e nvim", format: "ex")
   """
+  @type open_in_editor_option :: {:editor, String.t()} | {:format, String.t()}
+
   @spec open_in_editor(iodata()) :: String.t()
-  def open_in_editor(data, elixir_editor \\ System.fetch_env!("ELIXIR_EDITOR")) do
+  @spec open_in_editor(iodata(), String.t() | [open_in_editor_option()]) :: String.t()
+  def open_in_editor(data), do: open_in_editor(data, [])
+
+  def open_in_editor(data, elixir_editor) when is_binary(elixir_editor) do
+    open_in_editor(data, editor: elixir_editor)
+  end
+
+  def open_in_editor(data, opts) when is_list(opts) do
+    elixir_editor = Keyword.get(opts, :editor) || System.fetch_env!("ELIXIR_EDITOR")
+    format = Keyword.get(opts, :format)
     dir = System.tmp_dir!()
-    filename = "owl-#{random_string()}"
+    filename = "owl-#{random_string()}" <> format_suffix(format)
     tmp_file = Path.join(dir, filename)
     File.write!(tmp_file, data)
 
@@ -241,7 +258,17 @@ defmodule Owl.IO do
       end
 
     {_, 0} = System.shell(elixir_editor)
-    File.read!(tmp_file)
+
+    tmp_file
+    |> File.read!()
+    |> tap(fn _ -> File.rm!(tmp_file) end)
+  end
+
+  defp format_suffix(nil), do: ""
+  defp format_suffix(""), do: ""
+
+  defp format_suffix(format) when is_binary(format) do
+    "." <> format
   end
 
   defp random_string do
