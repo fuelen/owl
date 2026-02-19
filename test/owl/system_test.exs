@@ -40,7 +40,7 @@ defmodule Owl.SystemTest do
           )
         end)
 
-      assert log =~ "$ PASSWORD=******** USERNAME= sh -c \"sleep ********\"\n"
+      assert log =~ "$ PASSWORD=******** USERNAME= sh -c \"sleep ********\""
     end
 
     test "successful run with :ready_check option" do
@@ -158,15 +158,15 @@ defmodule Owl.SystemTest do
   test inspect(&Owl.System.cmd/3) do
     assert capture_log(fn ->
              Owl.System.cmd("echo", [])
-           end) =~ "$ echo\n"
+           end) =~ "$ echo"
 
     assert capture_log(fn ->
              Owl.System.cmd("echo", ["http://example.com"])
-           end) =~ "$ echo http://example.com\n"
+           end) =~ "$ echo http://example.com"
 
     assert capture_log(fn ->
              Owl.System.cmd("echo", ["http://example.com", secret: "password"])
-           end) =~ "$ echo http://example.com ********\n"
+           end) =~ "$ echo http://example.com ********"
 
     assert capture_log(fn ->
              Owl.System.cmd("echo", [
@@ -174,7 +174,7 @@ defmodule Owl.SystemTest do
                "-tAc",
                "SELECT 1;"
              ])
-           end) =~ "$ echo postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'\n"
+           end) =~ "$ echo postgresql://postgres:********@127.0.0.1:5432 -tAc 'SELECT 1;'"
 
     assert capture_log(fn ->
              Owl.System.cmd(
@@ -187,13 +187,13 @@ defmodule Owl.SystemTest do
                ]
              )
            end) =~
-             "$ GREETING='hello world' SINGLE_WORD=single PASSWORD=******** sh -c \"echo 'hello world' --password=********\"\n"
+             "$ GREETING='hello world' SINGLE_WORD=single PASSWORD=******** sh -c \"echo 'hello world' --password=********\""
   end
 
   test inspect(&Owl.System.shell/2) do
     assert capture_log(fn ->
              Owl.System.shell("echo hello world")
-           end) =~ "$ sh -c \"echo hello world\"\n"
+           end) =~ "$ sh -c \"echo hello world\""
 
     assert capture_log(fn ->
              Owl.System.shell("echo hello world",
@@ -204,6 +204,6 @@ defmodule Owl.SystemTest do
                ]
              )
            end) =~
-             "$ GREETING='hello world' SINGLE_WORD=single PASSWORD=******** sh -c \"echo hello world\"\n"
+             "$ GREETING='hello world' SINGLE_WORD=single PASSWORD=******** sh -c \"echo hello world\""
   end
 end
