@@ -77,9 +77,10 @@ defmodule Owl.Daemon do
   end
 
   def terminate(_reason, %{port: port}) do
-    port_info = Port.info(port)
-
-    Owl.System.cmd("kill", [to_string(port_info[:os_pid])])
+    case Port.info(port, :os_pid) do
+      {:os_pid, os_pid} -> Owl.System.cmd("kill", [to_string(os_pid)])
+      :undefined -> :noop
+    end
   end
 
   @impl true
