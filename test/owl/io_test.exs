@@ -62,6 +62,20 @@ defmodule Owl.IOTest do
                     ) == nil
            end) == "optional input with cast:\n\e[34m> \e[39m\e[0m\n"
 
+    assert capture_io([input: "3.14\n"], fn ->
+             assert Owl.IO.input(cast: :float) == 3.14
+           end) == "\e[34m> \e[39m\e[0m\n"
+
+    assert capture_io([input: "abc\n0.5\n10.1\n1.0"], fn ->
+             assert Owl.IO.input(cast: {:float, min: 1.0, max: 10.0}) == 1.0
+           end) ==
+             """
+             \e[34m> \e[39m\e[0m\e[31mnot a float\e[39m\e[0m
+             \e[34m> \e[39m\e[0m\e[31mmust be greater than or equal to 1.0\e[39m\e[0m
+             \e[34m> \e[39m\e[0m\e[31mmust be less than or equal to 10.0\e[39m\e[0m
+             \e[34m> \e[39m\e[0m
+             """
+
     assert capture_io(:stderr, fn ->
              assert capture_io([input: "password\n"], fn ->
                       assert Owl.IO.input(secret: true) == "password"

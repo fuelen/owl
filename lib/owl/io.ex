@@ -383,6 +383,9 @@ defmodule Owl.IO do
       * `:integer`, options:
         * `:min` - the minimum allowed value. Defaults to `nil` (no lower bound).
         * `:max` - the maximum allowed value. Defaults to `nil` (no upper bound).
+      * `:float`, options:
+        * `:min` - the minimum allowed value. Defaults to `nil` (no lower bound).
+        * `:max` - the maximum allowed value. Defaults to `nil` (no upper bound).
       * `:string`, options:
         * no options
     * an atom which is simply an alias to `{atom(), []}`
@@ -539,6 +542,21 @@ defmodule Owl.IO do
 
       _ ->
         {:error, "not an integer"}
+    end
+  end
+
+  defp cast_input(:float, nil, _opts), do: {:ok, nil}
+
+  defp cast_input(:float, binary, opts) do
+    case Float.parse(binary) do
+      {number, ""} ->
+        with :ok <- validate_bounds(number, :min, opts[:min]),
+             :ok <- validate_bounds(number, :max, opts[:max]) do
+          {:ok, number}
+        end
+
+      _ ->
+        {:error, "not a float"}
     end
   end
 
