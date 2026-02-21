@@ -117,7 +117,7 @@ defmodule Owl.ProgressBar do
       Owl.ProgressBar.inc(id: "Creating users", step: 10)
   """
   @spec inc(id: id(), step: integer()) :: :ok
-  def inc(opts \\ []) do
+  def inc(opts) do
     step = opts[:step] || 1
     id = Keyword.fetch!(opts, :id)
     GenServer.cast({:via, Registry, {Owl.WidgetsRegistry, id}}, {:inc, step})

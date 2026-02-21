@@ -198,7 +198,10 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
-  Renders data in buffer and detaches blocks.
+  Renders data in buffer and resets the server state, removing all blocks.
+
+  The server keeps running and can accept new blocks after this call.
+  Use this to clear the screen and start a new set of blocks without restarting the server.
   """
   @spec flush(GenServer.server()) :: :ok
   def flush(server \\ __MODULE__) do
@@ -206,7 +209,9 @@ defmodule Owl.LiveScreen do
   end
 
   @doc """
-  Renders data in buffer and terminates a server.
+  Renders data in buffer and terminates the server.
+
+  Unlike `flush/1`, the server cannot be used after this call.
   """
   @spec stop(GenServer.server()) :: :ok
   def stop(server \\ __MODULE__) do
