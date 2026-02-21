@@ -60,7 +60,7 @@ defmodule Owl.Spinner do
   @doc """
   Runs a spinner during execution of `process_function` and returns its result.
 
-  The spinner is started, and automatically stopped after the function returns, regardless if there was an error when executing the function.
+  The spinner is started and automatically stopped after the function returns, regardless of whether there was an error when executing the function.
   It is a wrapper around `start/1` and `stop/1`. The only downside of `run/2` is that it is not possible to update
   a label while `process_function` is executing.
 

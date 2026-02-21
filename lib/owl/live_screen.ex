@@ -60,7 +60,7 @@ defmodule Owl.LiveScreen do
   @doc """
   Starts a server.
 
-  Server is started automatically by `:owl` application as a named process.
+  The server is started automatically by the `:owl` application as a named process.
 
   ## Options
 
@@ -68,8 +68,7 @@ defmodule Owl.LiveScreen do
   registration" section in the documentation for `GenServer`. Defaults to `Owl.LiveScreen`.
   * `:refresh_every` - the interval for refreshing the screen, in milliseconds. Defaults to #{@refresh_every_default}.
   * `:terminal_width` - the terminal width in characters. Defaults to `:auto`, which uses `Owl.IO.columns/1`.
-  * `:device` - an I/O device. Defaults to `:stdio`.
-  If a terminal is not available, the server will not be started.
+  * `:device` - an I/O device. Defaults to `:stdio`. If a terminal is not available, the server will not be started.
   """
   @spec start_link([start_option()]) :: GenServer.on_start()
   def start_link(opts) do

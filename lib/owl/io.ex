@@ -604,7 +604,7 @@ defmodule Owl.IO do
   @doc """
   Wrapper around `IO.inspect/3` with changed defaults.
 
-  As in `puts/2`, `device` argument is moved to the end.
+  As in `puts/2`, the `device` argument is moved to the end.
   Options are the same as for `IO.inspect/3` with small changes:
   * `:pretty` is `true` by default.
   * `:syntax_colors` uses color schema from `IEx` by default.
@@ -651,10 +651,10 @@ defmodule Owl.IO do
   end
 
   @doc """
-  Returns a width of a terminal.
+  Returns the width of a terminal.
 
-  A wrapper around `:io.columns/1`, but returns `nil` if terminal is not found.
-  This is useful for convenient falling back to other value using `||/2` operator.
+  A wrapper around `:io.columns/1`, but returns `nil` if a terminal is not found.
+  This is useful for conveniently falling back to another value using the `||/2` operator.
 
   ## Example
 
@@ -669,10 +669,10 @@ defmodule Owl.IO do
   end
 
   @doc """
-  Returns a height of a terminal.
+  Returns the height of a terminal.
 
-  A wrapper around `:io.rows/1`, but returns `nil` if terminal is not found.
-  This is useful for convenient falling back to other value using `||/2` operator.
+  A wrapper around `:io.rows/1`, but returns `nil` if a terminal is not found.
+  This is useful for conveniently falling back to another value using the `||/2` operator.
 
   ## Example
 

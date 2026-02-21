@@ -138,7 +138,7 @@ defmodule Owl.System do
       # 10:25:40.516 [debug] $ echo hello --password=********
       {"hello --password=world\\n", 0}
 
-      # marking a env as secret
+      # marking an env as secret
       > Owl.System.cmd("echo", ["hello", "world"], env: [{"PASSWORD", {:secret, "mypassword"}}])
       # 10:25:40.516 [debug] $ PASSWORD=******** sh -c "echo hello world"
       {"hello world\\n", 0}

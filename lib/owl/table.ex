@@ -14,7 +14,7 @@ defmodule Owl.Table do
   * `:border_style` - sets the border style. Defaults to `:solid`.
   * `:divide_body_rows` - whether to show a divider between rows in the body. Prefer enabling this if cells have multi-line values. Ignored if `:border_style` is `:none`. Defaults to `false`.
   * `:filter_columns` - a function that filters columns (second argument to `Enum.filter/2`). No filter function by default.
-  * `:padding_x`- sets horizontal padding. Defaults to `0`.
+  * `:padding_x` - sets horizontal padding. Defaults to `0`.
   * `:render_cell` - sets how to render header and body cells. Accepts either a function or a keyword list. Defaults to `&Function.identity/1`.
   Options in case of a keyword list:
     * `:header` - sets a function to render header cell. Defaults to `&Function.identity/1`.
@@ -23,7 +23,7 @@ defmodule Owl.Table do
   * `:max_column_widths` - sets the maximum width for columns in characters. Accepts a function that returns the inner width (content + padding) for each column. Defaults to `fn _ -> :infinity end`.
   * `:max_width` - sets the maximum width of the table in characters, including borders. Defaults to the terminal width or `:infinity` if a terminal is not available.
   * `:word_wrap` - sets the word-wrapping mode. Can be `:break_word` or `:normal`. Defaults to `:break_word`. Ignored if `:truncate_lines` is `true`.
-  * `:truncate_lines` - whether to truncate lines when they reach the width specified by `:max_content_width`. Defaults to `false`.
+  * `:truncate_lines` - whether to truncate lines when they reach the maximum column width. Defaults to `false`.
 
   ## Examples
 
