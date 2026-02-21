@@ -217,6 +217,44 @@ defmodule Owl.Data do
     length(data)
   end
 
+  if Code.ensure_loaded?(Ucwidth) do
+    defp bin_length(str), do: Ucwidth.width(str)
+
+    defp bin_slice(str, start, length) do
+      {_, rest} = bin_split_at(str, start)
+      {result, _} = bin_split_at(rest, length)
+      result
+    end
+
+    defp bin_split_at(str, width) do
+      bytes = bytes_for_width(str, width, 0)
+      <<head::binary-size(bytes), rest::binary>> = str
+      {head, rest}
+    end
+
+    defp bytes_for_width("", _remaining, bytes), do: bytes
+
+    defp bytes_for_width(str, remaining, bytes) do
+      case String.next_grapheme(str) do
+        {g, rest} ->
+          w = Ucwidth.width(g)
+
+          if w > remaining do
+            bytes
+          else
+            bytes_for_width(rest, remaining - w, bytes + byte_size(g))
+          end
+
+        nil ->
+          bytes
+      end
+    end
+  else
+    defp bin_length(str), do: String.length(str)
+    defp bin_slice(str, start, length), do: String.slice(str, start, length)
+    defp bin_split_at(str, pos), do: String.split_at(str, pos)
+  end
+
   @doc """
   Splits data by newline characters.
 
@@ -542,14 +580,14 @@ defmodule Owl.Data do
   def slice(data, start, length) when is_integer(start) and is_integer(length) and length > 0 do
     result =
       chunk_by(data, {start, length}, fn value, {start, length} ->
-        value_length = String.length(value)
+        value_length = bin_length(value)
 
         if value_length <= start do
           {:cont, {start - value_length, length}, [], []}
         else
-          result = String.slice(value, start, length)
+          result = bin_slice(value, start, length)
 
-          case length - String.length(result) do
+          case length - bin_length(result) do
             0 -> {:halt, result}
             new_length -> {:cont, {0, new_length}, result, []}
           end
@@ -599,9 +637,9 @@ defmodule Owl.Data do
       fn value, cut_left ->
         split_at = if cut_left == 0, do: count, else: cut_left
 
-        case String.split_at(value, split_at) do
+        case bin_split_at(value, split_at) do
           {head, ""} ->
-            left = split_at - String.length(head)
+            left = split_at - bin_length(head)
             resolution = if left == 0, do: :chunk, else: :cont
 
             {resolution, left, head, []}

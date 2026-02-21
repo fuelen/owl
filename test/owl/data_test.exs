@@ -744,4 +744,20 @@ defmodule Owl.DataTest do
     assert Owl.Data.slice(Owl.Data.tag(["hello", Owl.Data.tag([" world"], :green)], :red), 30, 5) ==
              []
   end
+
+  test "slice/3 is consistent with length/1 for wide characters" do
+    data = "ab😂cd"
+    assert Owl.Data.length(data) == 6
+
+    sliced = Owl.Data.slice(data, 0, 4)
+    assert Owl.Data.length(sliced) == 4
+  end
+
+  test "chunk_every/2 is consistent with length/1 for wide characters" do
+    data = "ab😂cd"
+    assert Owl.Data.length(data) == 6
+
+    chunks = Owl.Data.chunk_every(data, 4)
+    assert Enum.map(chunks, &Owl.Data.length/1) == [4, 2]
+  end
 end
