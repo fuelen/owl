@@ -30,6 +30,12 @@ It provides a convenient interface for:
 * true-color (24‑bit) ANSI sequences
 * word wrapping and truncation utilities for colorized multi-line text
 
+## When to use Owl
+
+If you need a full-screen terminal application (think lazygit or htop), check out [TermUI](https://github.com/pcharbon70/term_ui), [Ratatouille](https://github.com/ndreynolds/ratatouille), or [ExNcurses](https://github.com/jfreeze/ex_ncurses). Keep in mind that full-screen TUI development is often harder than it looks — no DevTools, no visual inspector, limited layout primitives — so for complex interfaces a Phoenix LiveView might actually be easier to build and maintain.
+
+Owl serves a different niche. It enhances regular scripts and CLI tools with just enough interactivity: colored output, progress bars, input prompts, tables, and select menus. Your program still runs top-to-bottom, prints to stdout, and exits — Owl just makes that output more informative and user-friendly.
+
 ## Demo
 [![asciicast](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2.svg)](https://asciinema.org/a/vOL2PtAEWB88S9G93Iojwprj2)
 
