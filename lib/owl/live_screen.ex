@@ -129,8 +129,6 @@ defmodule Owl.LiveScreen do
         pid when is_pid(pid) -> pid
       end
 
-    Process.group_leader(self(), live_screen_server_pid)
-
     try do
       Process.group_leader(self(), live_screen_server_pid)
       callback.()
