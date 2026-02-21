@@ -66,6 +66,15 @@ defmodule Owl.ProgressBarTest do
     refute_received {:live_screen_frame, _}
   end
 
+  test "format_time does not produce 60.0 seconds" do
+    assert Owl.ProgressBar.format_time(0) == "00:00.0"
+    assert Owl.ProgressBar.format_time(500) == "00:00.5"
+    assert Owl.ProgressBar.format_time(59_999) == "01:00.0"
+    assert Owl.ProgressBar.format_time(60_000) == "01:00.0"
+    assert Owl.ProgressBar.format_time(60_100) == "01:00.1"
+    assert Owl.ProgressBar.format_time(119_999) == "02:00.0"
+  end
+
   @tick_period_ms 100
   @disable_autorender 999_999
   test "with timer" do

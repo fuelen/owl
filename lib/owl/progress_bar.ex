@@ -194,16 +194,18 @@ defmodule Owl.ProgressBar do
     {:noreply, state}
   end
 
-  defp format_time(milliseconds) do
+  @doc false
+  def format_time(milliseconds) do
+    total_tenths = round(milliseconds / 100)
+
     ss =
-      (rem(milliseconds, 60_000) / 1000)
-      |> Float.round(1)
+      (rem(total_tenths, 600) / 10)
       |> to_string()
       |> String.pad_leading(4, "0")
 
     mm =
-      milliseconds
-      |> div(60_000)
+      total_tenths
+      |> div(600)
       |> to_string()
       |> String.pad_leading(2, "0")
 
