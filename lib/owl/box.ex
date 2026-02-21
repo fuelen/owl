@@ -19,7 +19,7 @@ defmodule Owl.Box do
   * `:min_height` - sets the minimum height of the box, including paddings and the border size. Defaults to 0.
   * `:min_width` - sets the minimum width of the box, including paddings and the border size. Defaults to 0.
   * `:max_width` - sets the maximum width of the box, including paddings and the border size. Defaults to the terminal width if available; otherwise `:infinity`.
-  * `:horizontal_align` - sets the horizontal alignment of the content inside the box. Defaults to `:right`.
+  * `:horizontal_align` - sets the horizontal alignment of the content inside the box. Defaults to `:left`.
   * `:vertical_align` - sets the vertical alignment of the content inside the box. Defaults to `:top`.
   * `:border_style` - sets the border style. Defaults to `:solid`.
   * `:border_tag` - sets the tag for border characters. See `t:Owl.Data.sequence/0` for valid sequences. Defaults to `[]`.
@@ -98,18 +98,6 @@ defmodule Owl.Box do
       Very
       Long
       Line
-      \""" |> String.trim_trailing()
-
-      iex> "Green!"
-      ...> |> Owl.Data.tag(:green)
-      ...> |> Owl.Box.new(title: Owl.Data.tag("Red!", :red))
-      ...> |> Owl.Data.tag(:cyan)
-      ...> |> Owl.Data.to_chardata()
-      ...> |> to_string()
-      \"""
-      \e[36m┌─\e[31mRed!\e[36m────┐\e[39m
-      \e[36m│\e[32mGreen!\e[36m   │\e[39m
-      \e[36m└─────────┘\e[39m\e[0m
       \""" |> String.trim_trailing()
 
       iex> "Green!"

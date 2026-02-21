@@ -19,7 +19,7 @@ defmodule Owl.Task do
           Process.sleep(3000)
           2 + 2
         end)
-      end
+      end)
 
       System.stop()
 

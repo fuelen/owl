@@ -364,6 +364,7 @@ defmodule Owl.IO do
           {:label, Owl.Data.t()}
           | {:cast, atom() | {atom(), Keyword.t()} | cast_input()}
           | {:optional, boolean()}
+          | {:secret, boolean()}
 
   @doc """
   Reads a line from `stdio` and casts it to the given type.

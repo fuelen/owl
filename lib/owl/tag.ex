@@ -25,7 +25,7 @@ defmodule Owl.Tag do
 
   If `substring` changes the background color, you must restore the previous one too:
 
-      substring = [IO.ANSI.green(), IO.ANSI.red_background() "world"]
+      substring = [IO.ANSI.green(), IO.ANSI.red_background(), "world"]
       IO.puts([IO.ANSI.red(), "Hello \#{substring}\#{[IO.ANSI.red(), IO.ANSI.default_background()]}!!"])
 
   Such code is hard to maintain.
