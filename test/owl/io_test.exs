@@ -66,6 +66,10 @@ defmodule Owl.IOTest do
              assert Owl.IO.input(cast: :float) == 3.14
            end) == "\e[34m> \e[39m\e[0m\n"
 
+    assert capture_io([input: "\n"], fn ->
+             assert Owl.IO.input(cast: :float, optional: true, label: "optional float:") == nil
+           end) == "optional float:\n\e[34m> \e[39m\e[0m\n"
+
     assert capture_io([input: "abc\n0.5\n10.1\n1.0"], fn ->
              assert Owl.IO.input(cast: {:float, min: 1.0, max: 10.0}) == 1.0
            end) ==
