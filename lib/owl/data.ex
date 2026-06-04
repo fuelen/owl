@@ -235,18 +235,13 @@ defmodule Owl.Data do
     defp bytes_for_width("", _remaining, bytes), do: bytes
 
     defp bytes_for_width(str, remaining, bytes) do
-      case String.next_grapheme(str) do
-        {g, rest} ->
-          w = Ucwidth.width(g)
+      {g, rest} = String.next_grapheme(str)
+      w = Ucwidth.width(g)
 
-          if w > remaining do
-            bytes
-          else
-            bytes_for_width(rest, remaining - w, bytes + byte_size(g))
-          end
-
-        nil ->
-          bytes
+      if w > remaining do
+        bytes
+      else
+        bytes_for_width(rest, remaining - w, bytes + byte_size(g))
       end
     end
   else
