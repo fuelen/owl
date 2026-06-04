@@ -177,6 +177,9 @@ defmodule Owl.LiveScreenTest do
           assert IO.gets([]) == {:error, :enotsup}
           assert IO.getn([], 3) == {:error, :enotsup}
           assert :io.get_password() == {:error, :enotsup}
+          assert :io.setopts(encoding: :latin1) == {:error, :enotsup}
+          assert :io.getopts() == {:error, :enotsup}
+          assert :io.requests([{:put_chars, :unicode, "ignored"}]) == {:error, :enotsup}
           assert :io.columns() == {:ok, @terminal_width}
           assert :io.rows() == {:ok, 5}
         end)
@@ -191,6 +194,20 @@ defmodule Owl.LiveScreenTest do
         render.()
         assert_receive {:live_screen_frame, "\e[1A\e[2KProgress   [- ]  20%\n"}
         refute_receive {:live_screen_frame, _}
+      end,
+      terminal_width: @terminal_width,
+      terminal_height: 5
+    )
+  end
+
+  test "ignores unexpected messages without crashing" do
+    capture_frames(
+      fn live_screen_pid, _render ->
+        send(live_screen_pid, :some_unexpected_message)
+
+        # :sys.get_state is a synchronous call processed after the message above,
+        # so it succeeding proves the server handled the unknown message and stayed alive
+        assert %{} = :sys.get_state(live_screen_pid)
       end,
       terminal_width: @terminal_width,
       terminal_height: 5
