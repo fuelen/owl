@@ -153,6 +153,14 @@ defmodule Owl.SystemTest do
 
       refute_received {:live_screen_frame, _}
     end
+
+    test "terminate does not crash when the port is already closed" do
+      port = Port.open({:spawn, "sleep 10"}, [:binary])
+      Port.close(port)
+      assert Port.info(port, :os_pid) == nil
+
+      assert Owl.Daemon.terminate(:normal, %{port: port}) == :noop
+    end
   end
 
   test inspect(&Owl.System.cmd/3) do

@@ -228,7 +228,7 @@ defmodule Owl.Data do
 
     defp bin_split_at(str, width) do
       bytes = bytes_for_width(str, width, 0)
-      <<head::binary-size(bytes), rest::binary>> = str
+      <<head::binary-size(^bytes), rest::binary>> = str
       {head, rest}
     end
 
