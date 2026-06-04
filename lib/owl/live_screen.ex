@@ -14,7 +14,14 @@ defmodule Owl.LiveScreen do
       :ok =
         :logger.add_handler(:default, :logger_std_h, %{
           config: %{type: {:device, Owl.LiveScreen}},
-          formatter: Logger.Formatter.new()
+          formatter: Logger.Formatter.new(),
+          # Required on OTP 28+: when the handler id is `:default` and no `:filters`
+          # key is given, `:logger.add_handler/3` injects `filter_default: :stop`
+          # plus the kernel's default domain filters, which silently drop Elixir's
+          # `domain: [:elixir]` log events. Setting filters explicitly keeps logs
+          # flowing on both OTP 27 and OTP 28+.
+          filter_default: :log,
+          filters: []
         })
 
       Owl.LiveScreen.add_block(:dependency,

@@ -5,7 +5,14 @@ require Logger
 :ok =
   :logger.add_handler(:default, :logger_std_h, %{
     config: %{type: {:device, Owl.LiveScreen}},
-    formatter: Logger.Formatter.new()
+    formatter: Logger.Formatter.new(),
+    # On OTP 28+ `:logger.add_handler/3` injects `filter_default: :stop` plus the
+    # kernel's default domain filters whenever the handler id is `:default` and no
+    # `:filters` key is given. Those filters drop Elixir's `domain: [:elixir]` events,
+    # so logs would silently never reach the device. Setting filters explicitly keeps
+    # behaviour identical on OTP 27 and OTP 28+.
+    filter_default: :log,
+    filters: []
   })
 
 ["ecto", "phoenix", "ex_doc", "broadway"]
